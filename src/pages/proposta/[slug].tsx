@@ -100,9 +100,19 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const slug = params?.slug as string;
   
-  // Aqui você carregaria os dados da proposta baseado no slug
-  // Por enquanto, vamos usar dados exemplo
-  const proposta: PropostaData = {
+  // Carregar dados baseado no slug
+  let proposta: PropostaData;
+  
+  if (slug === 'arisio-anapolis-2024-09-05') {
+    // Carregar dados do Arisio
+    const fs = require('fs');
+    const path = require('path');
+    const propostaPath = path.join(process.cwd(), 'src/data/clientes/arisio/proposta.json');
+    const propostaData = JSON.parse(fs.readFileSync(propostaPath, 'utf8'));
+    proposta = propostaData;
+  } else {
+    // Dados exemplo para outros slugs
+    proposta = {
     cliente: {
       nome: 'Arisio Cliente',
       cidade: 'Anápolis/GO',
@@ -158,6 +168,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     dataGeracao: '05/09/2024',
     dataValidade: '15/09/2024'
   };
+  }
 
   return {
     props: {
