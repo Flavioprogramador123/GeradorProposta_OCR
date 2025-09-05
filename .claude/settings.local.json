@@ -4,7 +4,9 @@
       "Bash(cp:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx vercel:*)"
     ],
     "deny": [],
     "ask": []

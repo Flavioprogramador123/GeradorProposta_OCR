@@ -107,7 +107,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     // Carregar dados do Arisio
     const fs = require('fs');
     const path = require('path');
-    const propostaPath = path.join(process.cwd(), 'src/data/clientes/arisio/proposta.json');
+    const propostaPath = path.join(process.cwd(), 'src/data/clientes/Arisio/proposta.json');
     const propostaData = JSON.parse(fs.readFileSync(propostaPath, 'utf8'));
     proposta = propostaData;
   } else {
