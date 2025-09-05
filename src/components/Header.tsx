@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="pieng-card p-8 mb-5 text-center">
-      <PiengLogo />
+      <PiengLogo variant="circular" size="md" />
       
       <div className="text-2xl font-bold text-pieng-primary mb-3">
         PIENG Soluções Energéticas

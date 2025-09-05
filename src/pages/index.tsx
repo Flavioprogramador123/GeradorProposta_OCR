@@ -13,7 +13,7 @@ export default function HomePage() {
 
       <div className="pieng-container min-h-screen flex items-center justify-center">
         <div className="pieng-card p-10 text-center max-w-md">
-          <PiengLogo size="lg" className="mb-6" />
+          <PiengLogo variant="circular" size="lg" className="mb-6" />
           
           <h1 className="text-3xl font-bold text-pieng-primary mb-4">
             Sistema de Propostas Solares

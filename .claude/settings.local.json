@@ -6,7 +6,8 @@
       "Bash(git commit:*)",
       "Bash(vercel:*)",
       "Bash(npm run dev:*)",
-      "Bash(npx vercel:*)"
+      "Bash(npx vercel:*)",
+      "Bash(start msedge \"http://localhost:3000/test-logos\")"
     ],
     "deny": [],
     "ask": []
