@@ -1,18 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // output: 'export', // Comentado para permitir dynamic routing em dev
   trailingSlash: true,
   images: {
     unoptimized: true
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/proposta/:slug',
-        destination: '/proposta/[slug]'
-      }
-    ]
   }
+  // rewrites removido pois não é necessário com dynamic routing
 }
 
 module.exports = nextConfig

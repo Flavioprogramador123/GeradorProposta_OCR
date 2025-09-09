@@ -7,7 +7,9 @@
       "Bash(vercel:*)",
       "Bash(npm run dev:*)",
       "Bash(npx vercel:*)",
-      "Bash(start msedge \"http://localhost:3000/test-logos\")"
+      "Bash(start msedge \"http://localhost:3000/test-logos\")",
+      "Bash(start msedge \"http://localhost:3001/proposta/bin-pirinopolis\")",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

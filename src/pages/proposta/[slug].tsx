@@ -88,7 +88,9 @@ export const getStaticPaths: GetStaticPaths = async () => {
   // Em produção, você carregaria os slugs da base de dados
   const paths = [
     { params: { slug: 'exemplo' } },
-    { params: { slug: 'arisio-anapolis-2024-09-05' } }
+    { params: { slug: 'arisio-anapolis-2024-09-05' } },
+    { params: { slug: 'eduardo-farmacia-anapolis-2024-09-05' } },
+    { params: { slug: 'bin-pirinopolis' } }
   ];
 
   return {
@@ -104,12 +106,102 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   let proposta: PropostaData;
   
   if (slug === 'arisio-anapolis-2024-09-05') {
-    // Carregar dados do Arisio
+    // Usar dados de exemplo para Arisio
+    proposta = {
+      cliente: {
+        nome: 'Arisio Cliente',
+        cidade: 'Anápolis/GO',
+        consumoKwh: '450',
+        tipo: 'Residencial',
+        hspLocal: '5.42'
+      },
+      sistemas: [
+        {
+          titulo: 'Sistema Econômico',
+          potencia: '4,62 kWp',
+          especificacoes: [
+            '14 módulos 330W monocristalino',
+            '1 inversor 5kW string',
+            'Estrutura alumínio',
+            'Cabeamento CC/CA completo',
+            'String box DC/AC'
+          ],
+          precoRiscado: 'R$ 21.500,00',
+          precoAtual: 'R$ 16.847,73',
+          tagDesconto: 'ECONOMIA DE 22%',
+          precoPixDecimal: 15980.34,
+          preco12x: 'R$ 1.403,98',
+          preco18x: 'R$ 1.069,32',
+          geracao: '630 kWh',
+          cobertura: '140%',
+          economia: 'R$ 378,00',
+          payback: '19,6 meses',
+          tir: '61,2%',
+          isRecommended: true,
+          badge: '⭐ MELHOR PAYBACK'
+        }
+      ],
+      analise: {
+        paybackMin: '19,6',
+        paybackMax: '19,6',
+        melhorSistemaNome: 'Sistema Econômico',
+        melhorSistemaPotencia: '4,62 kWp',
+        melhorSistemaPix: 'R$ 15.980,34',
+        melhorSistemaPayback: '19,6 meses',
+        geracaoMax: '630',
+        coberturaMax: '140%',
+        tirMax: '61,2%',
+        economiaTarifa: 'R$ 0,60'
+      },
+      empresa: {
+        contato: '(62) 99167-0536',
+        email: 'contato@piengsolucoes.com.br',
+        site: 'www.piengsolucoes.com.br',
+        whatsapp: '5562991670536'
+      },
+      bannerUrgencia: '⚡ OFERTA ESPECIAL: DESCONTO EXCLUSIVO VÁLIDO ATÉ 15/09/2024! ÚLTIMAS UNIDADES COM ESTE PREÇO! ⚡',
+      dataGeracao: '05/09/2024',
+      dataValidade: '15/09/2024'
+    };
+  } else if (slug === 'eduardo-farmacia-anapolis-2024-09-05') {
+    // Carregar dados do Eduardo Farmácia
     const fs = require('fs');
     const path = require('path');
-    const propostaPath = path.join(process.cwd(), 'src/data/clientes/Arisio/proposta.json');
+    const propostaPath = path.join(process.cwd(), 'src/data/clientes/eduardoFarmacia/proposta.json');
     const propostaData = JSON.parse(fs.readFileSync(propostaPath, 'utf8'));
     proposta = propostaData;
+  } else if (slug === 'bin-pirinopolis') {
+    // Carregar dados do Binpiri
+    const fs = require('fs');
+    const path = require('path');
+    const propostaPath = path.join(process.cwd(), 'src/data/clientes/binpiri/proposta.json');
+    const propostaData = JSON.parse(fs.readFileSync(propostaPath, 'utf8'));
+    
+    // Completar dados faltantes
+    proposta = {
+      ...propostaData,
+      analise: {
+        paybackMin: '17,6',
+        paybackMax: '18,4',
+        melhorSistemaNome: 'Sistema Econômico',
+        melhorSistemaPotencia: '8,61 kWp',
+        melhorSistemaPix: 'R$ 17.257,65',
+        melhorSistemaPayback: '17,6 meses',
+        geracaoMax: '930',
+        coberturaMax: '93%',
+        tirMax: '68,2%',
+        economiaTarifa: 'R$ 0,98'
+      },
+      empresa: {
+        contato: '(62) 99167-0536',
+        email: 'contato@piengsolucoes.com.br',
+        site: 'www.piengsolucoes.com.br',
+        whatsapp: '5562991670536'
+      },
+      bannerUrgencia: '⚡ OPORTUNIDADE EXCLUSIVA: PAYBACK EXCEPCIONAL ABAIXO DE 18 MESES! ⚡',
+      dataGeracao: '09/09/2025',
+      dataValidade: '23/09/2025'
+    };
   } else {
     // Dados exemplo para outros slugs
     proposta = {

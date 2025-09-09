@@ -26,6 +26,9 @@ https://pieng-propostas.vercel.app/proposta/nome-cidade-data
 
 ### **1. Coleta de Dados (Mantida)**
 Colete as informações do cliente:
+  - pergunte o nome do cliente para o usuario, analise a pasta no src/data/clientes/[nome]/ 
+  - analise se ha o arquivo dadosusuario.md com os dados necessarios
+  - analise se tem as proposta podem ir de 1 a 5 propostas.
 - Nome do cliente
 - Tipo de imóvel (residencial, comercial, industrial, rural)
 - Consumo mensal (kWh)

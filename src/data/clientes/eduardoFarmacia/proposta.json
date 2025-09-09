@@ -1,0 +1,110 @@
+{
+  "cliente": {
+    "nome": "Eduardo",
+    "cidade": "Anápolis/GO",
+    "consumoKwh": "1500",
+    "tipo": "Residencial",
+    "hspLocal": "5.21"
+  },
+  "empresa": {
+    "contato": "(62) 99167-0536",
+    "email": "contato@piengsolucoes.com.br",
+    "site": "www.piengsolucoes.com.br",
+    "whatsapp": "5562991670536"
+  },
+  "dataGeracao": "05/09/2024",
+  "dataValidade": "15/09/2024",
+  "sistemas": [
+    {
+      "titulo": "Sistema Econômico",
+      "potencia": "9,90 kWp",
+      "especificacoes": [
+        "22 módulos 450W Monocristalino",
+        "1 inversor 10kW String",
+        "Estrutura em alumínio",
+        "Cabeamento CC/CA",
+        "Proteções elétricas"
+      ],
+      "precoRiscado": "R$ 30.388,88",
+      "precoAtual": "R$ 27.349,99",
+      "tagDesconto": "ECONOMIA DE 10%",
+      "precoPixDecimal": 27349.99,
+      "preco12x": "R$ 2.532,41",
+      "preco18x": "R$ 1.800,66",
+      "geracao": "1155 kWh",
+      "cobertura": "77%",
+      "economia": "R$ 1.134,21",
+      "payback": "21,3 meses",
+      "tir": "56,3%",
+      "isRecommended": false,
+      "badge": ""
+    },
+    {
+      "titulo": "Sistema Popular",
+      "potencia": "10,80 kWp",
+      "especificacoes": [
+        "24 módulos 450W Monocristalino",
+        "1 inversor 12kW String",
+        "Estrutura em alumínio",
+        "Cabeamento CC/CA",
+        "Proteções elétricas"
+      ],
+      "precoRiscado": "R$ 32.444,43",
+      "precoAtual": "R$ 29.199,99",
+      "tagDesconto": "ECONOMIA DE 10%",
+      "precoPixDecimal": 29199.99,
+      "preco12x": "R$ 2.703,70",
+      "preco18x": "R$ 1.922,37",
+      "geracao": "1260 kWh",
+      "cobertura": "84%",
+      "economia": "R$ 1.237,32",
+      "payback": "19,8 meses",
+      "tir": "60,6%",
+      "isRecommended": true,
+      "badge": "⭐ MELHOR PAYBACK"
+    },
+    {
+      "titulo": "Sistema Premium",
+      "potencia": "12,15 kWp",
+      "especificacoes": [
+        "27 módulos 450W Monocristalino",
+        "1 inversor 15kW String",
+        "Estrutura em alumínio",
+        "Cabeamento CC/CA",
+        "Proteções elétricas",
+        "Sistema de monitoramento"
+      ],
+      "precoRiscado": "R$ 36.333,32",
+      "precoAtual": "R$ 32.699,99",
+      "tagDesconto": "ECONOMIA DE 10%",
+      "precoPixDecimal": 32699.99,
+      "preco12x": "R$ 3.027,78",
+      "preco18x": "R$ 2.152,63",
+      "geracao": "1417 kWh",
+      "cobertura": "94%",
+      "economia": "R$ 1.391,49",
+      "payback": "20,5 meses",
+      "tir": "58,5%",
+      "isRecommended": false,
+      "badge": ""
+    }
+  ],
+  "analise": {
+    "paybackMin": "19,8",
+    "paybackMax": "21,3",
+    "melhorSistemaNome": "Sistema Popular",
+    "melhorSistemaPotencia": "10,80 kWp",
+    "melhorSistemaPix": "R$ 29.199,99",
+    "melhorSistemaPayback": "19,8 meses",
+    "geracaoMax": "1417",
+    "coberturaMax": "94%",
+    "tirMax": "60,6%",
+    "economiaTarifa": "R$ 0,982",
+    "tipoCliente": "Residencial",
+    "hspLocal": "5,21",
+    "performanceRate": "75%",
+    "economiaAnual": "R$ 17.676,00",
+    "tempoRetorno": "19,8 meses"
+  },
+  "bannerUrgencia": "⚡ OPORTUNIDADE EXCLUSIVA: PAYBACK EXCEPCIONAL ABAIXO DE 20 MESES! ⚡"
+}

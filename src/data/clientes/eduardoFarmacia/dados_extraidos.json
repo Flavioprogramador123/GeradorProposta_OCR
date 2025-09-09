@@ -1,0 +1,29 @@
+{
+  "orcamentos": [
+    {
+      "fornecedor": "Solar01",
+      "potencia_kwp": "9.90",
+      "modulos": "22x 450W Monocristalino",
+      "inversores": "1x 10kW String",
+      "pcusto": 19450.00,
+      "outros_componentes": ["Estrutura alumínio", "Cabeamento CC/CA", "Proteções elétricas"]
+    },
+    {
+      "fornecedor": "Cotação WEB",
+      "potencia_kwp": "10.80",
+      "modulos": "24x 450W Monocristalino",
+      "inversores": "1x 12kW String",
+      "pcusto": 21300.00,
+      "outros_componentes": ["Estrutura alumínio", "Cabeamento CC/CA", "Proteções elétricas"]
+    },
+    {
+      "fornecedor": "FORTLEV",
+      "potencia_kwp": "12.15",
+      "modulos": "27x 450W Monocristalino",
+      "inversores": "1x 15kW String",
+      "pcusto": 24800.00,
+      "outros_componentes": ["Estrutura alumínio", "Cabeamento CC/CA", "Proteções elétricas", "Monitoramento"]
+    }
+  ]
+}
+

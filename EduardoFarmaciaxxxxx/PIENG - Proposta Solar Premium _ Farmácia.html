@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<!-- saved from url=(0098)file:///C:/Users/flavi/Dropbox/PROPOSTAS/propostarapidamanus/.cursor/rules/pieng_proposta_001.html -->
+<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIENG - Proposta Solar Premium | Farmácia</title>
+    <style>
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    }
+
+    :root {
+    --primary: #3d2aa8dc;
+    --secondary: #6780ac;
+    --accent: #0b7c0f;
+    --success: #3e9251;
+    --danger: #c44a25;
+    --glass-bg: rgba(23, 175, 186, 0.514);
+    --glass-border: rgba(255, 255, 255, 0.336);
+    --shadow-soft: 0 20px 60px rgba(0, 0, 0, 0.521);
+    --shadow-hard: 0 30px 80px rgba(0, 0, 0, 0.555);
+    --brand-petroleum: #1F4E5F;
+    --brand-gold: #C9A74F;
+    --offwhite: #3da77b;
+    --text-secondary: #4d3d3d;
+    --surface-card: #458f7063;
+    }
+
+    body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    min-height: 100vh;
+    color: #3333;
+    overflow-x: hidden;
+    position: relative;
+    }
+
+    /* Layout Container com moldura */
+    .main-layout {
+    position: relative;
+    min-height: 100vh;
+    padding: 15px;
+    background:
+    radial-gradient(circle at 20% 50%, rgba(255, 107, 53, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(118, 75, 162, 0.08) 0%, transparent 50%);
+    }
+
+    /* Moldura principal */
+    .main-layout::before {
+    content: '';
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 25px;
+    z-index: -2;
+    backdrop-filter: blur(1px);
+    }
+
+    /* Animated Background */
+    body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+    radial-gradient(circle at 25% 60%, rgba(255, 107, 53, 0.06) 0%, transparent 60%),
+    radial-gradient(circle at 75% 30%, rgba(102, 126, 234, 0.06) 0%, transparent 60%),
+    radial-gradient(circle at 50% 90%, rgba(118, 75, 162, 0.06) 0%, transparent 60%);
+    animation: backgroundFloat 30s ease-in-out infinite;
+    z-index: -3;
+    }
+
+    @keyframes backgroundFloat {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+    33% { transform: scale(1.05) rotate(120deg); opacity: 0.6; }
+    66% { transform: scale(0.98) rotate(240deg); opacity: 0.9; }
+    }
+
+    .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+    }
+
+    /* Hero Section */
+    .hero-section {
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    border-radius: 35px;
+    padding: 60px;
+    margin-bottom: 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    }
+
+    .hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: rotate 15s linear infinite;
+    }
+
+    .hero-section::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 25px;
+    pointer-events: none;
+    }
+
+    @keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+    }
+
+    .hero-content {
+    position: relative;
+    z-index: 10;
+    }
+
+    .logo-premium {
+    width: 140px;
+    height: 140px;
+    background: linear-gradient(135deg, var(--accent) 0%, #F7931E 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 40px;
+    font-size: 56px;
+    color: white;
+    font-weight: 900;
+    box-shadow: 0 25px 50px rgba(255, 107, 53, 0.4);
+    animation: logoFloat 8s ease-in-out infinite;
+    position: relative;
+    }
+
+    @keyframes logoFloat {
+    0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+    25% { transform: translateY(-15px) scale(1.05) rotate(5deg); }
+    50% { transform: translateY(-10px) scale(1.02) rotate(0deg); }
+    75% { transform: translateY(-20px) scale(1.08) rotate(-5deg); }
+    }
+
+    .hero-title {
+    font-size: 4.2em;
+    font-weight: 900;
+    margin-bottom: 25px;
+    background: linear-gradient(135deg, #fff 0%, #f0f0f0 50%, #fff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    letter-spacing: -2px;
+    line-height: 1.1;
+    }
+
+    .hero-subtitle {
+    font-size: 1.6em;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 35px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    }
+
+    .client-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), #e55a2b);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 60px;
+    font-size: 1.3em;
+    font-weight: bold;
+    box-shadow: 0 15px 35px rgba(255, 107, 53, 0.4);
+    animation: badgePulse 5s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    }
+
+    @keyframes badgePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 15px 35px rgba(255, 107, 53, 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 20px 45px rgba(255, 107, 53, 0.5); }
+    }
+
+    /* Cards Grid */
+    .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 50px;
+    margin: 60px 0;
+    align-items: stretch;
+    }
+
+    .system-card {
+    background: var(--surface-card);
+    backdrop-filter: blur(0px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 30px;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    min-height: 680px;
+    }
+
+    .system-card:hover {
+    transform: translateY(-20px) scale(1.02);
+    box-shadow: var(--shadow-hard);
+    border-color: rgb(255, 255, 255);
+    }
+
+    .system-card.featured {
+    background: var(--offwhite);
+    border-color: rgba(201, 167, 79, 0.5);
+    box-shadow: var(--shadow-hard);
+    }
+
+    .card-badge {
+    position: absolute;
+    top: 25px;
+    right: 25px;
+    background: var(--brand-gold);
+    color: #1f2a33;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-size: 0.95em;
+    font-weight: bold;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    z-index: 15;
+    }
+
+    .card-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 1;
+    }
+
+    .card-header {
+    text-align: center;
+    margin-bottom: 35px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    }
+
+    .card-icon {
+    font-size: 3.5em;
+    margin-bottom: 16px;
+    display: block;
+    line-height: 1;
+    }
+
+    .card-title {
+    font-size: 2em;
+    font-weight: 900;
+    color: var(--brand-petroleum);
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+    }
+
+    .card-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1em;
+    margin-bottom: 25px;
+    font-weight: 500;
+    }
+
+    /* Specs Grid */
+    .specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 30px 0;
+    min-height: 180px;
+    }
+
+    .spec-item {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    transition: all 0.4s ease;
+    }
+
+    .spec-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05) translateY(-5px);
+    }
+
+    .spec-value {
+    font-size: 2.2em;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    margin-bottom: 8px;
+    }
+
+    .spec-label {
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    }
+
+    /* Equipment List */
+    .equipment-list {
+    margin: 30px 0;
+    min-height: 210px;
+    }
+
+    .equipment-list h4 {
+    color: white;
+    font-size: 1.3em;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    font-weight: 700;
+    }
+
+    .equipment-item {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 15px;
+    padding: 15px 20px;
+    margin: 12px 0;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: all 0.4s ease;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    }
+
+    .equipment-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(15px);
+    }
+
+    /* Price Section com Pinvestimento Riscado */
+    .price-section {
+    background: #EFEFEF;
+    backdrop-filter: blur(0px);
+    border: 1px solid rgba(31, 78, 95, 0.18);
+    border-radius: 25px;
+    padding: 30px;
+    margin: 30px 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto auto;
+    row-gap: 20px;
+    }
+
+    .price-anchor {
+    background: rgba(255, 59, 48, 0.18);
+    border: 2px solid var(--danger);
+    border-radius: 15px;
+    padding: 15px;
+    position: relative;
+    min-height: 92px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    }
+
+    .price-crossed {
+    color: var(--danger);
+    font-size: 2.2em;
+    font-weight: 900;
+    text-decoration: line-through;
+    text-decoration-color: var(--danger);
+    text-decoration-thickness: 4px;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    }
+
+    .price-label-crossed {
+    color: rgba(87, 14, 10, 0.9);
+    font-size: 0.9em;
+    font-weight: bold;
+    text-transform: uppercase;
+    white-space: nowrap;
+    }
+
+    .price-main {
+    background: linear-gradient(135deg, var(--brand-petroleum), #133847);
+    border-radius: 20px;
+    padding: 25px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(31, 78, 95, 0.3);
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    }
+
+    .price-label {
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    }
+
+    .price-value {
+    color: white;
+    font-size: 2.6em;
+    font-weight: 900;
+    margin: 15px 0;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    letter-spacing: -1px;
+    line-height: 1;
+    }
+
+    .price-discount {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--brand-petroleum);
+    font-weight: bold;
+    font-size: 1.2em;
+    padding: 10px 20px;
+    border-radius: 25px;
+    display: inline-block;
+    margin-top: 12px;
+    }
+
+    /* Payment Options */
+    .payment-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    align-items: stretch;
+    min-height: 150px;
+    }
+
+    .payment-item {
+    background: var(--offwhite);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 15px;
+    padding: 20px 15px;
+    text-align: center;
+    transition: all 0.4s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 120px;
+    }
+
+    /* PIX Destaque */
+    .payment-item.pix-highlight {
+    background: linear-gradient(135deg, var(--success), #b8c920);
+    border: 2px solid var(--success);
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(46, 204, 113, 0.35);
+    transform: translateY(-2px);
+    }
+    .payment-item.pix-highlight .payment-title,
+    .payment-item.pix-highlight .payment-value {
+    color: #ffffff;
+    }
+    .payment-item.pix-highlight .payment-value { font-size: 1.5em; }
+
+    .payment-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05) translateY(-3px);
+    }
+
+    .payment-title {
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    }
+
+    .payment-value {
+    color: var(--brand-petroleum);
+    font-size: 1.3em;
+    font-weight: bold;
+    }
+
+    /* Action Button */
+    .action-btn {
+    width: 100%;
+    background: var(--brand-petroleum);
+    border: none;
+    color: white;
+    padding: 22px;
+    border-radius: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    margin-top: auto;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 15px 35px rgba(31, 78, 95, 0.35);
+    }
+
+    .action-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 45px rgba(31, 78, 95, 0.5);
+    }
+
+    /* Section Headers */
+    .section-header {
+    text-align: center;
+    margin-bottom: 60px;
+    }
+
+    .section-title {
+    font-size: 3.2em;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 20px;
+    text-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    letter-spacing: -1px;
+    }
+
+    .section-description {
+    font-size: 1.3em;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.6;
+    }
+
+    /* Comparison Table */
+    .comparison-section {
+    background: var(--offwhite);
+    backdrop-filter: blur(0px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 30px;
+    padding: 50px;
+    margin: 60px 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow-soft);
+    }
+
+    .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 40px 0;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    }
+
+    .comparison-table th {
+    background: linear-gradient(135deg, var(--brand-petroleum), #133847);
+    color: #ffffff;
+    padding: 25px 15px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    }
+
+    .comparison-table td {
+    background: #ffffff;
+    color: #1f2a33;
+    padding: 20px 12px;
+    text-align: center;
+    font-size: 0.95em;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    }
+
+    .comparison-table tr:hover td {
+    background: rgba(255, 255, 255, 0.25);
+    }
+
+    .comparison-table .winner {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.3), rgba(40, 167, 69, 0.2));
+    color: #fff;
+    font-weight: bold;
+    }
+
+    /* Analysis Section */
+    .analysis-section {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    padding: 60px 50px;
+    border-radius: 30px;
+    margin: 60px 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    }
+
+    .analysis-title {
+    text-align: center;
+    font-size: 2.8em;
+    font-weight: 900;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 30px;
+    position: relative;
+    z-index: 2;
+    }
+
+    .insight-card {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(15px);
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transition: all 0.4s ease;
+    }
+
+    .insight-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(255, 255, 255, 0.15);
+    }
+
+    .insight-number {
+    font-size: 3em;
+    margin-bottom: 20px;
+    color: rgba(255, 255, 255, 0.7);
+    }
+
+    .insight-card h4 {
+    font-size: 1.4em;
+    margin-bottom: 20px;
+    color: #FFD700;
+    font-weight: 700;
+    }
+
+    .insight-card ul {
+    list-style: none;
+    margin: 0;
+    }
+
+    .insight-card li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+    font-weight: 500;
+    line-height: 1.5;
+    }
+
+    .insight-card li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--success);
+    font-weight: bold;
+    }
+
+    /* CTA Section */
+    .cta-section {
+    background: var(--offwhite);
+    backdrop-filter: blur(0px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 35px;
+    padding: 60px;
+    margin: 60px 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    }
+
+    .cta-title {
+    font-size: 2.8em;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 25px;
+    text-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    letter-spacing: -1px;
+    }
+
+    .cta-subtitle {
+    font-size: 1.3em;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 45px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+    }
+
+    .cta-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin: 50px 0;
+    }
+
+    .cta-btn {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 30px;
+    border-radius: 25px;
+    font-size: 1.15em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    text-decoration: none;
+    display: block;
+    }
+
+    .cta-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-8px);
+    }
+
+    .cta-btn-icon {
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    display: block;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+    .main-layout { padding: 8px; }
+    .hero-title { font-size: 2.8em; }
+    .cards-grid { grid-template-columns: 1fr; gap: 40px; }
+    .specs-grid { grid-template-columns: 1fr; }
+    .payment-options { grid-template-columns: 1fr; }
+    .cta-buttons { grid-template-columns: 1fr; }
+    .insights-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 1200px) {
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    </style>
+</head>
+
+<body>
+    <div class="main-layout">
+    <div class="container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+    <div class="hero-content">
+    <div class="logo-premium">P</div>
+    <h1 class="hero-title">PIENG</h1>
+    <p class="hero-subtitle">Soluções Energéticas de Alto Desempenho</p>
+    <div class="client-badge">
+    🏪 FARMÁCIA | PROPRIETÁRIO EDUARDO
+    </div>
+    </div>
+
+    <!-- Systems Section -->
+    <div class="systems-container">
+    <div class="section-header">
+    <h2 class="section-title">⚡ Soluções Solares Premium</h2>
+    <p class="section-description">
+    Três sistemas de alta performance desenvolvidos especialmente para sua farmácia,
+    com tecnologia de ponta e ROI excepcional.
+    </p>
+    </div>
+
+    <div class="cards-grid">
+    <!-- Sistema 1 - Soollar (Featured) -->
+    <div class="system-card featured" style="opacity: 1; transform: translateY(0px) scale(1); transition: 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: rgba(255, 107, 53, 0.5) 0px 0px 80px, rgba(0, 0, 0, 0.2) 0px 30px 80px;">
+    <div class="card-badge">🏆 MELHOR ECONOMIA</div>
+    <div class="card-content">
+    <div class="card-header">
+    <div class="card-icon">💎</div>
+    <h3 class="card-title">SOOLLAR PREMIUM</h3>
+    <p class="card-subtitle">Tecnologia HJT + N-Type</p>
+    </div>
+
+    <div class="specs-grid">
+    <div class="spec-item">
+    <div class="spec-value">15,8</div>
+    <div class="spec-label">kWp</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">17,8</div>
+    <div class="spec-label">meses payback</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">1.856</div>
+    <div class="spec-label">kWh/mês</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">67,4%</div>
+    <div class="spec-label">TIR ao ano</div>
+    </div>
+    </div>
+
+    <div class="equipment-list">
+    <h4>🔧 Equipamentos:</h4>
+    <div class="equipment-item">12x Módulos Jetion HJT Bifacial 700W</div>
+    <div class="equipment-item">14x Módulos TSUN N-Type 600W</div>
+    <div class="equipment-item">3x Microinversores SAJ 2,25kW</div>
+    <div class="equipment-item">1x Inversor SAJ AFCI Mono 6kW</div>
+    <div class="equipment-item" style="visibility: hidden;">placeholder</div>
+    </div>
+
+    <!-- GATILHO EMOCIONAL: Pinvestimento Riscado -->
+    <div class="price-section">
+    <div class="price-anchor">
+    <div class="price-label-crossed">❌ Preço Tradicional:</div>
+    <div class="price-crossed">R$ 41.363</div>
+    <div style="color: var(--danger); font-size: 0.9em; font-weight: bold;">⚠️ VALOR CANCELADO</div>
+    </div>
+    
+    <div class="price-main">
+    <div class="price-label">💰 INVESTIMENTO À VISTA:</div>
+    <div class="price-value">R$ 36.767</div>
+    <div class="price-discount">ECONOMIA: R$ 4.596</div>
+    </div>
+    </div>
+
+    <div class="payment-options">
+    <div class="payment-item pix-highlight">
+    <div class="payment-title">💎 PIX</div>
+    <div class="payment-value">R$ 33.090</div>
+    <div style="font-size: 0.8em; color: var(--success); font-weight: bold;">10% DESCONTO</div>
+    </div>
+    <div class="payment-item">
+    <div class="payment-title">12x SEM JUROS</div>
+    <div class="payment-value">R$ 3.064</div>
+    </div>
+    <div class="payment-item">
+    <div class="payment-title">18x CARTÃO</div>
+    <div class="payment-value">R$ 2.176</div>
+    </div>
+    </div>
+
+    <button class="action-btn" onclick="selecionarSistema(&#39;Soollar Premium HJT&#39;, 33090)">
+    ESCOLHER ESTA SOLUÇÃO
+    </button>
+    </div>
+    </div>
+
+    <!-- Sistema 2 - BelEnergy -->
+    <div class="system-card" style="opacity: 1; transform: translateY(0px) scale(1); transition: 1s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div class="card-badge">🔒 MÁXIMA POTÊNCIA</div>
+    <div class="card-content">
+    <div class="card-header">
+    <div class="card-icon">🛡️</div>
+    <h3 class="card-title">BELENERGY</h3>
+    <p class="card-subtitle">Astronergy N-Type Premium</p>
+    </div>
+
+    <div class="specs-grid">
+    <div class="spec-item">
+    <div class="spec-value">18,0</div>
+    <div class="spec-label">kWp</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">16,9</div>
+    <div class="spec-label">meses payback</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">2.113</div>
+    <div class="spec-label">kWh/mês</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">71,1%</div>
+    <div class="spec-label">TIR ao ano</div>
+    </div>
+    </div>
+
+    <div class="equipment-list">
+    <h4>🔧 Equipamentos:</h4>
+    <div class="equipment-item">30x Módulos Astronergy N-Type 600W</div>
+    <div class="equipment-item">3x Microinversores Foxess 2,5kW</div>
+    <div class="equipment-item">1x Inversor Huawei 6kW</div>
+    <div class="equipment-item" style="visibility: hidden;">placeholder</div>
+    </div>
+
+    <!-- GATILHO EMOCIONAL: Pinvestimento Riscado -->
+    <div class="price-section">
+    <div class="price-anchor">
+    <div class="price-label-crossed">❌ Preço Tradicional:</div>
+    <div class="price-crossed">R$ 44.769</div>
+    <div style="color: var(--danger); font-size: 0.9em; font-weight: bold;">⚠️ VALOR CANCELADO</div>
+    </div>
+    
+    <div class="price-main">
+    <div class="price-label">💰 INVESTIMENTO À VISTA:</div>
+    <div class="price-value">R$ 39.794</div>
+    <div class="price-discount">ECONOMIA: R$ 4.975</div>
+    </div>
+    </div>
+
+    <div class="payment-options">
+    <div class="payment-item pix-highlight">
+    <div class="payment-title">💎 PIX</div>
+    <div class="payment-value">R$ 35.815</div>
+    <div style="font-size: 0.8em; color: var(--success); font-weight: bold;">10% DESCONTO</div>
+    </div>
+    <div class="payment-item">
+    <div class="payment-title">12x SEM JUROS</div>
+    <div class="payment-value">R$ 3.316</div>
+    </div>
+    <div class="payment-item">
+    <div class="payment-title">18x CARTÃO</div>
+    <div class="payment-value">R$ 2.356</div>
+    </div>
+    </div>
+
+    <button class="action-btn" onclick="selecionarSistema(&#39;BelEnergy Astronergy&#39;, 35815)">
+    ESCOLHER ESTA SOLUÇÃO
+    </button>
+    </div>
+    </div>
+
+    <!-- Sistema 3 - Fortlev -->
+    <div class="system-card" style="opacity: 1; transform: translateY(0px) scale(1); transition: 1s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div class="card-badge">🚀 MÁXIMA CONFIABILIDADE</div>
+    <div class="card-content">
+    <div class="card-header">
+    <div class="card-icon">⚡</div>
+    <h3 class="card-title">FORTLEV</h3>
+    <p class="card-subtitle">Longi Premium + Solis</p>
+    </div>
+
+    <div class="specs-grid">
+    <div class="spec-item">
+    <div class="spec-value">18,1</div>
+    <div class="spec-label">kWp</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">19,8</div>
+    <div class="spec-label">meses payback</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">2.127</div>
+    <div class="spec-label">kWh/mês</div>
+    </div>
+    <div class="spec-item">
+    <div class="spec-value">60,6%</div>
+    <div class="spec-label">TIR ao ano</div>
+    </div>
+    </div>
+
+    <div class="equipment-list">
+    <h4>🔧 Equipamentos:</h4>
+    <div class="equipment-item">31x Módulos Longi 585Wp</div>
+    <div class="equipment-item">2x Inversores Solis 7,5kW</div>
+    <div class="equipment-item" style="visibility: hidden;">placeholder</div>
+    <div class="equipment-item" style="visibility: hidden;">placeholder</div>
+    </div>
+
+    <!-- GATILHO EMOCIONAL: Pinvestimento Riscado -->
+    <div class="price-section">
+    <div class="price-anchor">
+    <div class="price-label-crossed">❌ Preço Tradicional:</div>
+    <div class="price-crossed">R$ 52.797</div>
+    <div style="color: var(--danger); font-size: 0.9em; font-weight: bold;">⚠️ VALOR CANCELADO</div>
+    </div>
+    
+    <div class="price-main">
+    <div class="price-label">💰 INVESTIMENTO À VISTA:</div>
+    <div class="price-value">R$ 46.931</div>
+    <div class="price-discount">ECONOMIA: R$ 5.866</div>
+    </div>
+    </div>
+
+    <div class="payment-options">
+    <div class="payment-item pix-highlight">
+    <div class="payment-title">💎 PIX</div>
+    <div class="payment-value">R$ 42.238</div>
+    <div style="font-size: 0.8em; color: var(--success); font-weight: bold;">10% DESCONTO</div>
+    </div>
+    <div class="payment-item">
+    <div class="payment-title">12x SEM JUROS</div>
+    <div class="payment-value">R$ 3.911</div>
+    </div>
+    <div class="payment-item">
+    <div class="payment-title">18x CARTÃO</div>
+    <div class="payment-value">R$ 2.777</div>
+    </div>
+    </div>
+
+    <button class="action-btn" onclick="selecionarSistema(&#39;Fortlev Longi Premium&#39;, 42238)">
+    ESCOLHER ESTA SOLUÇÃO
+    </button>
+    </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Comparison Section -->
+    <div class="comparison-section" style="opacity: 1; transform: translateY(0px) scale(1); transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div class="section-header">
+    <h2 class="section-title">📊 COMPARAÇÃO TÉCNICO-FINANCEIRA COMPLETA</h2>
+    <p class="section-description">
+    Análise detalhada de performance e retorno financeiro para cada sistema
+    </p>
+    </div>
+
+    <table class="comparison-table">
+    <thead>
+    <tr>
+    <th>SISTEMA</th>
+    <th>POTÊNCIA</th>
+    <th>PIX</th>
+    <th>12X S/JUROS</th>
+    <th>18X CARTÃO</th>
+    <th>GERAÇÃO/MÊS</th>
+    <th>PAYBACK</th>
+    <th>TIR</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr class="winner">
+    <td><strong>🏆 BELENERGY</strong></td>
+    <td><strong>18,0 kWp</strong></td>
+    <td><strong>R$ 35.815</strong></td>
+    <td><strong>12x R$ 3.316</strong></td>
+    <td><strong>18x R$ 2.356</strong></td>
+    <td><strong>2.113 kWh</strong></td>
+    <td><strong>16,9 meses</strong></td>
+    <td><strong>71,1% a.a.</strong></td>
+    </tr>
+    <tr>
+    <td>💎 SOOLLAR</td>
+    <td>15,8 kWp</td>
+    <td>R$ 33.090</td>
+    <td>12x R$ 3.064</td>
+    <td>18x R$ 2.176</td>
+    <td>1.856 kWh</td>
+    <td>17,8 meses</td>
+    <td>67,4% a.a.</td>
+    </tr>
+    <tr>
+    <td>⚡ FORTLEV</td>
+    <td>18,1 kWp</td>
+    <td>R$ 42.238</td>
+    <td>12x R$ 3.911</td>
+    <td>18x R$ 2.777</td>
+    <td>2.127 kWh</td>
+    <td>19,8 meses</td>
+    <td>60,6% a.a.</td>
+    </tr>
+    </tbody>
+    </table>
+    </div>
+
+    <!-- Analysis Section com 3 Cards Estratégicos -->
+    <div class="analysis-section" style="opacity: 1; transform: translateY(0px) scale(1); transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;">
+    <h3 class="analysis-title">🎯 ANÁLISE ESTRATÉGICA: POR QUE INVESTIR AGORA?</h3>
+    <div class="insights-grid">
+    
+    <div class="insight-card" style="opacity: 1; transform: translateY(0px) scale(1); transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div class="insight-number">💰</div>
+    <h4>PAYBACK RÁPIDO &amp; SEGURANÇA FINANCEIRA</h4>
+    <ul>
+    <li>Melhor sistema com payback de apenas 16,9 meses</li>
+    <li>TIR superior a 71% ao ano - supera qualquer aplicação</li>
+    <li>Retorno garantido em menos de 1,5 anos</li>
+    <li>Proteção total contra volatilidade do mercado</li>
+    <li>Valorização do imóvel comercial em 15-20%</li>
+    </ul>
+    </div>
+
+    <div class="insight-card" style="opacity: 1; transform: translateY(0px) scale(1); transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div class="insight-number">⚡</div>
+    <h4>ECONOMIA IMEDIATA &amp; PROTEÇÃO INFLAÇÃO</h4>
+    <ul>
+    <li>Economia de R$ 1.860 a R$ 2.324 por mês</li>
+    <li>Redução de 83% A 85% na conta de luz</li>
+    <li>Blindagem contra reajustes tarifários (8-12% a.a.)</li>
+    <li>Fluxo de caixa liberado para crescimento da farmácia</li>
+    <li>Margem operacional aumenta significativamente</li>
+    </ul>
+    </div>
+
+    <div class="insight-card" style="opacity: 1; transform: translateY(0px) scale(1); transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div class="insight-number">⏰</div>
+    <h4>ECONOMIA IMEDIATA:</h4>
+    <ul>
+    <li>Desconto de 10% no pagamento PIX</li>
+    <li>Sem juros e taxas bancárias</li>
+    <li>Janela de oportunidade se fechando rapidamente</li>
+    <li>Quem não investir agora perde rentabilidade para sempre</li>
+    <li>Seus concorrentes já estão economizando - não fique para trás</li>
+    </ul>
+    </div>
+
+    </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section" style="opacity: 1; transform: translateY(0px) scale(1); transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;">
+    <div class="cta-content">
+    <h2 class="cta-title">🚀 Transforme Sua Farmácia</h2>
+    <p class="cta-subtitle">
+    Reduza custos operacionais drasticamente. Seus concorrentes já estão economizando -
+    não perca esta oportunidade única de blindar sua margem contra a inflação energética.
+    </p>
+
+    <div class="cta-buttons">
+    <a href="https://wa.me/5562991670536?text=%F0%9F%8F%AA%20Ol%C3%A1%20PIENG!%20Sou%20propriet%C3%A1rio%20de%20farm%C3%A1cia%20e%20vi%20as%20propostas%20solares%20premium.%20Gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20sistema%20que%20tem%20melhor%20payback.%20Quando%20podemos%20conversar?" class="cta-btn">
+    <span class="cta-btn-icon">📱</span>
+    <strong>WhatsApp Direto</strong><br>
+    Atendimento especializado
+    </a>
+    <a href="tel:+5562991670536" class="cta-btn">
+    <span class="cta-btn-icon">📞</span>
+    <strong>Ligação Imediata</strong><br>
+    (62) 99167-0536
+    </a>
+    <a href="https://wa.me/5562991670536?text=%F0%9F%8F%AA%20Ol%C3%A1%20PIENG!%20Sou%20propriet%C3%A1rio%20de%20farm%C3%A1cia.%20Gostaria%20de%20agendar%20uma%20visita%20t%C3%A9cnica%20para%20an%C3%A1lise%20completa%20do%20consumo%20e%20viabilidade.%20Quando%20a%20equipe%20pode%20vir?" class="cta-btn">
+    <span class="cta-btn-icon">🏪</span>
+    <strong>Visita Técnica</strong><br>
+    Análise completa gratuita
+    </a>
+    </div>
+
+    <div style="margin-top: 50px; padding: 35px; background: rgba(255,255,255,0.15); border-radius: 25px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.25);">
+    <h4 style="color: white; margin-bottom: 20px; font-size: 1.3em; font-weight: 700;">💡 Garantias do Fabricante</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; color: rgba(255,255,255,0.95); font-size: 0.95em; font-weight: 500;">
+    <div>⚡ <strong>Instalação:</strong> 30-45 dias</div>
+    <div>🛡️ <strong>Garantia:</strong> 25 anos performance</div>
+    <div>📱 <strong>Monitoramento:</strong> 24h remoto</div>
+    <div>🌿 <strong>Sustentabilidade:</strong> -16 ton CO²/ano</div>
+    </div>
+    <p style="margin-top: 25px; color: rgba(255,255,255,0.9); font-size: 0.9em; line-height: 1.6;">
+    <strong>📊 Cálculos:</strong> HSP 5,21 | Tarifa R$ 1,10/kWh | Performance 75% | TUSD 45% (2025) | Simultaneidade 30%<br>
+    <strong>💰 Pagamento:</strong> PIX 10% OFF | 12x sem juros | 18x cartão | <strong>Economia cresce com inflação tarifária</strong>
+    </p>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+
+    <script>
+    // Função para seleção de sistema
+    function selecionarSistema(sistema, preco) {
+    const mensagem = `🏪 Olá PIENG! Sou proprietário de farmácia.
+
+Tenho interesse no sistema ${sistema}.
+
+💰 Valor à vista PIX: R$ ${preco.toLocaleString('pt-BR')} (10% desconto)
+💳 Parcelamento disponível também
+
+🏪 Empresa: Farmácia
+⚡ Consumo estimado para análise
+
+Gostaria de:
+✅ Visita técnica detalhada
+✅ Análise de consumo personalizada
+✅ Condições especiais de financiamento
+✅ Cronograma de instalação
+✅ Toda documentação para aprovação
+
+Aguardo contato para fecharmos este investimento!`;
+
+    window.open(`https://wa.me/5562991670536?text=${encodeURIComponent(mensagem)}`, '_blank');
+    }
+
+    // Animações
+    document.addEventListener('DOMContentLoaded', function () {
+    // Animação sequencial dos cards
+    const cards = document.querySelectorAll('.system-card');
+    cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(80px) scale(0.9)';
+
+    setTimeout(() => {
+    card.style.transition = 'all 1s cubic-bezier(0.4, 0, 0.2, 1)';
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0) scale(1)';
+    }, index * 300);
+    });
+
+    // Animação especial para o card featured
+    const featuredCard = document.querySelector('.featured');
+    if (featuredCard) {
+    setInterval(() => {
+    featuredCard.style.boxShadow = '0 0 80px rgba(255, 107, 53, 0.5), 0 30px 80px rgba(0, 0, 0, 0.2)';
+    setTimeout(() => {
+    featuredCard.style.boxShadow = '0 30px 80px rgba(0, 0, 0, 0.2), 0 0 60px rgba(255, 107, 53, 0.3)';
+    }, 3000);
+    }, 8000);
+    }
+
+    // Observer para animações de entrada
+    const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+    if (entry.isIntersecting) {
+    entry.target.style.opacity = '1';
+    entry.target.style.transform = 'translateY(0) scale(1)';
+    }
+    });
+    }, { threshold: 0.2, rootMargin: '50px' });
+
+    // Aplicar observer
+    document.querySelectorAll('.comparison-section, .analysis-section, .cta-section').forEach((el, index) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(50px) scale(0.98)';
+    el.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.transitionDelay = `${index * 0.1}s`;
+    observer.observe(el);
+    });
+
+    // Animação dos insight cards
+    const insightCards = document.querySelectorAll('.insight-card');
+    insightCards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(40px) scale(0.95)';
+
+    setTimeout(() => {
+    card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0) scale(1)';
+    }, 800 + (index * 100));
+    });
+    });
+    </script>
+
+
+</div></body></html>

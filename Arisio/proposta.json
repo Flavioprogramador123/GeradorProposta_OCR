@@ -1,0 +1,157 @@
+{
+  "cliente": {
+    "nome": "Arisio",
+    "cidade": "Anápolis/GO",
+    "consumoKwh": "800",
+    "tipo": "Residencial",
+    "hspLocal": "5,21"
+  },
+  "sistemas": [
+    {
+      "titulo": "💰 Sistema Econômico",
+      "potencia": "6,96 kWp",
+      "especificacoes": [
+        "12 módulos 580W N-Type Bifacial",
+        "1 inversor SAJ AFCI 6kW 220V",
+        "Estrutura alumínio telha fibrocimento",
+        "Cabeamento solar 4mm e 6mm completo",
+        "DPS 275V 20kA + conectores MC4",
+        "Garantia total inversores 20 anos"
+      ],
+      "precoRiscado": "R$ 19.743,60",
+      "precoAtual": "R$ 16.119,84",
+      "tagDesconto": "ECONOMIA DE 18%",
+      "precoPixDecimal": 15119.84,
+      "preco12x": "R$ 1.457,76",
+      "preco18x": "R$ 1.111,10",
+      "geracao": "946 kWh",
+      "cobertura": "118%",
+      "economia": "R$ 567,60",
+      "payback": "26,6 meses",
+      "tir": "45,1%",
+      "isRecommended": false,
+      "badge": ""
+    },
+    {
+      "titulo": "🏆 Sistema Popular",
+      "potencia": "7,38 kWp",
+      "especificacoes": [
+        "12 módulos 615W GCL N-Type Bifacial",
+        "1 inversor SAJ AFCI 6kW 220V",
+        "Estrutura alumínio premium",
+        "Cabeamento solar reforçado completo",
+        "DPS proteção + conectores MC4",
+        "Garantia total inversores 20 anos"
+      ],
+      "precoRiscado": "R$ 20.375,76",
+      "precoAtual": "R$ 16.413,48",
+      "tagDesconto": "MELHOR CUSTO-BENEFÍCIO",
+      "precoPixDecimal": 15413.48,
+      "preco12x": "R$ 1.490,39",
+      "preco18x": "R$ 1.136,00",
+      "geracao": "1003 kWh",
+      "cobertura": "125%",
+      "economia": "R$ 601,80",
+      "payback": "25,6 meses",
+      "tir": "46,9%",
+      "isRecommended": true,
+      "badge": "⭐ MELHOR PAYBACK"
+    },
+    {
+      "titulo": "⚡ Sistema Performance",
+      "potencia": "7,41 kWp",
+      "especificacoes": [
+        "13 módulos 570W Astronergy Bifacial",
+        "1 inversor AUXSOL 5kW monofásico",
+        "Estrutura alumínio alta performance",
+        "Cabeamento premium 4mm e 6mm",
+        "DPS classe II + conectores solares",
+        "Sistema completo pronto entrega"
+      ],
+      "precoRiscado": "R$ 20.217,46",
+      "precoAtual": "R$ 16.847,73",
+      "tagDesconto": "TECNOLOGIA PREMIUM",
+      "precoPixDecimal": 15847.73,
+      "preco12x": "R$ 1.521,86",
+      "preco18x": "R$ 1.160,00",
+      "geracao": "1007 kWh",
+      "cobertura": "126%",
+      "economia": "R$ 604,20",
+      "payback": "26,2 meses",
+      "tir": "45,8%",
+      "isRecommended": false,
+      "badge": "🔥 ALTA PERFORMANCE"
+    },
+    {
+      "titulo": "👑 Sistema Premium",
+      "potencia": "8,12 kWp",
+      "especificacoes": [
+        "14 módulos 580W N-Plus Bifacial",
+        "1 inversor SAJ AFCI 6kW premium",
+        "Estrutura alumínio premium reforçada",
+        "Cabeamento solar premium completo",
+        "Proteções avançadas DPS",
+        "Garantia total 20 anos"
+      ],
+      "precoRiscado": "R$ 21.260,88",
+      "precoAtual": "R$ 17.134,08",
+      "tagDesconto": "MÁXIMA GERAÇÃO",
+      "precoPixDecimal": 16134.08,
+      "preco12x": "R$ 1.549,34",
+      "preco18x": "R$ 1.181,82",
+      "geracao": "1103 kWh",
+      "cobertura": "138%",
+      "economia": "R$ 661,80",
+      "payback": "24,4 meses",
+      "tir": "49,2%",
+      "isRecommended": false,
+      "badge": "👑 PREMIUM"
+    },
+    {
+      "titulo": "💎 Sistema Supremo",
+      "potencia": "8,63 kWp",
+      "especificacoes": [
+        "15 módulos 575W Astronergy Bifacial",
+        "1 inversor AUXSOL 6kW máxima potência",
+        "Estrutura alumínio suprema 4 linhas",
+        "Cabeamento reforçado premium",
+        "Proteções máximas + DPS classe II",
+        "Sistema top de linha"
+      ],
+      "precoRiscado": "R$ 22.122,10",
+      "precoAtual": "R$ 18.101,75",
+      "tagDesconto": "TOP DE LINHA",
+      "precoPixDecimal": 17101.75,
+      "preco12x": "R$ 1.641,84",
+      "preco18x": "R$ 1.252,03",
+      "geracao": "1173 kWh",
+      "cobertura": "147%",
+      "economia": "R$ 703,80",
+      "payback": "24,3 meses",
+      "tir": "49,4%",
+      "isRecommended": false,
+      "badge": "💎 TOP DE LINHA"
+    }
+  ],
+  "analise": {
+    "paybackMin": "24,3",
+    "paybackMax": "26,6",
+    "melhorSistemaNome": "🏆 Sistema Popular",
+    "melhorSistemaPotencia": "7,38 kWp",
+    "melhorSistemaPix": "R$ 15.413,48",
+    "melhorSistemaPayback": "25,6 meses",
+    "geracaoMax": "1173",
+    "coberturaMax": "147%",
+    "tirMax": "49,4%",
+    "economiaTarifa": "R$ 0,60"
+  },
+  "empresa": {
+    "contato": "(62) 99167-0536",
+    "email": "contato@piengsolucoes.com.br",
+    "site": "www.piengsolucoes.com.br",
+    "whatsapp": "5562991670536"
+  },
+  "bannerUrgencia": "⚡ OPORTUNIDADE EXCLUSIVA: PAYBACK EXCEPCIONAL ABAIXO DE 25 MESES! VÁLIDO ATÉ 12/09/2024! ⚡",
+  "dataGeracao": "05/09/2024",
+  "dataValidade": "12/09/2024"
+}

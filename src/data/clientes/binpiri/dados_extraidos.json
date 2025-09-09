@@ -1,0 +1,65 @@
+{
+    "propostas": [
+        {
+            "arquivo_origem": "sollar1.pdf",
+            "fornecedor": "SOOLLAR DISTRIBUIDORA",
+            "cliente": "PIENG SOLUCOES ENERGETICAS",
+            "data": "09/09/2025",
+            "itens_principais": [
+                "15x PREVISÃO DE ENTREGA 04/10 MODULO 600W N-TYPE TSUN BIFACIAL 30MM-GO",
+                "1x INVERSOR SAJ AFCI MONO 6K-R5 220V 2MPPT"
+            ],
+            "financeiro": {
+                "subtotal": "R$ 9.579,90",
+                "frete": "R$ 439,91",
+                "total": "R$ 10.019,81"
+            },
+            "transporte": {
+                "transportadora": "g5- expressogoiás go x df",
+                "centro_de_distribuicao": "CDGOIANIA"
+            }
+        },
+        {
+            "arquivo_origem": "sollar2.pdf",
+            "fornecedor": "SOOLLAR DISTRIBUIDORA",
+            "cliente": "PIENG SOLUCOES ENERGETICAS",
+            "data": "09/09/2025",
+            "itens_principais": [
+                "14x R$ 0,699WP /- PREVISAO DE ENTREGA 01/10 - MODULO 615W GCL BIFACIAL N-TYPE 30MM-GO",
+                "1x INVERSOR SAJ AFCI MONO 6K-R5 220V 2MPPT"
+            ],
+            "financeiro": {
+                "subtotal": "R$ 9.307,36",
+                "frete": "R$ 450,30",
+                "total": "R$ 9.757,66"
+            },
+            "transporte": {
+                "transportadora": "g5 - use go x go",
+                "centro_de_distribuicao": "CDGOIANIA"
+            }
+        },
+        {
+            "arquivo_origem": "BELENERGY.pdf",
+            "fornecedor": "BelEnergy",
+            "cliente": "PIENG SOLUCOES ENERGETICAS LTDA",
+            "cliente_final": "bin piri Pirenópolis GO",
+            "numero_cotacao": "WEB-004273692",
+            "data": "09/09/2025",
+            "potencia_sistema": "9 kWp",
+            "itens_principais": [
+                "15x MODULO MONOFACIAL 144 CEL. N TYPE 600W CABO 1.2M HONOR",
+                "1x INVERSOR DE CORRENTE MONOFASICO 2MPPT 220V 6.6KW DEYE"
+            ],
+            "financeiro": {
+                "total_produtos": "R$ 9.146,23",
+                "frete": "R$ 1.342,21",
+                "total": "R$ 10.488,44"
+            },
+            "transporte": {
+                "origem": "Belenus-Itupeva",
+                "modalidade": "CIF - Transportadora Coleta"
+            },
+            "condicao_pagamento": "PIX"
+        }
+    ]
+}
