@@ -9,7 +9,8 @@
       "Bash(npx vercel:*)",
       "Bash(start msedge \"http://localhost:3000/test-logos\")",
       "Bash(start msedge \"http://localhost:3001/proposta/bin-pirinopolis\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "WebFetch(domain:pieng-propostas.vercel.app)"
     ],
     "deny": [],
     "ask": []

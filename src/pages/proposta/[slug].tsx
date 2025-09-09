@@ -198,7 +198,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         site: 'www.piengsolucoes.com.br',
         whatsapp: '5562991670536'
       },
-      bannerUrgencia: '⚡ OPORTUNIDADE EXCLUSIVA: PAYBACK EXCEPCIONAL ABAIXO DE 18 MESES! ⚡',
+      bannerUrgencia: '🐎⚔️ OPORTUNIDADE EXCLUSIVA PIRENÓPOLIS: PAYBACK EXCEPCIONAL ABAIXO DE 18 MESES! ⚡',
       dataGeracao: '09/09/2025',
       dataValidade: '23/09/2025'
     };
