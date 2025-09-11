@@ -1,0 +1,16 @@
+{
+  "cliente": {
+    "nome": "teste 02",
+    "cidade": "anapolis/GO",
+    "consumoKwh": "700",
+    "tipo": "Residencial",
+    "hspLocal": "5.21",
+    "slug": "teste-02-anapolis"
+  },
+  "sistemas": [],
+  "metadata": {
+    "created": "2025-09-10T14:21:35.145Z",
+    "pdespesa": 7500,
+    "status": "aguardando_orcamentos"
+  }
+}

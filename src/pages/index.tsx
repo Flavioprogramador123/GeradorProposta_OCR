@@ -26,17 +26,17 @@ export default function HomePage() {
           <div className="space-y-4">
             <Link 
               href="/admin" 
-              className="pieng-button-primary block"
-            >
+              legacyBehavior
+            ><a className="pieng-button-primary block">
               🔧 Área Administrativa
-            </Link>
+            </a></Link>
             
             <Link 
               href="/proposta/exemplo" 
-              className="pieng-button-secondary block"
-            >
+              legacyBehavior
+            ><a className="pieng-button-secondary block">
               👁️ Ver Exemplo de Proposta
-            </Link>
+            </a></Link>
           </div>
           
           <div className="mt-8 text-xs text-pieng-muted">

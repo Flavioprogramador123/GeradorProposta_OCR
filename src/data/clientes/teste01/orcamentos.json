@@ -1,0 +1,42 @@
+[
+  {
+    "id": "a877c9a7-7ccd-4ccd-8b7c-8485728e9baf",
+    "fornecedor": "Fornecedor não identificado",
+    "valorTotal": 0,
+    "componentes": {},
+    "arquivos": [
+      {
+        "nome": "sollar01.pdf",
+        "tipo": "pdf"
+      }
+    ],
+    "dataOrcamento": "2025-09-11T13:28:22.901Z",
+    "status": "pendente",
+    "createdAt": "2025-09-11T13:28:22.916Z",
+    "updatedAt": "2025-09-11T13:28:22.916Z"
+  },
+  {
+    "id": "6119c98b-755b-4922-8cc1-4cddf8059f77",
+    "fornecedor": "Fornecedor não identificado",
+    "valorTotal": 0,
+    "componentes": {},
+    "arquivos": [
+      {
+        "nome": "Fortlev Solar.pdf",
+        "tipo": "pdf"
+      },
+      {
+        "nome": "sollar01.pdf",
+        "tipo": "pdf"
+      },
+      {
+        "nome": "sollar02.pdf",
+        "tipo": "pdf"
+      }
+    ],
+    "dataOrcamento": "2025-09-11T13:29:02.054Z",
+    "status": "pendente",
+    "createdAt": "2025-09-11T13:29:02.068Z",
+    "updatedAt": "2025-09-11T13:29:02.068Z"
+  }
+]

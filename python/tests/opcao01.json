@@ -1,0 +1,14 @@
+﻿{
+  "potenciaModulos": 580,
+  "quantidadeModulos": 20,
+  "potenciaInversor": 10,
+  "hspLocal": 5.21,
+  "valorSistema": 21510.79,
+  "tarifaEnergia": 0.982,
+  "consumoMensal": 1500,
+  "performanceRatio": 0.75,
+  "degradacaoAnual": 0.005,
+  "inflacao": 4.5,
+  "selic": 10.65,
+  "vidaUtil": 25
+}

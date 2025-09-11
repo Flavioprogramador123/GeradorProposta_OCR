@@ -1,0 +1,114 @@
+{
+  "modulos": [
+    {
+      "id": "mod-canadian-540w",
+      "tipo": "modulo",
+      "marca": "Canadian Solar",
+      "modelo": "HiKu6 Mono PERC CS6R-540MS",
+      "potencia": 540,
+      "especificacoes": [
+        "Eficiência: 20.9%",
+        "Tensão Máxima: 40.9V",
+        "Corrente Máxima: 13.20A",
+        "Dimensões: 2279x1134x35mm",
+        "Garantia: 12 anos produto, 25 anos performance"
+      ],
+      "precoReferencia": 450,
+      "disponivel": true,
+      "createdAt": "2025-09-10T14:14:08.361Z",
+      "updatedAt": "2025-09-10T14:14:08.361Z"
+    },
+    {
+      "id": "mod-jinko-550w",
+      "tipo": "modulo",
+      "marca": "Jinko Solar",
+      "modelo": "Tiger Neo N-type JKM550N-72HL4",
+      "potencia": 550,
+      "especificacoes": [
+        "Eficiência: 21.25%",
+        "Tecnologia N-type TOPCon",
+        "Tensão Máxima: 41.8V",
+        "Corrente Máxima: 13.16A",
+        "Coeficiente de temperatura: -0.30%/°C"
+      ],
+      "precoReferencia": 480,
+      "disponivel": true,
+      "createdAt": "2025-09-10T14:14:08.361Z",
+      "updatedAt": "2025-09-10T14:14:08.361Z"
+    },
+    {
+      "id": "mod-trina-545w",
+      "tipo": "modulo",
+      "marca": "Trina Solar",
+      "modelo": "Vertex S+ TSM-545NEG9R.28",
+      "potencia": 545,
+      "especificacoes": [
+        "Eficiência: 21.1%",
+        "Tecnologia Mono PERC",
+        "Tensão Máxima: 41.2V",
+        "Corrente Máxima: 13.25A",
+        "Resistente à degradação PID"
+      ],
+      "precoReferencia": 465,
+      "disponivel": true,
+      "createdAt": "2025-09-10T14:14:08.361Z",
+      "updatedAt": "2025-09-10T14:14:08.361Z"
+    }
+  ],
+  "inversores": [
+    {
+      "id": "inv-growatt-10k",
+      "tipo": "inversor",
+      "marca": "Growatt",
+      "modelo": "MIN 10000TL-XH",
+      "potencia": 10000,
+      "especificacoes": [
+        "Potência nominal: 10kW",
+        "Eficiência máxima: 98.4%",
+        "MPPT: 2 trackers",
+        "Tensão máxima: 1000V",
+        "Monitoramento WiFi integrado"
+      ],
+      "precoReferencia": 3500,
+      "disponivel": true,
+      "createdAt": "2025-09-10T14:14:08.361Z",
+      "updatedAt": "2025-09-10T14:14:08.361Z"
+    },
+    {
+      "id": "inv-fronius-8k",
+      "tipo": "inversor",
+      "marca": "Fronius",
+      "modelo": "Primo 8.2-1",
+      "potencia": 8200,
+      "especificacoes": [
+        "Potência nominal: 8.2kW",
+        "Eficiência máxima: 98.1%",
+        "MPPT: 1 tracker",
+        "Proteção IP65",
+        "Garantia: 5 anos"
+      ],
+      "precoReferencia": 4200,
+      "disponivel": true,
+      "createdAt": "2025-09-10T14:14:08.361Z",
+      "updatedAt": "2025-09-10T14:14:08.361Z"
+    },
+    {
+      "id": "inv-solis-15k",
+      "tipo": "inversor",
+      "marca": "Solis",
+      "modelo": "3P15K-4G",
+      "potencia": 15000,
+      "especificacoes": [
+        "Potência nominal: 15kW",
+        "Eficiência máxima: 98.3%",
+        "MPPT: 2 trackers",
+        "Proteção IP65",
+        "Display LCD integrado"
+      ],
+      "precoReferencia": 5800,
+      "disponivel": true,
+      "createdAt": "2025-09-10T14:14:08.361Z",
+      "updatedAt": "2025-09-10T14:14:08.361Z"
+    }
+  ]
+}

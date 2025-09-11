@@ -11,6 +11,11 @@ Sistema completo de geração de propostas solares com administração web, extr
 - CRUD completo de clientes (Criar, Ler, Atualizar, Deletar)
 - Sistema de configurações técnicas e comerciais
 - Gestão de orçamentos por cliente (até 5 por cliente)
+- **✨ NOVO: Editor de Orçamentos Completo**
+  - Interface visual para edição de módulos, inversores e componentes
+  - Cálculos automáticos em tempo real (subtotais + total geral)
+  - Validações de dados e persistência automática
+  - Rota: `/admin/orcamentos/[cliente]/editar/[orcamentoId]`
 
 #### 🤖 **Sistema Híbrido de IA + Python (v2.0)**
 **Arquitetura Profissional Anti-Alucinação:**
@@ -149,6 +154,9 @@ OPENROUTER_API_KEY=sua_chave_openrouter
 AI_ENABLED=true
 AI_MAX_TOKENS=4096
 AI_DAILY_TOKEN_LIMIT=10000
+
+# Google Maps API (para geolocalização)
+apigooglemaps=sua_chave_google_maps
 ```
 
 ### 📋 **Fluxo de Trabalho**
@@ -156,8 +164,9 @@ AI_DAILY_TOKEN_LIMIT=10000
 1. **Cadastro de Cliente** → `/admin/novo-cliente`
 2. **Upload de Orçamentos** → `/admin/orcamentos/[cliente]/upload`
 3. **Extração Automática** → AI processa PDF/imagem
-4. **Revisão Manual** → `/admin/orcamentos/[cliente]/manual`
-5. **Geração de Proposta** → `/proposta/[cliente]`
+4. **✨ NOVO: Edição de Orçamento** → `/admin/orcamentos/[cliente]/editar/[orcamentoId]`
+5. **Revisão Manual** → `/admin/orcamentos/[cliente]/manual`
+6. **Geração de Proposta** → `/proposta/[cliente]`
 
 ### ⚙️ **Configurações Técnicas**
 
@@ -245,6 +254,11 @@ npm run dev
 ✅ **Interface Administrativa Completa FUNCIONAL**
 - ✅ CRUD de clientes totalmente funcional
 - ✅ Gestão de orçamentos por cliente operacional
+- ✅ **NOVO: Editor de Orçamentos Implementado**
+  - ✅ Interface visual completa para edição
+  - ✅ Cálculos automáticos em tempo real
+  - ✅ API PUT/GET/DELETE para orçamentos específicos
+  - ✅ Validações e persistência de dados
 - ✅ Links corrigidos para Next.js 13+ (cache warnings normais)
 - ✅ Sistema de configurações técnicas ativo
 
@@ -257,10 +271,32 @@ npm run dev
 5. **Autenticação** - Implementar login/logout para múltiplos usuários
 6. **Relatórios Avançados** - Dashboard com gráficos e métricas
 
-### 🎯 **Status do Projeto: SISTEMA HÍBRIDO OPERACIONAL** 
-**Versão 2.0 implementada com sucesso em 10/09/2025**
+### 🎯 **Status do Projeto: SISTEMA COMPLETO E OPERACIONAL** 
+**Versão 2.1 atualizada em 11/09/2025**
+- ✅ Sistema Híbrido IA+Python funcionando
+- ✅ Admin Dashboard completo
+- ✅ Editor de Orçamentos implementado
+- ✅ APIs de IA configuradas (Gemini/OpenAI/OpenRouter)
+- ✅ Google Maps API integrada
 
-### 🔄 Atualização 2025-09-11 — Correção Python e Testes (Eduardo/Anápolis)
+### 🔄 Atualização 2025-09-11 — Sistema Testado + Editor de Orçamentos
+
+**🚀 FUNCIONALIDADES TESTADAS E VALIDADAS:**
+1. ✅ **Interface Admin**: Dashboard, CRUD clientes, gestão orçamentos
+2. ✅ **Engine Python**: Cálculos científicos precisos (TIR 141.7% validado)
+3. ✅ **APIs de IA**: Gemini, OpenAI, OpenRouter configurados
+4. ✅ **Geração de Propostas**: Templates responsivos funcionais
+5. ✅ **NOVO: Editor de Orçamentos Completo**
+
+**📝 EDITOR DE ORÇAMENTOS IMPLEMENTADO:**
+- ✅ Página: `/admin/orcamentos/[cliente]/editar/[orcamentoId]`
+- ✅ Interface visual para módulos, inversores, estruturas
+- ✅ Cálculos automáticos em tempo real (subtotais + total)
+- ✅ API PUT/GET/DELETE funcionais
+- ✅ Validações e persistência de dados
+- ✅ **TESTADO**: Orçamento Bin Pirinópolis ID `124756bf-4dd1-4293-a30c-a694649fd410`
+
+**🔧 CORREÇÕES APLICADAS:**
 
 1) Correção aplicada no cálculo de geração (python/solar_calculator.py)
 ```diff
@@ -311,4 +347,10 @@ def calcular_geracao(self, potencia_kwp: float, hsp: float, pr: float) -> Dict[s
 ---
 
 **Sistema desenvolvido para PIENG Soluções Energéticas**  
-**Versão: 2.0 | Next.js + Vercel | IA-Powered** ⚡
+**Versão: 2.1 | Next.js + Vercel | IA-Powered + Editor Completo** ⚡
+
+### 📱 **Links Principais do Sistema**
+- **Admin Dashboard**: http://localhost:3002/admin
+- **Exemplo Editor**: http://localhost:3002/admin/orcamentos/binpiri/editar/124756bf-4dd1-4293-a30c-a694649fd410
+- **Proposta Bin Pirinópolis**: http://localhost:3002/proposta/binpiri
+- **API Clientes**: http://localhost:3002/api/admin/clientes/

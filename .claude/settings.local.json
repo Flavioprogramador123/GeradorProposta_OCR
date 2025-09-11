@@ -10,7 +10,14 @@
       "Bash(start msedge \"http://localhost:3000/test-logos\")",
       "Bash(start msedge \"http://localhost:3001/proposta/bin-pirinopolis\")",
       "Bash(npm run build:*)",
-      "WebFetch(domain:pieng-propostas.vercel.app)"
+      "WebFetch(domain:pieng-propostas.vercel.app)",
+      "Bash(set VERCEL_TOKEN=yyS5oRio8a7vfiMnu3uzeBPy)",
+      "Bash(node:*)",
+      "Bash(start msedge:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,8 @@
-# 🌞 Prompt Solar PIENG - Sistema Modernizado v2.0
+# 🌞 Prompt Solar PIENG - Sistema Next.js v2.0 ✅ FUNCIONANDO
 
-> **⚡ SISTEMA ATUALIZADO PARA NEXT.JS + VERCEL**  
-> Arquitetura moderna com componentes React e URLs profissionais
+> **🚀 SISTEMA TOTALMENTE MIGRADO PARA NEXT.JS + VERCEL**  
+> Arquitetura moderna com componentes React, URLs profissionais e deploy automático  
+> **Status:** ✅ Operacional em produção | 🔗 https://pieng-propostas.vercel.app
 
 ## 📋 Instruções Base
 
@@ -16,13 +17,19 @@
 template_proposta_pieng.html → HTML estático → Deploy manual
 ```
 
-**✅ Sistema Novo:**
+**✅ Sistema Next.js v2.0:**
 ```
-src/data/clientes/[nome]/proposta.json → Componentes React → URL única
-https://pieng-propostas.vercel.app/proposta/nome-cidade-data
+src/data/clientes/[nome]/proposta.json → Componentes React → Deploy automático
+https://pieng-propostas.vercel.app/proposta/nome-cidade
 ```
 
-## 🔧 Processo Atualizado
+**🎯 Exemplo funcionando:**
+```
+src/data/clientes/binpiri/proposta.json → https://pieng-propostas.vercel.app/proposta/bin-pirinopolis
+Cliente: Bin - Pirenópolis 🐎⚔️ (com símbolos das Cavalhadas)
+```
+
+## 🔧 Processo Next.js v2.0
 
 ### **1. Coleta de Dados (Mantida)**
 Colete as informações do cliente:
@@ -94,16 +101,37 @@ Crie arquivo: `src/data/clientes/[nome]/proposta.json`
 // Identificar sistema recomendado (melhor payback)
 ```
 
-### **5. Deploy Automático**
+### **5. Deploy Automático Next.js**
 ```bash
 # Após criar proposta.json:
-npm run build
+# 1. Adicionar slug ao getStaticPaths em src/pages/proposta/[slug].tsx
+# 2. Deploy automático:
 git add .
-git commit -m "Nova proposta: Cliente Nome"
-git push
+git commit -m "🐎⚔️ Nova proposta: Cliente Nome"
+npx vercel --prod --yes
 
 # URL ativa automaticamente:
-# https://pieng-propostas.vercel.app/proposta/nome-cidade-data
+# https://pieng-propostas.vercel.app/proposta/nome-cidade
+```
+
+### **🔧 Configuração de Novo Cliente (Next.js)**
+```typescript
+// 1. Adicionar em src/pages/proposta/[slug].tsx
+export const getStaticPaths: GetStaticPaths = async () => {
+  const paths = [
+    { params: { slug: 'bin-pirinopolis' } },  // ← Adicionar novo slug
+    // outros slugs...
+  ];
+  return { paths, fallback: false };
+};
+
+// 2. Adicionar loading de dados:
+} else if (slug === 'nome-cidade') {
+  const fs = require('fs');
+  const path = require('path');
+  const propostaPath = path.join(process.cwd(), 'src/data/clientes/nome/proposta.json');
+  const propostaData = JSON.parse(fs.readFileSync(propostaPath, 'utf8'));
+  proposta = { ...propostaData, /* dados complementares */ };
 ```
 
 ## 🔒 Regras de Segurança (Mantidas)
@@ -130,12 +158,13 @@ npm run dev
 # Acessar: http://localhost:3000
 ```
 
-### **Nova Proposta**
+### **Nova Proposta Next.js v2.0**
 ```bash
 # 1. Extrair dados PDFs → src/data/clientes/nome/dados_extraidos.json
 # 2. Criar proposta.json → src/data/clientes/nome/proposta.json  
-# 3. Deploy: git add . && git commit -m "Proposta Nome" && git push
-# 4. URL ativa: /proposta/nome-cidade-data
+# 3. Adicionar slug em [slug].tsx → { params: { slug: 'nome-cidade' } }
+# 4. Deploy: git add . && git commit -m "🐎⚔️ Proposta Nome" && npx vercel --prod --yes
+# 5. URL ativa: /proposta/nome-cidade
 ```
 
 ## ⚡ Execução com Dados Existentes
