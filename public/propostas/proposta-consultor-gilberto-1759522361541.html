@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#3366CC">
-    <link rel="icon" href="/assets/logos/logo-pieng-principal.jpg" type="image/jpeg">
-    <link rel="apple-touch-icon" href="/assets/logos/logo-pieng-principal.jpg">
-    <title>PIENG | Proposta Solar Personalizada - {{CLIENTE_CIDADE}}</title>
+    <title>PIENG | Proposta Solar Personalizada - São Paulo</title>
     <style>
         :root {
             --primary: #3366CC;
@@ -49,27 +46,53 @@
             position: relative;
         }
 
-        .pieng-logo-real {
+        .pieng-logo-css {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin-bottom: 20px;
         }
 
-        .pieng-logo-real img {
-            max-width: 250px;
-            height: auto;
-            margin-bottom: 15px;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+        .logo-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3366CC, #FF6B35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(51, 102, 204, 0.3);
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .company-tagline {
-            font-size: 16px;
-            font-weight: 600;
+        .logo-circle::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-pi {
+            font-size: 48px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            z-index: 1;
+            position: relative;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 900;
             color: var(--primary);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-top: 10px;
+            letter-spacing: 3px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
         .company-name {
@@ -451,32 +474,355 @@
             .urgency-banner { animation: none !important; }
         }
     </style>
+<style id="variant-styles">/**
+ * 🏠 CSS CUSTOMIZADO - RESIDENCIAL PREMIUM
+ * Tema: Azul moderno + Laranja energético
+ */
+
+.variant-residencial {
+  --variant-primary: #3366CC;
+  --variant-secondary: #FF6B35;
+  --variant-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --variant-accent: #FFD93D;
+  --variant-bg-light: #F8F9FF;
+}
+
+/* Hero Section */
+.variant-residencial .hero-section {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.variant-residencial .hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.variant-residencial .hero-section p {
+  font-size: 1.2rem;
+  opacity: 0.95;
+  margin-bottom: 25px;
+}
+
+/* Cards de Sistema */
+.variant-residencial .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-residencial .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(51, 102, 204, 0.2);
+  transform: translateY(-5px);
+}
+
+.variant-residencial .pieng-system-recommended {
+  border-color: var(--variant-secondary);
+  background: linear-gradient(to bottom, #FFF9F0 0%, white 100%);
+}
+
+.variant-residencial .pieng-badge {
+  background: var(--variant-secondary);
+  color: white;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
+}
+
+/* Seção de Benefícios */
+.variant-residencial .benefits-section {
+  background: var(--variant-bg-light);
+  padding: 40px 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-residencial .benefit-item {
+  padding: 12px 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  border-bottom: 1px solid rgba(51, 102, 204, 0.1);
+}
+
+.variant-residencial .benefit-item::before {
+  content: '✓ ';
+  color: var(--variant-primary);
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 1.3rem;
+}
+
+/* Valorização do Imóvel */
+.variant-residencial .valorization-section {
+  background: linear-gradient(135deg, #FFD93D 0%, #FFA726 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+.variant-residencial .valorization-section h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.variant-residencial .valorization-value {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 20px 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Impacto Ambiental */
+.variant-residencial .environmental-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-residencial .environmental-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+}
+
+/* CTA Button */
+.variant-residencial .cta-button {
+  background: var(--variant-secondary);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+  transition: all 0.3s ease;
+}
+
+.variant-residencial .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(255, 107, 53, 0.5);
+}
+
+/* Gráficos */
+.variant-residencial .chart-container {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  margin: 25px 0;
+}
+
+/* Tabelas */
+.variant-residencial table {
+  border-collapse: collapse;
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-residencial th {
+  background: var(--variant-primary);
+  color: white;
+  padding: 15px;
+  font-weight: 600;
+}
+
+.variant-residencial td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.variant-residencial tr:hover {
+  background: var(--variant-bg-light);
+}</style>
+
+      <style id="variant-css-vars">
+        :root {
+          --variant-primary: #3366CC;
+          --variant-secondary: #FF6B35;
+          --variant-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+      </style>
+    
 </head>
-<body>
+<body class="variant-residencial">
     <div class="container">
         <!-- HEADER -->
         <header class="header">
-            <div class="pieng-logo-real">
-                <img src="/assets/logos/logo-pieng-principal.jpg" alt="PIENG Soluções Energéticas" />
-                <div class="company-tagline">Soluções Energéticas</div>
+            <div class="pieng-logo-css">
+                <div class="logo-circle">
+                    <span class="logo-pi">π</span>
+                </div>
+                <div class="logo-text">PIENG</div>
             </div>
+            <div class="company-name">PIENG Soluções Energéticas</div>
             <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
             <div class="client-info">
-                <strong>Cliente:</strong> {{CLIENTE_NOME}} | 
-                <strong>Cidade:</strong> {{CLIENTE_CIDADE}} | 
-                <strong>Consumo:</strong> {{CLIENTE_CONSUMO_KWH}} kWh/mês | 
-                <strong>Tipo:</strong> {{CLIENTE_CONSUMO_TIPO}}
+                <strong>Cliente:</strong> Cliente gilberto | 
+                <strong>Cidade:</strong> São Paulo | 
+                <strong>Consumo:</strong> 600 kWh/mês | 
+                <strong>Tipo:</strong> residencial
             </div>
         </header>
 
         <!-- BANNER DE URGÊNCIA -->
         <div class="urgency-banner">
-            {{BANNER_URGENCIA}}
+            🚀 Oferta especial válida até o final do mês!
         </div>
 
         <!-- SISTEMAS SOLARES -->
         <section class="systems-grid">
-            {{SISTEMAS_HTML}}
+            
+        <div class="system-card ">
+          
+          <div class="card-header">
+            <div class="card-title">SISTEMA 1 </div>
+            <div class="card-power">Potência: 11.60 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>20 módulos 580W SOOLLAR</li>
+              <li>1 inversor SOOLLAR 10kW</li>
+              <li>Estrutura de alumínio</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 21168.00</div>
+              <div class="current-price">R$ 17640.00</div>
+              <div class="discount-tag">ECONOMIA DE 0%</div>
+              <div><strong>PIX: R$ 17640.00</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 1670.45
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 1180.72
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 1378 kWh | Cobertura: 230%<br>
+              Economia: R$ 1515.73 | Payback: 11.6 meses<br>
+              TIR: 103.1% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        <div class="system-card ">
+          
+          <div class="card-header">
+            <div class="card-title">SISTEMA 2 </div>
+            <div class="card-power">Potência: 11.60 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>20 módulos 580W BELENERGY</li>
+              <li>1 inversor BELENERGY 10kW</li>
+              <li>Estrutura de alumínio</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 20436.00</div>
+              <div class="current-price">R$ 17030.00</div>
+              <div class="discount-tag">ECONOMIA DE 0%</div>
+              <div><strong>PIX: R$ 17030.00</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 1612.69
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 1139.89
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 1378 kWh | Cobertura: 230%<br>
+              Economia: R$ 1515.73 | Payback: 11.2 meses<br>
+              TIR: 106.8% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        <div class="system-card recommended">
+          <div class="card-badge">⭐ RECOMENDADO</div>
+          <div class="card-header">
+            <div class="card-title">SISTEMA 3 ⭐ RECOMENDADO</div>
+            <div class="card-power">Potência: 11.60 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>20 módulos 580W FORTLEV</li>
+              <li>1 inversor FORTLEV 10kW</li>
+              <li>Estrutura de alumínio</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 19411.20</div>
+              <div class="current-price">R$ 16176.00</div>
+              <div class="discount-tag">ECONOMIA DE 0%</div>
+              <div><strong>PIX: R$ 16176.00</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 1531.82
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 1082.73
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 1378 kWh | Cobertura: 230%<br>
+              Economia: R$ 1515.73 | Payback: 10.7 meses<br>
+              TIR: 112.4% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
         </section>
 
         <!-- TABELA COMPARATIVA -->
@@ -496,7 +842,40 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {{TABELA_SISTEMAS}}
+                    
+        <tr class="recommended-row">
+          <td>SISTEMA 1 ⭐</td>
+          <td>11.60 kWp</td>
+          <td><strong>R$ 17640.00</strong></td>
+          <td>R$ 1670.45</td>
+          <td>R$ 1180.72</td>
+          <td>1378 kWh</td>
+          <td>11.6 meses</td>
+          <td>103.1%</td>
+        </tr>
+      
+        <tr >
+          <td>SISTEMA 2 </td>
+          <td>11.60 kWp</td>
+          <td><strong>R$ 17030.00</strong></td>
+          <td>R$ 1612.69</td>
+          <td>R$ 1139.89</td>
+          <td>1378 kWh</td>
+          <td>11.2 meses</td>
+          <td>106.8%</td>
+        </tr>
+      
+        <tr >
+          <td>SISTEMA 3 </td>
+          <td>11.60 kWp</td>
+          <td><strong>R$ 16176.00</strong></td>
+          <td>R$ 1531.82</td>
+          <td>R$ 1082.73</td>
+          <td>1378 kWh</td>
+          <td>10.7 meses</td>
+          <td>112.4%</td>
+        </tr>
+      
                 </tbody>
             </table>
         </section>
@@ -507,22 +886,22 @@
             <div class="insights-grid">
                 <div class="insight-item">
                     <div class="insight-title">💰 Payback Excepcional</div>
-                    <p>Com payback entre {{PAYBACK_MIN}} e {{PAYBACK_MAX}} meses, você recupera seu investimento rapidamente, gerando economia pura por mais de 23 anos da vida útil do sistema.</p>
+                    <p>Com payback entre 10.7 e 11.6 meses, você recupera seu investimento rapidamente, gerando economia pura por mais de 23 anos da vida útil do sistema.</p>
                 </div>
                 
                 <div class="insight-item">
                     <div class="insight-title">🏆 Sistema Recomendado</div>
-                    <p>O {{MELHOR_SISTEMA_NOME}} de {{MELHOR_SISTEMA_POTENCIA}} oferece o melhor payback com {{MELHOR_SISTEMA_PIX}} no PIX e retorno em apenas {{MELHOR_SISTEMA_PAYBACK}}, ideal para maximizar seu investimento.</p>
+                    <p>O Opção 3 de 11.60 kWp oferece o melhor payback com R$ 16176.00 no PIX e retorno em apenas 10.7 meses, ideal para maximizar seu investimento.</p>
                 </div>
                 
                 <div class="insight-item">
                     <div class="insight-title">⚡ Cobertura Completa</div>
-                    <p>Com até {{GERACAO_MAX}} de geração para seu consumo de {{CLIENTE_CONSUMO_KWH}} kWh/mês, você pode zerar sua conta de energia e ainda ter créditos na distribuidora.</p>
+                    <p>Com até 1378 de geração para seu consumo de 600 kWh/mês, você pode zerar sua conta de energia e ainda ter créditos na distribuidora.</p>
                 </div>
                 
                 <div class="insight-item">
                     <div class="insight-title">🌍 Cenário Energético Local</div>
-                    <p>Com HSP de {{HSP_LOCAL}} em {{CLIENTE_CIDADE}} e economia real de {{ECONOMIA_TARIFA}}/kWh, as condições são ideais para energia solar com TIR de até {{TIR_MAX}} ao ano.</p>
+                    <p>Com HSP de 5.21 em São Paulo e economia real de R$ 0,982/kWh, as condições são ideais para energia solar com TIR de até 112.4% ao ano.</p>
                 </div>
                 
                 <div class="insight-item">
@@ -532,7 +911,7 @@
                 
                 <div class="insight-item">
                     <div class="insight-title">🔒 Investimento Seguro</div>
-                    <p>Tecnologia consolidada, garantias extensas e retorno garantido fazem da energia solar o investimento mais seguro para {{CLIENTE_NOME}}.</p>
+                    <p>Tecnologia consolidada, garantias extensas e retorno garantido fazem da energia solar o investimento mais seguro para Cliente gilberto.</p>
                 </div>
             </div>
         </section>
@@ -543,17 +922,17 @@
             <p>Transforme sua relação com a energia elétrica hoje mesmo!</p>
             
             <div class="cta-buttons">
-                <a href="tel:{{EMPRESA_CONTATO}}" class="cta-primary">
+                <a href="tel:(62) 99167-0536" class="cta-primary">
                     📞 Ligar Agora<br>
-                    <small>{{EMPRESA_CONTATO}}</small>
+                    <small>(62) 99167-0536</small>
                 </a>
                 <a href="https://wa.me/5562991670536" class="cta-primary">
                     💬 WhatsApp<br>
                     <small>Resposta imediata</small>
                 </a>
-                <a href="mailto:{{EMPRESA_EMAIL}}" class="cta-primary">
+                <a href="mailto:contato@piengsolucoes.com.br" class="cta-primary">
                     ✉️ E-mail<br>
-                    <small>{{EMPRESA_EMAIL}}</small>
+                    <small>contato@piengsolucoes.com.br</small>
                 </a>
             </div>
         </section>
@@ -570,9 +949,9 @@
                 
                 <div>
                     <strong>Contatos</strong><br>
-                    📞 {{EMPRESA_CONTATO}}<br>
-                    ✉️ {{EMPRESA_EMAIL}}<br>
-                    🌐 {{EMPRESA_SITE}}
+                    📞 (62) 99167-0536<br>
+                    ✉️ contato@piengsolucoes.com.br<br>
+                    🌐 www.piengsolucoes.com.br
                 </div>
                 
                 <div>
@@ -587,10 +966,10 @@
                 <strong>Disclaimers Técnicos:</strong><br>
                 • Performance Rate: 75% conforme padrões da indústria (variação real: 72% a 78% dependendo das condições)<br>
                 • Base legal: Lei 14.300/2022 sobre TUSD • Simultaneidade residencial: 30% (variação ±10%)<br>
-                • HSP {{CLIENTE_CIDADE}}: {{HSP_LOCAL}} (fonte: CRESESB/INPE) • Economia considerando tarifa {{ECONOMIA_TARIFA}}/kWh para {{CLIENTE_CONSUMO_TIPO}}<br>
-                • Valores válidos até {{DATA_VALIDADE}} • Equipamentos sujeitos à disponibilidade de estoque<br><br>
+                • HSP São Paulo: 5.21 (fonte: CRESESB/INPE) • Economia considerando tarifa R$ 0,982/kWh para residencial<br>
+                • Valores válidos até 17/10/2025 • Equipamentos sujeitos à disponibilidade de estoque<br><br>
                 
-                <em>Proposta gerada em {{DATA_GERACAO}} • Válida por 7 dias • Sujeita à análise técnica do local</em>
+                <em>Proposta gerada em 03/10/2025 • Válida por 7 dias • Sujeita à análise técnica do local</em>
             </div>
         </footer>
     </div>

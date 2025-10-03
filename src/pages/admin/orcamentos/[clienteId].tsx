@@ -281,12 +281,6 @@ export default function GerenciarOrcamentos() {
                 <p className="text-sm text-gray-600">Criar propostas finais</p>
               </button>
 
-              <Link href="/admin/componentes" legacyBehavior><a className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
-                <div className="text-3xl mb-3 text-purple-600">🔧</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Componentes</h3>
-                <p className="text-sm text-gray-600">Gerenciar módulos/inversores</p>
-              </a></Link>
-
               <div className="p-6 bg-white rounded-xl shadow-lg text-center">
                 <div className="text-3xl mb-3 text-orange-600">📊</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Status</h3>
