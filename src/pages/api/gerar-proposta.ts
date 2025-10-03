@@ -406,9 +406,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 </body>
 </html>`;
 
-    // Criar diretório do cliente usando slug normalizado (sem acentos)
-    const clienteDir = path.join(process.cwd(), 'src/data/clientes', slug);
-    await fs.mkdir(clienteDir, { recursive: true });
+    // 🔧 CORREÇÃO NETLIFY: Verificar se estamos em ambiente serverless (Netlify/Vercel)
+    const isServerless = process.env.NETLIFY || process.env.VERCEL || !process.env.NODE_ENV || process.env.NODE_ENV === 'production';
+    
+    // Em produção (Netlify), usar /tmp. Em dev local, usar src/data/clientes
+    const baseDir = isServerless ? '/tmp' : path.join(process.cwd(), 'src/data/clientes');
+    const clienteDir = path.join(baseDir, slug);
+    
+    try {
+      await fs.mkdir(clienteDir, { recursive: true });
+    } catch (mkdirError) {
+      console.log('⚠️ Não foi possível criar diretório, salvando em /tmp');
+      // Fallback: salvar diretamente em /tmp sem subpasta
+      const tmpDir = '/tmp';
+      await fs.mkdir(tmpDir, { recursive: true });
+    }
 
     // 🚀 GERAR TEMPLATES USANDO ENGINE PADRÃO
     let arquivo = `proposta_${slug}.html`;
@@ -627,14 +639,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bannerUrgencia: "🚀 Oferta especial válida até o final do mês!"
     };
 
-    // Salvar arquivo JSON para Next.js
-    const jsonPath = path.join(clienteDir, 'proposta.json');
-    await fs.writeFile(jsonPath, JSON.stringify(propostaData, null, 2), 'utf8');
+    // Salvar arquivo JSON para Next.js (apenas em desenvolvimento)
+    if (!isServerless) {
+      const jsonPath = path.join(clienteDir, 'proposta.json');
+      await fs.writeFile(jsonPath, JSON.stringify(propostaData, null, 2), 'utf8');
+    }
 
-    res.status(200).json({
+    // 🔧 CORREÇÃO NETLIFY: Se em produção, retornar também o HTML inline
+    const response: any = {
       message: 'Proposta gerada com sucesso!',
       arquivo: arquivo,
-      caminho: arquivoPath,
+      caminho: isServerless ? `/tmp/${slug}/${arquivo}` : arquivoPath,
       slug: slug,
       // 🔧 NOVO: Dados secundários incorporados
       metadata: {
@@ -651,10 +666,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         warnings: validationResults.flatMap(r => r.validation?.warnings || []),
         errors: validationResults.flatMap(r => r.validation?.errors || [])
       }
-    });
+    };
+
+    // 🔧 CORREÇÃO NETLIFY: Ler o HTML gerado e retornar inline se em produção
+    if (isServerless) {
+      try {
+        const htmlContent = await fs.readFile(arquivoPath, 'utf8');
+        response.htmlContent = htmlContent;
+        response.downloadReady = true;
+      } catch (readError) {
+        console.log('⚠️ Aviso: Não foi possível ler HTML, mas arquivo foi salvo em:', arquivoPath);
+        response.downloadReady = false;
+      }
+    }
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('Erro ao gerar proposta:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    res.status(500).json({ 
+      message: 'Erro interno do servidor',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
   }
 }

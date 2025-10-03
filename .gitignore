@@ -95,3 +95,6 @@ SESSAO_*.md
 
 # Claude Code
 claude.code
+
+# Local Netlify folder
+.netlify

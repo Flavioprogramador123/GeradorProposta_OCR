@@ -57,7 +57,43 @@ export default function ConsultorOrcamentosPage() {
       try {
         setLoading(true);
         
-        // Simular carregamento de dados (substituir por API real)
+        // 🔧 PRIORIDADE 1: Tentar carregar do localStorage (vindo do Gerador Rápido)
+        const dadosLocalStorage = localStorage.getItem(`consultor-${clienteId}`);
+        
+        if (dadosLocalStorage) {
+          try {
+            const dados = JSON.parse(dadosLocalStorage);
+            console.log('✅ Dados carregados do Gerador Rápido:', dados);
+            
+            // Aplicar configurações do Gerador Rápido
+            if (dados.config) {
+              updateConfig(dados.config);
+            }
+            
+            // Configurar cliente
+            const clienteData: Cliente = {
+              id: clienteId as string,
+              nome: dados.cliente?.nome || 'Cliente Exemplo',
+              cidade: dados.cliente?.cidade || 'São Paulo',
+              consumoMensal: dados.cliente?.consumoMensal || 600
+            };
+            
+            // Configurar orçamentos
+            const orcamentosData: OrcamentoComparativo[] = dados.orcamentos || [];
+            
+            setCliente(clienteData);
+            setOrcamentos(orcamentosData);
+            
+            setLoading(false);
+            return; // Sucesso, não precisa carregar dados simulados
+          } catch (parseError) {
+            console.warn('⚠️ Erro ao parsear dados do localStorage:', parseError);
+          }
+        }
+        
+        // 🔧 FALLBACK: Dados simulados se não houver no localStorage
+        console.log('ℹ️ Carregando dados simulados (fallback)');
+        
         const clienteData: Cliente = {
           id: clienteId as string,
           nome: 'Cliente Exemplo',

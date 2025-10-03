@@ -848,13 +848,72 @@ consolidado_orcamentos_distribuidores:
                     🗂️ Tabela de Orçamentos ({orcamentos.length}) - Editável
                   </h3>
                   <div className="flex gap-3">
-                    <Link
-                      href="/consultor"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      target="_blank"
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Gerar slug baseado no nome do cliente
+                          const slug = `${config.nomeCliente
+                            .toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/[^a-z0-9]+/g, '-')}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}`;
+                          
+                          // Salvar orçamentos no localStorage para o consultor acessar
+                          const dadosConsultor = {
+                            cliente: {
+                              nome: config.nomeCliente,
+                              cidade: config.cidadeCliente,
+                              consumoMensal: config.consumoMensal,
+                              tipo: config.tipoImovel,
+                              hsp: config.hsp,
+                              tarifa: config.tarifa
+                            },
+                            orcamentos: orcamentos.map((orc, idx) => ({
+                              id: `${slug}-${idx + 1}`,
+                              nome: orc.nome || `Opção ${idx + 1}`,
+                              fornecedor: orc.distribuidora || 'N/A',
+                              pcusto: orc.pcusto,
+                              modulos: orc.modulos,
+                              pot_modulo: orc.pot_modulo,
+                              marca_modulo: orc.marca_modulo,
+                              inversores: orc.inversores,
+                              pot_inv: orc.pot_inv,
+                              marca_inversor: orc.marca_inversor,
+                              status: 'pendente' as const
+                            })),
+                            config: {
+                              hsp: config.hsp,
+                              tarifa: config.tarifa,
+                              performanceRate: config.performanceRate,
+                              consumoMensal: config.consumoMensal,
+                              pdespesaFixo: config.pdespesaFixo,
+                              pdespesaVariavel: config.pdespesaVariavel,
+                              descontoPix: config.descontoPix,
+                              fatorParcelado: config.fatorParcelado,
+                              fator12x: config.fator12x,
+                              fator18x: config.fator18x
+                            },
+                            timestamp: new Date().toISOString()
+                          };
+                          
+                          // Salvar no localStorage
+                          localStorage.setItem(`consultor-${slug}`, JSON.stringify(dadosConsultor));
+                          
+                          // Abrir o Sistema do Consultor
+                          window.open(`/admin/orcamentos/${slug}/consultor`, '_blank');
+                          
+                          alert(`✅ Orçamentos enviados para o Sistema do Consultor!\n\nID: ${slug}`);
+                        } catch (error) {
+                          console.error('Erro ao enviar para consultor:', error);
+                          alert('❌ Erro ao enviar orçamentos. Tente novamente.');
+                        }
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={orcamentos.length === 0}
+                      title={orcamentos.length === 0 ? 'Adicione pelo menos um orçamento' : 'Enviar orçamentos para análise no Sistema do Consultor'}
                     >
                       📊 Enviar para Consultor
-                    </Link>
+                    </button>
                     <button
                       onClick={() => {
                         // Adicionar novo orçamento vazio
