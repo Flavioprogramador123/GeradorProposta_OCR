@@ -30,6 +30,15 @@ yarn-error.log*
 .env.production
 .env.development
 
+# 🚨 SEGURANÇA: Credenciais Google OAuth (NÃO COMITAR!)
+client_secret_*.json
+*.credentials.json
+google-credentials.json
+
+# 🚨 SEGURANÇA: Documentação com chaves expostas
+RESUMO_OAUTH_GOOGLE_DRIVE.md
+*_OAUTH_*.md
+
 # Vercel
 .vercel
 

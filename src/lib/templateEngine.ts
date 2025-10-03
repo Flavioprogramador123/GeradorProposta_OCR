@@ -105,7 +105,7 @@ export class TemplateEngine {
     return value.toFixed(decimals).replace('.', ',');
   }
 
-  private getSistemaData(index: number) {
+  private getSistemaData(index: number, melhorPaybackIndex?: number) {
     const orcamento = this.clienteData.orcamentos[index];
     if (!orcamento) return null;
 
@@ -119,6 +119,9 @@ export class TemplateEngine {
     const precoPix = orcamento.preco_total * 0.9; // 10% desconto PIX
     const preco12x = orcamento.preco_total / 12;
     const preco18x = orcamento.preco_total / 18;
+
+    // Determinar se é o melhor payback baseado no índice calculado
+    const isMelhorPayback = melhorPaybackIndex !== undefined && index === melhorPaybackIndex;
 
     return {
       titulo: `Opção ${index + 1}`,
@@ -136,8 +139,8 @@ export class TemplateEngine {
       precoPix: this.formatCurrency(precoPix),
       preco12x: this.formatCurrency(preco12x),
       preco18x: this.formatCurrency(preco18x),
-      recomendado: index === 0 ? 'recommended' : '',
-      badge: index === 0 ? '⭐ MELHOR PAYBACK' : ''
+      recomendado: isMelhorPayback ? 'recommended' : '',
+      badge: isMelhorPayback ? '⭐ MELHOR PAYBACK' : ''
     };
   }
 
@@ -175,9 +178,27 @@ export class TemplateEngine {
       POTENCIA_RECOMENDADA: metricas.potencia_recomendada
     };
 
+    // Calcular qual sistema tem o melhor payback
+    let melhorPaybackIndex = 0;
+    let melhorPayback = Infinity;
+    
+    for (let i = 0; i < this.clienteData.orcamentos.length && i < 3; i++) {
+      const orcamento = this.clienteData.orcamentos[i];
+      if (orcamento) {
+        // Calcular payback baseado no preço total e economia mensal
+        const economiaMensal = this.clienteData.analise_financeira.economia_mensal;
+        const paybackMeses = orcamento.preco_total / economiaMensal;
+        
+        if (paybackMeses < melhorPayback) {
+          melhorPayback = paybackMeses;
+          melhorPaybackIndex = i;
+        }
+      }
+    }
+
     // Dados dos sistemas (máximo 3)
     for (let i = 0; i < 3; i++) {
-      const sistema = this.getSistemaData(i);
+      const sistema = this.getSistemaData(i, melhorPaybackIndex);
       if (sistema) {
         const prefix = `SISTEMA_${i + 1}_`;
         variables[`${prefix}TITULO`] = sistema.titulo;
@@ -328,7 +349,8 @@ export class TemplateEnginePadrao {
 
     // Carregar configuração de variante se tipo fornecido
     if (clientType) {
-      this.variantConfig = getVariantConfig(clientType, subType);
+      const config = getVariantConfig(clientType, subType);
+      this.variantConfig = config || undefined;
     }
   }
 
@@ -477,7 +499,7 @@ export class TemplateEnginePadrao {
     // 2. Injetar CSS personalizado no head
     const variantCssPath = path.join(
       process.cwd(),
-      'src/styles/variants',
+      'src/styles',
       config.cssFile
     );
 
@@ -495,25 +517,23 @@ export class TemplateEnginePadrao {
         :root {
           --variant-primary: ${config.tema.corPrimaria};
           --variant-secondary: ${config.tema.corSecundaria};
-          --variant-destaque: ${config.tema.corDestaque};
-          --variant-gradiente: ${config.tema.gradiente};
+          --variant-gradient: ${config.tema.gradiente};
         }
       </style>
     `;
     html = html.replace('</head>', `${cssVars}\n</head>`);
 
     // 4. Substituir textos personalizados (se placeholders existirem)
-    html = html.replace('{{TITULO_HERO}}', config.copy.tituloHero);
-    html = html.replace('{{SUBTITULO_HERO}}', config.copy.subtituloHero);
-    html = html.replace('{{CHAMADA_PRINCIPAL}}', config.copy.chamadaPrincipal);
-    html = html.replace('{{CTA_TEXTO}}', config.copy.ctaTexto);
-    html = html.replace('{{ICONE_VARIANTE}}', config.tema.icone);
+    html = html.replace(/{{TITULO_HERO}}/g, config.copy.tituloHero);
+    html = html.replace(/{{SUBTITULO_HERO}}/g, config.copy.subtituloHero);
+    html = html.replace(/{{CTA_TEXTO}}/g, config.copy.ctaTexto);
+    html = html.replace(/{{ICONE_VARIANTE}}/g, config.tema.icone);
 
     // 5. Injetar benefícios personalizados
     const beneficiosHtml = config.copy.beneficios
       .map(b => `<li class="benefit-item">${b}</li>`)
       .join('\n');
-    html = html.replace('{{BENEFICIOS_PERSONALIZADOS}}', beneficiosHtml);
+    html = html.replace(/{{BENEFICIOS_PERSONALIZADOS}}/g, beneficiosHtml);
 
     return html;
   }

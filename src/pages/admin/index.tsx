@@ -28,9 +28,11 @@ export default function AdminIndex() {
 
   const loadClientesData = async () => {
     try {
-      const response = await fetch('/api/admin/clientes');
+      // Forçar bypass do cache
+      const response = await fetch(`/api/admin/clientes?t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Dados carregados:', data); // Log temporário para debug
         setClientes(data.clientes || []);
         setStats(data.stats || stats);
       }
@@ -165,6 +167,12 @@ export default function AdminIndex() {
 
             {/* Ações Principais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
+                <div className="text-3xl mb-3">⚡</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Gerador Rápido</h3>
+                <p className="text-sm text-gray-600">Geração rápida de propostas</p>
+              </a></Link>
+
               <Link href="/admin/novo-cliente" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
                 <div className="text-3xl mb-3">👤</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Novo Cliente</h3>

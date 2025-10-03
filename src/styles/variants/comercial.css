@@ -1,0 +1,226 @@
+/**
+ * 💼 CSS CUSTOMIZADO - COMERCIAL (Panificadora, Açougue, Restaurante, Mercado)
+ * Tema: Variável por subtipo + foco em ROI
+ */
+
+.variant-comercial-panificadora {
+  --variant-primary: #d35400;
+  --variant-secondary: #f39c12;
+  --variant-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+}
+
+.variant-comercial-acougue {
+  --variant-primary: #c0392b;
+  --variant-secondary: #e74c3c;
+  --variant-gradient: linear-gradient(135deg, #c31432 0%, #240b36 100%);
+}
+
+.variant-comercial-restaurante {
+  --variant-primary: #16a085;
+  --variant-secondary: #f39c12;
+  --variant-gradient: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+}
+
+.variant-comercial-mercado {
+  --variant-primary: #2980b9;
+  --variant-secondary: #27ae60;
+  --variant-gradient: linear-gradient(135deg, #2980b9 0%, #2c3e50 100%);
+}
+
+/* Hero Section (Comum para todos os comerciais) */
+[class*="variant-comercial"] .hero-section {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+[class*="variant-comercial"] .hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+}
+
+/* Custo Operacional */
+[class*="variant-comercial"] .operational-cost-section {
+  background: white;
+  border: 3px solid var(--variant-primary);
+  border-radius: 16px;
+  padding: 35px;
+  margin: 30px 0;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+[class*="variant-comercial"] .cost-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  margin-top: 25px;
+}
+
+[class*="variant-comercial"] .cost-item {
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f8f9fa;
+}
+
+[class*="variant-comercial"] .cost-item.before {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+}
+
+[class*="variant-comercial"] .cost-item.after {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+}
+
+[class*="variant-comercial"] .cost-item.savings {
+  background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+  color: white;
+}
+
+[class*="variant-comercial"] .cost-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 15px 0;
+}
+
+/* ROI Section */
+[class*="variant-comercial"] .roi-section {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 40px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+[class*="variant-comercial"] .roi-value {
+  font-size: 4rem;
+  font-weight: 900;
+  margin: 20px 0;
+  text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+}
+
+/* Marketing Verde */
+[class*="variant-comercial"] .green-marketing-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 35px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+[class*="variant-comercial"] .sustainability-badge {
+  font-size: 5rem;
+  margin: 20px 0;
+}
+
+/* Impacto no Produto (Panificadora) */
+.variant-comercial-panificadora .product-impact {
+  background: #FFF9F0;
+  border: 2px dashed var(--variant-primary);
+  border-radius: 12px;
+  padding: 25px;
+  margin: 25px 0;
+}
+
+.variant-comercial-panificadora .product-impact h3 {
+  color: var(--variant-primary);
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.variant-comercial-panificadora .product-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--variant-primary);
+}
+
+/* Economia Refrigeração (Açougue/Mercado) */
+.variant-comercial-acougue .refrigeration-section,
+.variant-comercial-mercado .refrigeration-section {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  padding: 35px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-comercial-acougue .refrigeration-icon,
+.variant-comercial-mercado .refrigeration-icon {
+  font-size: 5rem;
+  margin-bottom: 15px;
+}
+
+/* Cards de Sistema */
+[class*="variant-comercial"] .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+[class*="variant-comercial"] .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  transform: translateY(-5px);
+}
+
+[class*="variant-comercial"] .pieng-badge {
+  background: var(--variant-secondary);
+  color: white;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+/* Gráficos */
+[class*="variant-comercial"] .chart-container {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  margin: 25px 0;
+}
+
+/* CTA */
+[class*="variant-comercial"] .cta-button {
+  background: var(--variant-primary);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+[class*="variant-comercial"] .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+/* Tabelas */
+[class*="variant-comercial"] th {
+  background: var(--variant-primary);
+  color: white;
+  padding: 15px;
+}
+
+[class*="variant-comercial"] td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+[class*="variant-comercial"] tr:hover {
+  background: #f8f9fa;
+}

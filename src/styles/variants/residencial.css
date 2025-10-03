@@ -1,429 +1,179 @@
-/* ========================================
-   PIENG - Variante Residencial
-   Tema: Aconchegante, familiar, sustentável
-   Cores: Azul (#3366CC), Laranja (#FF6B35), Verde (#2ecc71)
-   ======================================== */
+/**
+ * 🏠 CSS CUSTOMIZADO - RESIDENCIAL PREMIUM
+ * Tema: Azul moderno + Laranja energético
+ */
 
-/* ========================================
-   VARIÁVEIS CSS PERSONALIZADAS
-   ======================================== */
 .variant-residencial {
-  --primary: #3366CC;
-  --secondary: #FF6B35;
-  --success: #2ecc71;
-  --danger: #e74c3c;
-  --warning: #f39c12;
-  --light: #f8f9fa;
-  --dark: #343a40;
-  --muted: #6c757d;
-
-  --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-card: linear-gradient(135deg, #3366CC 0%, #5b7fd6 100%);
-  --gradient-button: linear-gradient(to right, #3366CC, #5b7fd6);
-  --gradient-badge: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  --variant-primary: #3366CC;
+  --variant-secondary: #FF6B35;
+  --variant-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --variant-accent: #FFD93D;
+  --variant-bg-light: #F8F9FF;
 }
 
-/* ========================================
-   TIPOGRAFIA RESIDENCIAL
-   ======================================== */
-.variant-residencial h1,
-.variant-residencial .hero-title {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-weight: 800;
-  color: var(--primary);
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.variant-residencial .hero-subtitle {
-  font-size: 1.25rem;
-  color: var(--muted);
-  font-weight: 400;
-  line-height: 1.6;
-}
-
-/* ========================================
-   HERO SECTION - RESIDENCIAL
-   ======================================== */
+/* Hero Section */
 .variant-residencial .hero-section {
-  background: var(--gradient-hero);
-  padding: 3rem 1rem;
-  border-radius: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 10px 30px rgba(51, 102, 204, 0.2);
-}
-
-.variant-residencial .hero-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  display: inline-block;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* ========================================
-   CARDS DE SISTEMA - RESIDENCIAL
-   ======================================== */
-.variant-residencial .system-card {
-  background: white;
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  border: 3px solid transparent;
-}
-
-.variant-residencial .system-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 25px rgba(51, 102, 204, 0.25);
-  border-color: var(--primary);
-}
-
-.variant-residencial .system-card.recommended {
-  border-color: var(--success);
-  box-shadow: 0 8px 30px rgba(46, 204, 113, 0.3);
-}
-
-.variant-residencial .card-header {
-  background: var(--gradient-card);
+  background: var(--variant-gradient);
   color: white;
-  padding: 1.5rem;
+  padding: 60px 30px;
   text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
 }
 
-.variant-residencial .card-badge {
-  background: var(--gradient-badge);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 2rem;
-  font-size: 0.75rem;
-  font-weight: bold;
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  animation: pulse-glow 2s infinite;
-  z-index: 10;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(46, 204, 113, 0.8);
-  }
-}
-
-/* ========================================
-   BENEFÍCIOS - ESTILO RESIDENCIAL
-   ======================================== */
-.variant-residencial .benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin: 2rem 0;
-}
-
-.variant-residencial .benefit-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  padding: 1.5rem;
-  border-radius: 1rem;
-  border-left: 4px solid var(--success);
-  transition: all 0.3s ease;
-}
-
-.variant-residencial .benefit-card:hover {
-  transform: translateX(5px);
-  border-left-width: 6px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-}
-
-.variant-residencial .benefit-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.variant-residencial .benefit-text {
-  font-size: 0.95rem;
-  color: var(--dark);
-  line-height: 1.5;
-}
-
-/* ========================================
-   PRICING - RESIDENCIAL
-   ======================================== */
-.variant-residencial .pricing-box {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 2px solid #e9ecef;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  text-align: center;
-  margin: 1rem 0;
-}
-
-.variant-residencial .price-original {
-  color: var(--danger);
-  text-decoration: line-through;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.variant-residencial .price-current {
-  color: var(--primary);
-  font-size: 2rem;
-  font-weight: bold;
-  margin: 0.5rem 0;
-}
-
-.variant-residencial .price-pix {
-  background: var(--gradient-badge);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 2rem;
-  font-size: 1.25rem;
-  font-weight: bold;
-  display: inline-block;
-  margin: 1rem 0;
-  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
-}
-
-.variant-residencial .discount-badge {
-  background: var(--danger);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 2rem;
-  font-size: 0.85rem;
-  font-weight: bold;
-  display: inline-block;
-}
-
-/* ========================================
-   PERFORMANCE METRICS - RESIDENCIAL
-   ======================================== */
-.variant-residencial .metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin: 2rem 0;
-}
-
-.variant-residencial .metric-card {
-  background: white;
-  border: 2px solid var(--light);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.variant-residencial .metric-card:hover {
-  border-color: var(--primary);
-  box-shadow: 0 4px 15px rgba(51, 102, 204, 0.15);
-}
-
-.variant-residencial .metric-icon {
+.variant-residencial .hero-section h1 {
   font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
 
-.variant-residencial .metric-value {
-  font-size: 1.75rem;
-  font-weight: bold;
-  color: var(--primary);
-  margin: 0.5rem 0;
+.variant-residencial .hero-section p {
+  font-size: 1.2rem;
+  opacity: 0.95;
+  margin-bottom: 25px;
 }
 
-.variant-residencial .metric-label {
-  font-size: 0.9rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* ========================================
-   CTA BUTTONS - RESIDENCIAL
-   ======================================== */
-.variant-residencial .cta-button {
-  background: var(--gradient-button);
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 3rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  text-decoration: none;
-  display: inline-block;
+/* Cards de Sistema */
+.variant-residencial .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(51, 102, 204, 0.3);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-residencial .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(51, 102, 204, 0.2);
+  transform: translateY(-5px);
+}
+
+.variant-residencial .pieng-system-recommended {
+  border-color: var(--variant-secondary);
+  background: linear-gradient(to bottom, #FFF9F0 0%, white 100%);
+}
+
+.variant-residencial .pieng-badge {
+  background: var(--variant-secondary);
+  color: white;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
+}
+
+/* Seção de Benefícios */
+.variant-residencial .benefits-section {
+  background: var(--variant-bg-light);
+  padding: 40px 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-residencial .benefit-item {
+  padding: 12px 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  border-bottom: 1px solid rgba(51, 102, 204, 0.1);
+}
+
+.variant-residencial .benefit-item::before {
+  content: '✓ ';
+  color: var(--variant-primary);
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 1.3rem;
+}
+
+/* Valorização do Imóvel */
+.variant-residencial .valorization-section {
+  background: linear-gradient(135deg, #FFD93D 0%, #FFA726 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+.variant-residencial .valorization-section h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.variant-residencial .valorization-value {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 20px 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Impacto Ambiental */
+.variant-residencial .environmental-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-residencial .environmental-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+}
+
+/* CTA Button */
+.variant-residencial .cta-button {
+  background: var(--variant-secondary);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
   border: none;
   cursor: pointer;
+  box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+  transition: all 0.3s ease;
 }
 
 .variant-residencial .cta-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(51, 102, 204, 0.4);
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(255, 107, 53, 0.5);
 }
 
-.variant-residencial .cta-button-secondary {
-  background: var(--gradient-badge);
-}
-
-.variant-residencial .cta-button-whatsapp {
-  background: linear-gradient(to right, #25D366, #128C7E);
-}
-
-/* ========================================
-   TABELAS COMPARATIVAS - RESIDENCIAL
-   ======================================== */
-.variant-residencial table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 2rem 0;
+/* Gráficos */
+.variant-residencial .chart-container {
   background: white;
-  border-radius: 1rem;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  margin: 25px 0;
+}
+
+/* Tabelas */
+.variant-residencial table {
+  border-collapse: collapse;
+  width: 100%;
+  background: white;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 }
 
-.variant-residencial table th {
-  background: var(--gradient-card);
+.variant-residencial th {
+  background: var(--variant-primary);
   color: white;
-  padding: 1rem;
-  text-align: center;
-  font-weight: bold;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
+  padding: 15px;
+  font-weight: 600;
 }
 
-.variant-residencial table td {
-  padding: 1rem;
-  text-align: center;
-  border-bottom: 1px solid #e9ecef;
+.variant-residencial td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.variant-residencial table tr:hover {
-  background: #f8f9fa;
-}
-
-.variant-residencial table tr.recommended {
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-  font-weight: bold;
-}
-
-/* ========================================
-   INSIGHTS E ANÁLISES - RESIDENCIAL
-   ======================================== */
-.variant-residencial .insight-box {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-left: 5px solid var(--primary);
-  padding: 1.5rem;
-  border-radius: 1rem;
-  margin: 2rem 0;
-}
-
-.variant-residencial .insight-title {
-  color: var(--primary);
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-bottom: 0.75rem;
-}
-
-.variant-residencial .insight-text {
-  color: var(--dark);
-  line-height: 1.6;
-}
-
-/* ========================================
-   FOOTER - RESIDENCIAL
-   ======================================== */
-.variant-residencial .footer {
-  background: linear-gradient(135deg, #343a40 0%, #212529 100%);
-  color: white;
-  padding: 2rem;
-  border-radius: 1.5rem;
-  margin-top: 3rem;
-  text-align: center;
-}
-
-.variant-residencial .footer-logo {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-}
-
-.variant-residencial .footer-contact {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  flex-wrap: wrap;
-  margin: 1.5rem 0;
-}
-
-.variant-residencial .footer-contact-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* ========================================
-   RESPONSIVIDADE - RESIDENCIAL
-   ======================================== */
-@media (max-width: 768px) {
-  .variant-residencial .hero-section {
-    padding: 2rem 1rem;
-  }
-
-  .variant-residencial .hero-icon {
-    font-size: 3rem;
-  }
-
-  .variant-residencial .benefits-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .variant-residencial .metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .variant-residencial .footer-contact {
-    flex-direction: column;
-    gap: 1rem;
-  }
-}
-
-/* ========================================
-   ANIMAÇÕES ADICIONAIS - RESIDENCIAL
-   ======================================== */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.variant-residencial .animate-fade-in {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.variant-residencial .animate-delay-1 {
-  animation-delay: 0.1s;
-}
-
-.variant-residencial .animate-delay-2 {
-  animation-delay: 0.2s;
-}
-
-.variant-residencial .animate-delay-3 {
-  animation-delay: 0.3s;
+.variant-residencial tr:hover {
+  background: var(--variant-bg-light);
 }

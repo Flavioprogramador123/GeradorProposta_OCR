@@ -59,7 +59,7 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   textoPayback: 'Investimento se paga em apenas {mesesPayback} meses',
   textoTIR: 'Taxa Interna de Retorno de {percentualTIR}% ao ano',
   textoValorizacaoImovel: 'Valorização do imóvel em até {percentualValorizacao}%',
-  textoSustentabilidade: 'Evita emissão de {tonelaCO2} toneladas de CO₂ em 25 anos',
+  textoSustentabilidade: 'Evita emissão de {tonelaCO2} toneladas de CO₂ em 25 anos (vida útil do sistema)',
 
   // Regional
   estadosPadrao: ['GO', 'DF', 'MG', 'MT', 'MS', 'BA', 'TO'],

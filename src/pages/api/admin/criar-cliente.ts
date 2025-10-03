@@ -6,10 +6,8 @@ interface NovoClienteData {
   nome: string;
   cidade: string;
   estado: string;
-  consumoMensal: number;
   tipoImovel: 'Residencial' | 'Comercial' | 'Industrial' | 'Rural';
   hspLocal: number;
-  pdespesa: number;
   observacoes?: string;
 }
 
@@ -43,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const data: NovoClienteData = req.body;
 
     // Validação básica
-    if (!data.nome || !data.cidade || !data.consumoMensal || !data.pdespesa) {
+    if (!data.nome || !data.cidade) {
       return res.status(400).json({ message: 'Dados obrigatórios faltando' });
     }
 
@@ -58,10 +56,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Criar arquivo dadosusuario.md
     const dadosUsuarioContent = `cliente: ${data.nome}
 cidade: ${data.cidade}-${data.estado}${data.observacoes ? ` (${data.observacoes})` : ''};
-Pdespesa: R$ ${data.pdespesa.toFixed(2)} para todos os orçamentos;
 IMovel: ${data.tipoImovel};
 HSP: ${data.hspLocal}
-CONSUMO MENSAL: ${data.consumoMensal} KWH/MES
 `;
 
     await fs.writeFile(
@@ -75,7 +71,6 @@ CONSUMO MENSAL: ${data.consumoMensal} KWH/MES
       cliente: {
         nome: data.nome,
         cidade: `${data.cidade}/${data.estado}`,
-        consumoKwh: data.consumoMensal.toString(),
         tipo: data.tipoImovel,
         hspLocal: data.hspLocal.toString(),
         slug: slug
@@ -83,7 +78,6 @@ CONSUMO MENSAL: ${data.consumoMensal} KWH/MES
       sistemas: [],
       metadata: {
         created: new Date().toISOString(),
-        pdespesa: data.pdespesa,
         status: 'aguardando_orcamentos'
       }
     };
@@ -109,7 +103,6 @@ CONSUMO MENSAL: ${data.consumoMensal} KWH/MES
 - **Nome**: ${data.nome}
 - **Cidade**: ${data.cidade}/${data.estado}
 - **Tipo**: ${data.tipoImovel}
-- **Consumo**: ${data.consumoMensal} kWh/mês
 - **HSP Local**: ${data.hspLocal}
 - **Status**: Aguardando orçamentos
 

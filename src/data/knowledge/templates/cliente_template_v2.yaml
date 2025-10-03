@@ -1,0 +1,158 @@
+# ==================================================================
+# TEMPLATE DE DADOS TÉCNICOS DO CLIENTE - PIENG v3.0
+# Baseado no modelo orcamento_dutra.yaml
+# ==================================================================
+
+# Dados básicos do cliente
+cliente:
+  nome: "{{NOME_CLIENTE}}"
+  cidade: "{{CIDADE_CLIENTE}}"
+  estado: "{{ESTADO_CLIENTE}}"
+  consumo_mensal_kwh: {{CONSUMO_MENSAL}}
+  tipo_imovel: "{{TIPO_IMOVEL}}"
+  hsp_local: {{HSP_LOCAL}}
+  tarifa_kwh: {{TARIFA_KWH}}
+  data_cadastro: "{{DATA_CADASTRO}}"
+
+# ==================================================================
+# CONSOLIDADO DE ORÇAMENTOS POR DISTRIBUIDOR
+# ==================================================================
+consolidado_orcamentos_distribuidores:
+  # Distribuidor 1
+  {{DISTRIBUIDOR_01}}:
+    - orcamento:
+        orcamento_id: "{{ORCAMENTO_01_ID}}"
+        arquivo_origem: "{{ORCAMENTO_01_ARQUIVO}}"
+        preco_total: {{ORCAMENTO_01_PRECO}}
+        potencia_total_sistema: "{{ORCAMENTO_01_POTENCIA}} kWp"
+        inversores:
+          - quantidade: {{ORCAMENTO_01_INV_QTD}}
+            marca: "{{ORCAMENTO_01_INV_MARCA}}"
+            potencia_unitaria: "{{ORCAMENTO_01_INV_POTENCIA}}"
+        modulos:
+          - quantidade: {{ORCAMENTO_01_MOD_QTD}}
+            marca: "{{ORCAMENTO_01_MOD_MARCA}}"
+            potencia_unitaria: "{{ORCAMENTO_01_MOD_POTENCIA}}W"
+        outros_componentes:
+          - "{{ORCAMENTO_01_COMP_01}}"
+          - "{{ORCAMENTO_01_COMP_02}}"
+          - "{{ORCAMENTO_01_COMP_03}}"
+
+    - orcamento:
+        orcamento_id: "{{ORCAMENTO_02_ID}}"
+        arquivo_origem: "{{ORCAMENTO_02_ARQUIVO}}"
+        preco_total: {{ORCAMENTO_02_PRECO}}
+        potencia_total_sistema: "{{ORCAMENTO_02_POTENCIA}} kWp"
+        inversores:
+          - quantidade: {{ORCAMENTO_02_INV_QTD}}
+            marca: "{{ORCAMENTO_02_INV_MARCA}}"
+            potencia_unitaria: "{{ORCAMENTO_02_INV_POTENCIA}}"
+        modulos:
+          - quantidade: {{ORCAMENTO_02_MOD_QTD}}
+            marca: "{{ORCAMENTO_02_MOD_MARCA}}"
+            potencia_unitaria: "{{ORCAMENTO_02_MOD_POTENCIA}}W"
+
+  # Distribuidor 2
+  {{DISTRIBUIDOR_02}}:
+    - orcamento:
+        orcamento_id: "{{ORCAMENTO_03_ID}}"
+        arquivo_origem: "{{ORCAMENTO_03_ARQUIVO}}"
+        preco_total: {{ORCAMENTO_03_PRECO}}
+        potencia_total_sistema: "{{ORCAMENTO_03_POTENCIA}} kWp"
+        inversores:
+          - quantidade: {{ORCAMENTO_03_INV_QTD}}
+            marca: "{{ORCAMENTO_03_INV_MARCA}}"
+            potencia_unitaria: "{{ORCAMENTO_03_INV_POTENCIA}}"
+        modulos:
+          - quantidade: {{ORCAMENTO_03_MOD_QTD}}
+            marca: "{{ORCAMENTO_03_MOD_MARCA}}"
+            potencia_unitaria: "{{ORCAMENTO_03_MOD_POTENCIA}}W"
+
+# ==================================================================
+# ANÁLISE COMPARATIVA AUTOMÁTICA
+# ==================================================================
+analise_comparativa:
+  total_orcamentos: {{TOTAL_ORCAMENTOS}}
+  distribuidores_envolvidos: {{TOTAL_DISTRIBUIDORES}}
+  menor_preco: {{MENOR_PRECO}}
+  maior_preco: {{MAIOR_PRECO}}
+  menor_potencia: "{{MENOR_POTENCIA}} kWp"
+  maior_potencia: "{{MAIOR_POTENCIA}} kWp"
+  melhor_custo_kwp: "{{MELHOR_CUSTO_KWP}}"
+  
+  ranking_custo_kwp:
+    - posicao: 1
+      distribuidor: "{{RANKING_01_DISTRIBUIDOR}}"
+      orcamento_id: "{{RANKING_01_ID}}"
+      custo_kwp: "{{RANKING_01_CUSTO}}"
+    - posicao: 2
+      distribuidor: "{{RANKING_02_DISTRIBUIDOR}}"
+      orcamento_id: "{{RANKING_02_ID}}"
+      custo_kwp: "{{RANKING_02_CUSTO}}"
+    - posicao: 3
+      distribuidor: "{{RANKING_03_DISTRIBUIDOR}}"
+      orcamento_id: "{{RANKING_03_ID}}"
+      custo_kwp: "{{RANKING_03_CUSTO}}"
+
+# ==================================================================
+# CÁLCULOS TÉCNICOS (PYTHON)
+# ==================================================================
+calculos_tecnicos:
+  performance_rate: 0.75
+  fator_capacidade: {{FATOR_CAPACIDADE}}
+  geracao_mensal_kwh: {{GERACAO_MENSAL}}
+  geracao_anual_kwh: {{GERACAO_ANUAL}}
+  cobertura_consumo: {{COBERTURA_CONSUMO}}%
+
+# ==================================================================
+# ANÁLISE FINANCEIRA (PYTHON)
+# ==================================================================
+analise_financeira:
+  payback_simples_meses: {{PAYBACK_SIMPLES}}
+  payback_descontado_meses: {{PAYBACK_DESCONTADO}}
+  tir_anual: {{TIR_ANUAL}}%
+  vpl_25_anos: {{VPL_25_ANOS}}
+  economia_mensal: {{ECONOMIA_MENSAL}}
+  economia_anual: {{ECONOMIA_ANUAL}}
+  tarifa_tusd: {{TARIFA_TUSD}}
+
+# ==================================================================
+# PREÇOS COMERCIAIS (FÓRMULAS PIENG)
+# ==================================================================
+precos_comerciais:
+  preco_pix: {{PRECO_PIX}}
+  preco_12x: {{PRECO_12X}}
+  preco_18x: {{PRECO_18X}}
+  desconto_pix: {{DESCONTO_PIX}}%
+  preco_riscado: {{PRECO_RISCADO}}
+
+# ==================================================================
+# MÉTRICAS COMPARATIVAS (EVITA ALUCINAÇÃO)
+# ==================================================================
+metricas_comparativas:
+  menor_payback: {{MENOR_PAYBACK}}
+  maior_tir: {{MAIOR_TIR}}
+  melhor_cobertura: {{MELHOR_COBERTURA}}%
+  sistema_recomendado: "{{SISTEMA_RECOMENDADO}}"
+  potencia_recomendada: "{{POTENCIA_RECOMENDADA}}"
+  melhor_custo_kwp: "{{MELHOR_CUSTO_KWP}}"
+
+# ==================================================================
+# DADOS DA EMPRESA (ESTÁTICOS)
+# ==================================================================
+empresa:
+  nome: "PIENG Soluções"
+  contato: "(62) 99167-0536"
+  email: "contato@piengsolucoes.com.br"
+  site: "www.piengsolucoes.com.br"
+  whatsapp: "5562991670536"
+
+# ==================================================================
+# METADADOS DO DOCUMENTO
+# ==================================================================
+documento:
+  data_geracao: "{{DATA_GERACAO}}"
+  data_validade: "{{DATA_VALIDADE}}"
+  versao_template: "3.0"
+  status: "{{STATUS_DOCUMENTO}}"
+  modelo_base: "orcamento_dutra.yaml"

@@ -42,6 +42,8 @@ export const convertSystemsToTableData = (sistemas: SistemaData[]): SystemCompar
 };
 
 export const findBestSystem = (sistemas: SistemaData[]): SistemaData | null => {
+  if (!sistemas || sistemas.length === 0) return null;
+  
   return sistemas.find(sistema => sistema.isRecommended) || 
          sistemas.reduce((best, current) => {
            const bestPayback = parseFloat(best.payback.replace(/[^\d,]/g, '').replace(',', '.'));
@@ -56,17 +58,47 @@ export const calculateInsights = (sistemas: SistemaData[]): {
   geracaoMax: string;
   tirMax: string;
 } => {
-  const paybacks = sistemas.map(s => 
-    parseFloat(s.payback.replace(/[^\d,]/g, '').replace(',', '.'))
-  );
+  if (!sistemas || sistemas.length === 0) {
+    return {
+      paybackMin: '0',
+      paybackMax: '0', 
+      geracaoMax: '0',
+      tirMax: '0'
+    };
+  }
+
+  const paybacks = sistemas.map(s => {
+    try {
+      const paybackStr = s.payback || '0';
+      const cleanPayback = paybackStr.replace(/[^\d,]/g, '').replace(',', '.');
+      return parseFloat(cleanPayback) || 0;
+    } catch (error) {
+      console.error('Erro ao processar payback:', s.payback, error);
+      return 0;
+    }
+  });
   
-  const geracoes = sistemas.map(s => 
-    parseFloat(s.geracao.replace(/[^\d,]/g, '').replace(',', '.'))
-  );
+  const geracoes = sistemas.map(s => {
+    try {
+      const geracaoStr = s.geracao || '0';
+      const cleanGeracao = geracaoStr.replace(/[^\d,]/g, '').replace(',', '.');
+      return parseFloat(cleanGeracao) || 0;
+    } catch (error) {
+      console.error('Erro ao processar geração:', s.geracao, error);
+      return 0;
+    }
+  });
   
-  const tirs = sistemas.map(s => 
-    parseFloat(s.tir.replace(/[^\d,]/g, '').replace(',', '.'))
-  );
+  const tirs = sistemas.map(s => {
+    try {
+      const tirStr = s.tir || '0';
+      const cleanTir = tirStr.replace(/[^\d,]/g, '').replace(',', '.');
+      return parseFloat(cleanTir) || 0;
+    } catch (error) {
+      console.error('Erro ao processar TIR:', s.tir, error);
+      return 0;
+    }
+  });
 
   return {
     paybackMin: Math.min(...paybacks).toFixed(1).replace('.', ','),

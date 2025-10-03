@@ -121,8 +121,8 @@ export class AIProviderManager {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     
-    const model = genAI.getGenerativeModel({ 
-      model: fileType === 'image' ? 'gemini-1.5-pro-vision' : 'gemini-1.5-pro'
+    const model = genAI.getGenerativeModel({
+      model: fileType === 'image' ? 'gemini-1.5-flash' : 'gemini-1.5-flash'
     });
 
     const prompt = this.buildExtractionPrompt();
@@ -230,7 +230,7 @@ export class AIProviderManager {
     for (const provider of alternativeProviders) {
       try {
         console.log(`🔄 Tentando fallback com ${provider.name.toUpperCase()}`);
-        return await this.extractFromDocument(filePath, fileType);
+        return await this.extractFromDocument(filePath, fileType as 'pdf' | 'image');
       } catch (error) {
         console.warn(`⚠️ Fallback ${provider.name} também falhou`);
         continue;
@@ -239,11 +239,11 @@ export class AIProviderManager {
 
     // Se todos falharam, usar extração local simulada
     console.log('🏠 Usando extração local como último recurso');
-    return await this.localFallbackExtraction(filePath, fileType);
+    return await this.localFallbackExtraction(filePath, fileType as 'pdf' | 'image');
   }
 
   // 🏠 Extração local com Ollama (último recurso)
-  private async localFallbackExtraction(filePath: string, fileType: string): Promise<any> {
+  private async localFallbackExtraction(filePath: string, fileType: 'pdf' | 'image'): Promise<any> {
     try {
       // Tentar Ollama local se disponível
       const response = await fetch('http://localhost:11434/api/generate', {

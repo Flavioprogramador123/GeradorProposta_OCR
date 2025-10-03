@@ -85,12 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Arquivo não existe, criar novo array
       }
 
-      // Verificar limite de 5 orçamentos
-      if (orcamentos.length >= 5) {
-        return res.status(400).json({ 
-          message: 'Limite de 5 orçamentos por cliente atingido' 
-        });
-      }
+      // Sem limite de orçamentos (removido para permitir múltiplos orçamentos via YAML)
 
       // Adicionar novo orçamento
       orcamentos.push(novoOrcamento);

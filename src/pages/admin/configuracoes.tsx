@@ -13,16 +13,22 @@ interface ConfiguracaoSistema {
   taxaSelic: number;
   inflacaoAnual: number;
   reajusteEnergia: number;
-  
+
   // Markups Comerciais
   markupEconomico: number;
   markupStandard: number;
   markupPremium: number;
 
-  // Parcelamento
-  jurosParcela12x: number;
-  jurosParcela18x: number;
+  // Parcelamento e Taxas de Cartão
+  taxaCartao12x: number;    // % da operadora de cartão para 12x
+  taxaCartao18x: number;    // % da operadora de cartão para 18x
   descontoPix: number;
+  fatorAvista: number;      // Calculado: 1 - descontoPix
+  fatorParcelado: number;   // Markup para parcelado
+
+  // Campos calculados automaticamente
+  fator12x: number;         // Calculado: 1 - taxaCartao12x
+  fator18x: number;         // Calculado: 1 - taxaCartao18x
 
   // Textos de Marketing (Variáveis)
   textoEconomiaAnual: string;
@@ -53,10 +59,16 @@ const configPadrao: ConfiguracaoSistema = {
   markupStandard: 2.0,
   markupPremium: 2.3,
 
-  // Parcelamento
-  jurosParcela12x: 2.5,
-  jurosParcela18x: 3.2,
-  descontoPix: 0.05,
+  // Parcelamento e Taxas de Cartão
+  taxaCartao12x: 12.0,        // 12% da operadora para 12x
+  taxaCartao18x: 17.0,        // 17% da operadora para 18x
+  descontoPix: 10.0,          // 10% desconto PIX
+  fatorAvista: 0.9,           // 1 - 0.10
+  fatorParcelado: 1.20,       // 20% markup parcelado
+
+  // Calculados automaticamente
+  fator12x: 0.88,             // 1 - 0.12
+  fator18x: 0.83,             // 1 - 0.17
 
   // Textos Marketing
   textoEconomiaAnual: 'Economia anual de R$ {valorEconomia} na conta de energia',
@@ -122,10 +134,25 @@ export default function Configuracoes() {
   };
 
   const handleInputChange = (field: keyof ConfiguracaoSistema, value: any) => {
-    setConfig(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setConfig(prev => {
+      const newConfig = {
+        ...prev,
+        [field]: value
+      };
+
+      // Recalcular fatores automaticamente
+      if (field === 'taxaCartao12x') {
+        newConfig.fator12x = 1 - (value / 100);
+      }
+      if (field === 'taxaCartao18x') {
+        newConfig.fator18x = 1 - (value / 100);
+      }
+      if (field === 'descontoPix') {
+        newConfig.fatorAvista = 1 - (value / 100);
+      }
+
+      return newConfig;
+    });
   };
 
   const resetToDefault = () => {
@@ -317,82 +344,143 @@ export default function Configuracoes() {
 
                 {/* Tab Comercial */}
                 {activeTab === 'comercial' && (
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Markups e Parcelamento</h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Markup Econômico
-                        </label>
-                        <input
-                          type="number"
-                          value={config.markupEconomico}
-                          onChange={(e) => handleInputChange('markupEconomico', parseFloat(e.target.value))}
-                          step="0.1"
-                          min="1"
-                          max="3"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Multiplicador para sistema básico</p>
-                      </div>
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-4">💳 Taxas de Cartão e PIX</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Taxa Cartão 12x (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.taxaCartao12x}
+                            onChange={(e) => handleInputChange('taxaCartao12x', parseFloat(e.target.value))}
+                            step="0.1"
+                            min="0"
+                            max="30"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Taxa da operadora • Fator: {config.fator12x.toFixed(3)}
+                          </p>
+                        </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Markup Standard
-                        </label>
-                        <input
-                          type="number"
-                          value={config.markupStandard}
-                          onChange={(e) => handleInputChange('markupStandard', parseFloat(e.target.value))}
-                          step="0.1"
-                          min="1"
-                          max="3"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Multiplicador para sistema intermediário</p>
-                      </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Taxa Cartão 18x (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.taxaCartao18x}
+                            onChange={(e) => handleInputChange('taxaCartao18x', parseFloat(e.target.value))}
+                            step="0.1"
+                            min="0"
+                            max="30"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Taxa da operadora • Fator: {config.fator18x.toFixed(3)}
+                          </p>
+                        </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Markup Premium
-                        </label>
-                        <input
-                          type="number"
-                          value={config.markupPremium}
-                          onChange={(e) => handleInputChange('markupPremium', parseFloat(e.target.value))}
-                          step="0.1"
-                          min="1"
-                          max="3"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Multiplicador para sistema premium</p>
-                      </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Desconto PIX (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.descontoPix}
+                            onChange={(e) => handleInputChange('descontoPix', parseFloat(e.target.value))}
+                            step="0.5"
+                            min="0"
+                            max="20"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Desconto à vista • Fator: {config.fatorAvista.toFixed(3)}
+                          </p>
+                        </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Juros 12x (% a.m.)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.jurosParcela12x}
-                          onChange={(e) => handleInputChange('jurosParcela12x', parseFloat(e.target.value))}
-                          step="0.1"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Markup Parcelado
+                          </label>
+                          <input
+                            type="number"
+                            value={config.fatorParcelado}
+                            onChange={(e) => handleInputChange('fatorParcelado', parseFloat(e.target.value))}
+                            step="0.01"
+                            min="1"
+                            max="2"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Multiplicador para parcelamento</p>
+                        </div>
                       </div>
+                    </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Juros 18x (% a.m.)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.jurosParcela18x}
-                          onChange={(e) => handleInputChange('jurosParcela18x', parseFloat(e.target.value))}
-                          step="0.1"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-4">📊 Markups por Categoria</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Markup Econômico
+                          </label>
+                          <input
+                            type="number"
+                            value={config.markupEconomico}
+                            onChange={(e) => handleInputChange('markupEconomico', parseFloat(e.target.value))}
+                            step="0.1"
+                            min="1"
+                            max="3"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Sistema básico</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Markup Standard
+                          </label>
+                          <input
+                            type="number"
+                            value={config.markupStandard}
+                            onChange={(e) => handleInputChange('markupStandard', parseFloat(e.target.value))}
+                            step="0.1"
+                            min="1"
+                            max="3"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Sistema intermediário</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Markup Premium
+                          </label>
+                          <input
+                            type="number"
+                            value={config.markupPremium}
+                            onChange={(e) => handleInputChange('markupPremium', parseFloat(e.target.value))}
+                            step="0.1"
+                            min="1"
+                            max="3"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Sistema premium</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-blue-800 mb-2">📋 Resumo dos Fatores</h4>
+                      <div className="text-sm text-blue-700 space-y-1">
+                        <div>• <strong>À Vista:</strong> PIX = Custo + Despesa</div>
+                        <div>• <strong>À Vista (cartão):</strong> PIX ÷ {config.fatorAvista.toFixed(3)}</div>
+                        <div>• <strong>Parcelado:</strong> PIX × {config.fatorParcelado.toFixed(2)}</div>
+                        <div>• <strong>12x no cartão:</strong> PIX ÷ {config.fator12x.toFixed(3)}</div>
+                        <div>• <strong>18x no cartão:</strong> PIX ÷ {config.fator18x.toFixed(3)}</div>
                       </div>
                     </div>
                   </div>
@@ -412,6 +500,8 @@ export default function Configuracoes() {
                           type="text"
                           value={config.textoEconomiaAnual}
                           onChange={(e) => handleInputChange('textoEconomiaAnual', e.target.value)}
+                          title="Texto para economia anual"
+                          placeholder="Digite o texto para economia anual"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Use {'{valorEconomia}'} para valor dinâmico</p>
@@ -425,6 +515,8 @@ export default function Configuracoes() {
                           type="text"
                           value={config.textoPayback}
                           onChange={(e) => handleInputChange('textoPayback', e.target.value)}
+                          title="Texto para payback"
+                          placeholder="Digite o texto para payback"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Use {'{mesesPayback}'} para valor dinâmico</p>
@@ -438,6 +530,8 @@ export default function Configuracoes() {
                           type="text"
                           value={config.textoTIR}
                           onChange={(e) => handleInputChange('textoTIR', e.target.value)}
+                          title="Texto para TIR"
+                          placeholder="Digite o texto para TIR"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Use {'{percentualTIR}'} para valor dinâmico</p>
@@ -451,6 +545,8 @@ export default function Configuracoes() {
                           type="text"
                           value={config.textoValorizacaoImovel}
                           onChange={(e) => handleInputChange('textoValorizacaoImovel', e.target.value)}
+                          title="Texto para valorização do imóvel"
+                          placeholder="Digite o texto para valorização do imóvel"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Use {'{percentualValorizacao}'} para valor dinâmico</p>
@@ -464,6 +560,8 @@ export default function Configuracoes() {
                           type="text"
                           value={config.textoSustentabilidade}
                           onChange={(e) => handleInputChange('textoSustentabilidade', e.target.value)}
+                          title="Texto para sustentabilidade"
+                          placeholder="Digite o texto para sustentabilidade"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Use {'{tonelaCO2}'} para valor dinâmico</p>

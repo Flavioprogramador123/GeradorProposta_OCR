@@ -530,42 +530,91 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         tipo: cliente.tipo_imovel,
         hspLocal: (cliente.hsp || 5.21).toString()
       },
-      sistemas: sistemas.map((sistema: any, index: number) => ({
-        titulo: `Sistema ${String(index + 1).padStart(2, '0')}`,
-        potencia: `${sistema.potTotal.toFixed(2)} kWp`,
-        especificacoes: [
-          `${sistema.modulos || Math.round(sistema.potTotal * 1000 / 580)} módulos ${sistema.marca_modulo || 'N/A'} ${sistema.pot_modulo || 580}W`,
-          `${sistema.inversores || 1} inversor${sistema.inversores > 1 ? 'es' : ''} ${sistema.marca_inversor || 'N/A'} ${sistema.pot_inv || Math.ceil(sistema.potTotal)}kW`,
-          'Estrutura de alumínio para telhado',
-          'Cabeamento CC/CA completo',
-          'String box DC/AC + proteções'
-        ],
-        precoRiscado: `R$ ${sistema.priscado.toFixed(2)}`,
-        precoAtual: `R$ ${sistema.pavista.toFixed(2)}`,
-        tagDesconto: `ECONOMIA DE ${((sistema.pavista - sistema.ppix) / sistema.pavista * 100).toFixed(0)}%`,
-        precoPixDecimal: sistema.ppix,
-        preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
-        preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
-        geracao: `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`,
-        cobertura: `${((parseFloat(sistema.cobertura) || 0) || 0).toFixed(0)}%`,
-        economia: `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`,
-        payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
-        tir: `${(sistema.tirAnual || 0).toFixed(1)}%`,
-        isRecommended: true,
-        badge: '⭐ MELHOR PAYBACK'
-      })),
-      analise: {
-        paybackMin: sistemas.length > 0 ? (sistemas[0].paybackMeses || 0).toFixed(1) : '0',
-        paybackMax: sistemas.length > 0 ? (sistemas[sistemas.length - 1].paybackMeses || 0).toFixed(1) : '0',
-        melhorSistemaNome: sistemas.length > 0 ? sistemas[0].nome : 'Sistema Econômico',
-        melhorSistemaPotencia: sistemas.length > 0 ? `${sistemas[0].potTotal.toFixed(2)} kWp` : '0 kWp',
-        melhorSistemaPix: sistemas.length > 0 ? `R$ ${sistemas[0].ppix.toFixed(2)}` : 'R$ 0,00',
-        melhorSistemaPayback: sistemas.length > 0 ? `${(sistemas[0].paybackMeses || 0).toFixed(1)} meses` : '0 meses',
-        geracaoMax: sistemas.length > 0 ? (sistemas[0].geracaoMensal || 0).toFixed(0) : '0',
-        coberturaMax: sistemas.length > 0 ? `${(sistemas[0].cobertura || 0).toFixed(0)}%` : '0%',
-        tirMax: sistemas.length > 0 ? `${(sistemas[0].tirAnual || 0).toFixed(1)}%` : '0%',
-        economiaTarifa: `R$ ${(cliente.tarifa || 0.982).toFixed(3)}`
-      },
+      sistemas: (() => {
+        // Encontrar o sistema com melhor payback
+        let melhorPayback = Infinity;
+        let melhorIndice = 0;
+        
+        sistemas.forEach((sistema: any, index: number) => {
+          const payback = sistema.paybackMeses || 0;
+          if (payback < melhorPayback) {
+            melhorPayback = payback;
+            melhorIndice = index;
+          }
+        });
+
+        return sistemas.map((sistema: any, index: number) => ({
+          titulo: `Sistema ${String(index + 1).padStart(2, '0')}`,
+          potencia: `${sistema.potTotal.toFixed(2)} kWp`,
+          especificacoes: [
+            `${sistema.modulos || Math.round(sistema.potTotal * 1000 / 580)} módulos ${sistema.marca_modulo || 'N/A'} ${sistema.pot_modulo || 580}W`,
+            `${sistema.inversores || 1} inversor${sistema.inversores > 1 ? 'es' : ''} ${sistema.marca_inversor || 'N/A'} ${sistema.pot_inv || Math.ceil(sistema.potTotal)}kW`,
+            'Estrutura de alumínio para telhado',
+            'Cabeamento CC/CA completo',
+            'String box DC/AC + proteções'
+          ],
+          precoRiscado: `R$ ${sistema.priscado.toFixed(2)}`,
+          precoAtual: `R$ ${sistema.pavista.toFixed(2)}`,
+          tagDesconto: `ECONOMIA DE ${((sistema.pavista - sistema.ppix) / sistema.pavista * 100).toFixed(0)}%`,
+          precoPixDecimal: sistema.ppix,
+          preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
+          preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
+          geracao: `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`,
+          cobertura: `${((parseFloat(sistema.cobertura) || 0) || 0).toFixed(0)}%`,
+          economia: `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`,
+          payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
+          tir: `${(sistema.tirAnual || 0).toFixed(1)}%`,
+          isRecommended: index === melhorIndice,
+          badge: index === melhorIndice ? '⭐ MELHOR PAYBACK' : ''
+        }));
+      })(),
+      analise: (() => {
+        if (sistemas.length === 0) {
+          return {
+            paybackMin: '0',
+            paybackMax: '0',
+            melhorSistemaNome: 'Sistema Econômico',
+            melhorSistemaPotencia: '0 kWp',
+            melhorSistemaPix: 'R$ 0,00',
+            melhorSistemaPayback: '0 meses',
+            geracaoMax: '0',
+            coberturaMax: '0%',
+            tirMax: '0%',
+            economiaTarifa: `R$ ${(cliente.tarifa || 0.982).toFixed(3)}`
+          };
+        }
+
+        // Encontrar o sistema com melhor payback
+        let melhorPayback = Infinity;
+        let melhorIndice = 0;
+        
+        sistemas.forEach((sistema: any, index: number) => {
+          const payback = sistema.paybackMeses || 0;
+          if (payback < melhorPayback) {
+            melhorPayback = payback;
+            melhorIndice = index;
+          }
+        });
+
+        const melhorSistema = sistemas[melhorIndice];
+        const paybacks = sistemas.map(s => s.paybackMeses || 0);
+        const geracoes = sistemas.map(s => s.geracaoMensal || 0);
+        const coberturas = sistemas.map(s => s.cobertura || 0);
+        const tirs = sistemas.map(s => s.tirAnual || 0);
+
+        return {
+          paybackMin: Math.min(...paybacks).toFixed(1),
+          paybackMax: Math.max(...paybacks).toFixed(1),
+          melhorSistemaNome: melhorSistema.nome || `Sistema ${melhorIndice + 1}`,
+          melhorSistemaPotencia: `${melhorSistema.potTotal.toFixed(2)} kWp`,
+          melhorSistemaPix: `R$ ${melhorSistema.ppix.toFixed(2)}`,
+          melhorSistemaPayback: `${melhorSistema.paybackMeses.toFixed(1)} meses`,
+          geracaoMax: Math.max(...geracoes).toFixed(0),
+          coberturaMax: `${Math.max(...coberturas).toFixed(0)}%`,
+          tirMax: `${Math.max(...tirs).toFixed(1)}%`,
+          economiaTarifa: `R$ ${(cliente.tarifa || 0.982).toFixed(3)}`
+        };
+      })(),
       empresa: {
         contato: "(62) 99167-0536",
         email: "contato@piengsolucoes.com.br",

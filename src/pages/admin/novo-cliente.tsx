@@ -6,10 +6,8 @@ interface NovoClienteData {
   nome: string;
   cidade: string;
   estado: string;
-  consumoMensal: number;
   tipoImovel: 'Residencial' | 'Comercial' | 'Industrial' | 'Rural';
   hspLocal: number;
-  pdespesa: number;
   observacoes?: string;
 }
 
@@ -19,10 +17,8 @@ export default function NovoCliente() {
     nome: '',
     cidade: '',
     estado: 'GO',
-    consumoMensal: 0,
     tipoImovel: 'Residencial',
     hspLocal: 5.21,
-    pdespesa: 0,
     observacoes: ''
   });
 
@@ -58,7 +54,7 @@ export default function NovoCliente() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'consumoMensal' || name === 'hspLocal' || name === 'pdespesa' 
+      [name]: name === 'hspLocal' 
         ? parseFloat(value) || 0 
         : value
     }));
@@ -165,62 +161,22 @@ export default function NovoCliente() {
                 </div>
 
                 {/* Dados Técnicos */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Consumo Mensal (kWh) *
-                    </label>
-                    <input
-                      type="number"
-                      name="consumoMensal"
-                      value={formData.consumoMensal || ''}
-                      onChange={handleInputChange}
-                      required
-                      min="0"
-                      step="1"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ex: 450"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      HSP Local
-                    </label>
-                    <input
-                      type="number"
-                      name="hspLocal"
-                      value={formData.hspLocal || ''}
-                      onChange={handleInputChange}
-                      step="0.01"
-                      min="0"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="5.21"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Horas de Sol Pico (padrão: 5.21 para GO)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Dados Comerciais */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    P. Despesa (R$) *
+                    HSP Local
                   </label>
                   <input
                     type="number"
-                    name="pdespesa"
-                    value={formData.pdespesa || ''}
+                    name="hspLocal"
+                    value={formData.hspLocal || ''}
                     onChange={handleInputChange}
-                    required
-                    min="0"
                     step="0.01"
+                    min="0"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: 7500.99"
+                    placeholder="5.21"
                   />
                   <p className="text-sm text-gray-500 mt-1">
-                    Valor confidencial para cálculos internos
+                    Horas de Sol Pico (padrão: 5.21 para GO)
                   </p>
                 </div>
 

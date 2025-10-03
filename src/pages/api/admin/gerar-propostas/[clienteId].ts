@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { carregarConfiguracoes, aplicarMarkup, calcularPayback, calcularTIR } from '@/utils/configuracoes';
+import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 
 interface OrcamentoAprovado {
   id: string;
@@ -11,15 +12,30 @@ interface OrcamentoAprovado {
 }
 
 interface SistemaGerado {
-  titulo: string;
+  nome: string;
   fornecedor: string;
-  potencia: string;
-  especificacoes: string[];
-  precoPixDecimal: number;
-  preco12x: string;
-  preco18x: string;
-  payback: string;
-  tir: string;
+  potTotal: number;
+  modulos: number;
+  pot_modulo: number;
+  marca_modulo: string;
+  inversores: number;
+  pot_inv: number;
+  marca_inversor: string;
+  pcusto: number;
+  pdespesa_total: number;
+  total_final: number;
+  ppix: number;
+  pavista: number;
+  priscado: number;
+  p12x: number;
+  p12x_total: number;
+  p18x_parcela: number;
+  p18x_total: number;
+  geracaoMensal: number;
+  cobertura: number;
+  economiaMensal: number;
+  paybackMeses: number;
+  tirAnual: number;
   isRecommended: boolean;
   badge?: string;
 }
@@ -65,7 +81,8 @@ function gerarEspecificacoes(orcamento: OrcamentoAprovado): string[] {
   }
   
   specs.push('Instalação e homologação incluídas');
-  specs.push('Garantia de 25 anos');
+  specs.push('Garantia módulos: 12 anos produto, 25 anos performance');
+  specs.push('Garantia inversores: 5 anos');
   
   return specs;
 }
@@ -96,13 +113,12 @@ async function gerarSistemasAPartirDosOrcamentos(
       titulo = 'Sistema Premium';
     }
     
-    // Aplicar markup baseado no tipo
-    const precoFinal = aplicarMarkup(
-      orcamento.valorTotal * 0.7, // Simular pcusto (70% do valor total)
-      parseFloat(clienteData.pdespesa) || 0,
-      tipoSistema,
-      config
-    );
+    // 🔧 NOVO: Usar modelo Pdespesa Fixo + Variável (igual ao gerador rápido)
+    const pcusto = orcamento.valorTotal * 0.7; // Simular pcusto (70% do valor total)
+    const pdespesaFixo = parseFloat(clienteData.pdespesaFixo) || 3000;
+    const pdespesaVariavel = parseFloat(clienteData.pdespesaVariavel) || 22;
+    const pdespesaTotal = pdespesaFixo + (pcusto * pdespesaVariavel / 100);
+    const precoFinal = pcusto + pdespesaTotal; // Total = P.Custo + Pdespesa
     
     // Calcular preço PIX com desconto
     const precoPixDecimal = precoFinal * (1 - config.descontoPix);
@@ -122,16 +138,50 @@ async function gerarSistemasAPartirDosOrcamentos(
     const paybackMeses = calcularPayback(precoPixDecimal, economiaAnual, config);
     const tir = calcularTIR(precoPixDecimal, economiaAnual);
     
+    // 🔧 NOVO: Calcular preços usando a mesma lógica do gerador rápido
+    const descontoPix = config.descontoPix || 0.1;
+    const fatorParcelado = config.fatorParcelado || 1.20;
+    const fator12x = config.fator12x || 0.88;
+    const fator18x = config.fator18x || 0.83;
+    
+    const ppix = precoFinal * (1 - descontoPix); // PIX = Total com desconto
+    const pavista = precoFinal; // À vista = Total
+    const priscado = precoFinal * fatorParcelado; // Preço riscado
+    const p12x_total = ppix / fator12x; // Total 12x
+    const p12x = p12x_total / 12; // Parcela 12x
+    const p18x_total = ppix / fator18x; // Total 18x
+    const p18x_parcela = p18x_total / 18; // Parcela 18x
+    
+    // Calcular geração mensal (estimativa)
+    const geracaoMensal = potenciaKwp * parseFloat(clienteData.hspLocal) * 30 * 0.75; // Performance rate 75%
+    const cobertura = (geracaoMensal / parseFloat(clienteData.consumoKwh)) * 100;
+    const economiaMensal = geracaoMensal * 0.7; // Tarifa média
+    
     const sistema: SistemaGerado = {
-      titulo,
+      nome: titulo,
       fornecedor: orcamento.fornecedor,
-      potencia: `${potenciaKwp.toFixed(2)} kWp`,
-      especificacoes: gerarEspecificacoes(orcamento),
-      precoPixDecimal,
-      preco12x: `R$ ${parcela12x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      preco18x: `R$ ${parcela18x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      payback: `${paybackMeses.toFixed(1)} meses`,
-      tir: `${tir.toFixed(1)}%`,
+      potTotal: potenciaKwp,
+      modulos: orcamento.componentes?.modulos?.quantidade || Math.round(potenciaKwp * 1000 / 580),
+      pot_modulo: orcamento.componentes?.modulos?.potencia || 580,
+      marca_modulo: orcamento.componentes?.modulos?.componente?.marca || 'monocristalino',
+      inversores: orcamento.componentes?.inversores?.quantidade || 1,
+      pot_inv: orcamento.componentes?.inversores?.potencia || Math.ceil(potenciaKwp),
+      marca_inversor: orcamento.componentes?.inversores?.componente?.marca || 'string',
+      pcusto: pcusto, // P.Custo calculado
+      pdespesa_total: pdespesaTotal, // Pdespesa Fixo + Variável
+      total_final: precoFinal, // Total = P.Custo + Pdespesa
+      ppix,
+      pavista,
+      priscado,
+      p12x,
+      p12x_total,
+      p18x_parcela,
+      p18x_total,
+      geracaoMensal,
+      cobertura,
+      economiaMensal,
+      paybackMeses,
+      tirAnual: tir,
       isRecommended: false, // Será definido depois
       badge: undefined
     };
@@ -145,7 +195,7 @@ async function gerarSistemasAPartirDosOrcamentos(
     let melhorIndice = 0;
     
     sistemas.forEach((sistema, index) => {
-      const payback = parseFloat(sistema.payback);
+      const payback = sistema.paybackMeses;
       if (payback < melhorPayback) {
         melhorPayback = payback;
         melhorIndice = index;
@@ -232,11 +282,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const propostaPath = path.join(clientePath, 'proposta.json');
     await fs.writeFile(propostaPath, JSON.stringify(propostaData, null, 2), 'utf8');
     
+    // 🚀 GERAR ARQUIVOS HTML USANDO TEMPLATE ENGINE
+    try {
+      // Preparar dados para o template engine
+      const templateData = {
+        cliente: clienteData,
+        sistemas: sistemas,
+        analise: {
+          paybackMin: Math.min(...sistemas.map(s => s.paybackMeses)).toFixed(1),
+          paybackMax: Math.max(...sistemas.map(s => s.paybackMeses)).toFixed(1),
+          melhorSistemaNome: sistemas.find(s => s.isRecommended)?.nome || 'Sistema Recomendado',
+          melhorSistemaPotencia: sistemas.find(s => s.isRecommended)?.potTotal.toFixed(2) + ' kWp' || '0 kWp',
+          melhorSistemaPix: 'R$ ' + (sistemas.find(s => s.isRecommended)?.ppix.toFixed(2) || '0,00'),
+          melhorSistemaPayback: sistemas.find(s => s.isRecommended)?.paybackMeses.toFixed(1) + ' meses' || '0 meses',
+          geracaoMax: Math.max(...sistemas.map(s => s.geracaoMensal)).toFixed(0),
+          coberturaMax: Math.max(...sistemas.map(s => s.cobertura)).toFixed(0) + '%',
+          tirMax: Math.max(...sistemas.map(s => s.tirAnual)).toFixed(1) + '%',
+          economiaTarifa: 'R$ 1,10'
+        },
+        empresa: {
+          contato: '(62) 99167-0536',
+          email: 'contato@piengsolucoes.com.br',
+          whatsapp: '5562991670536',
+          site: 'www.piengsolucoes.com.br'
+        },
+        dataGeracao: new Date().toLocaleDateString('pt-BR'),
+        dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        slug: slug,
+        bannerUrgencia: '🚀 Oferta especial válida até o final do mês!'
+      };
+
+      // Gerar template padrão
+      const templatePadraoHtml = await generateTemplateHtmlPadrao(templateData);
+      const arquivoPadrao = `proposta_${slug}.html`;
+      const arquivoPadraoPath = path.join(clientePath, arquivoPadrao);
+      await fs.writeFile(arquivoPadraoPath, templatePadraoHtml, 'utf8');
+
+      // Gerar template de resultados
+      const templateResultadosHtml = await generateTemplateHtmlResultados(templateData);
+      const arquivoResultados = `proposta_resultados_${slug}.html`;
+      const arquivoResultadosPath = path.join(clientePath, arquivoResultados);
+      await fs.writeFile(arquivoResultadosPath, templateResultadosHtml, 'utf8');
+
+      console.log('✅ Templates HTML gerados com sucesso!');
+    } catch (templateError) {
+      console.error('❌ Erro ao gerar templates HTML:', templateError);
+      // Continuar mesmo com erro no template
+    }
+    
     // Criar/atualizar README com instruções para adicionar ao slug
     const readmePath = path.join(clientePath, 'README.md');
     const readmeContent = `# Proposta Gerada - ${clienteData.nome}
 
 ## ✅ Proposta Criada com Sucesso!
+
+### Arquivos Gerados:
+- **proposta.json** - Dados estruturados da proposta
+- **proposta_${slug}.html** - Template padrão com cards e tabela
+- **proposta_resultados_${slug}.html** - Template de resultados financeiros
 
 ### Próximos Passos:
 
@@ -249,8 +352,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 - **Orçamentos Utilizados**: ${orcamentos.length}
 - **Gerado em**: ${new Date().toLocaleString('pt-BR')}
 
-### URL Final:
-\`https://pieng-propostas.vercel.app/proposta/${slug}\`
+### URLs Disponíveis:
+- **Página Dinâmica**: \`https://pieng-propostas.vercel.app/proposta/${slug}\`
+- **HTML Direto**: \`https://pieng-propostas.vercel.app/src/data/clientes/${slug}/proposta_${slug}.html\`
 
 ### Comando para adicionar slug:
 \`\`\`typescript

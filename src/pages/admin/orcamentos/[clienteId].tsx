@@ -45,6 +45,10 @@ interface Orcamento {
     }[];
   };
   valorTotal: number;
+  precoCustoYaml?: number;  // Preço de custo do YAML
+  tipoMargem?: 'percentual' | 'valor';  // Tipo de margem: percentual ou valor absoluto
+  margem?: number;          // Valor da margem (% ou R$)
+  despesas?: Array<{id: string, categoria: string, descricao: string, valor: number}>;
   observacoes?: string;
   arquivos: {
     nome: string;
@@ -99,6 +103,26 @@ export default function GerenciarOrcamentos() {
       console.error('Erro ao carregar orçamentos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateTotalComMargem = (orcamento: Orcamento) => {
+    // Se tem despesas manuais, usa elas
+    if (orcamento.despesas && orcamento.despesas.length > 0) {
+      const despesasTotal = orcamento.despesas.reduce((sum, despesa) => sum + despesa.valor, 0);
+      return (orcamento.precoCustoYaml || orcamento.valorTotal) + despesasTotal;
+    }
+
+    // Se não tem despesas manuais, usa a margem configurada
+    const custoBase = orcamento.precoCustoYaml || orcamento.valorTotal;
+    const tipoMargem = orcamento.tipoMargem || 'percentual';
+    const margem = orcamento.margem || 15;
+
+    if (tipoMargem === 'percentual') {
+      const margemCalculada = (margem / 100) * custoBase;
+      return custoBase + margemCalculada;
+    } else {
+      return custoBase + margem; // Valor absoluto
     }
   };
 
@@ -231,7 +255,7 @@ export default function GerenciarOrcamentos() {
             </div>
 
             {/* Ações Principais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <button
                 onClick={() => setShowAddModal(true)}
                 className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center border-2 border-dashed border-blue-300 hover:border-blue-500"
@@ -240,6 +264,12 @@ export default function GerenciarOrcamentos() {
                 <h3 className="font-semibold text-gray-800 mb-1">Novo Orçamento</h3>
                 <p className="text-sm text-gray-600">Upload ou entrada manual</p>
               </button>
+
+              <Link href={`/admin/orcamentos/${clienteId}/consultor`} legacyBehavior><a className="p-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center text-white">
+                <div className="text-3xl mb-3">🎛️</div>
+                <h3 className="font-semibold mb-1">Sistema do Consultor</h3>
+                <p className="text-sm opacity-90">Controle avançado</p>
+              </a></Link>
 
               <button
                 onClick={gerarPropostas}
@@ -328,8 +358,18 @@ export default function GerenciarOrcamentos() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-lg font-semibold text-gray-900">
-                              R$ {orcamento.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              R$ {calculateTotalComMargem(orcamento).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </div>
+                            {(orcamento.margem || orcamento.despesas) && (
+                              <div className="text-xs text-gray-500">
+                                {orcamento.despesas && orcamento.despesas.length > 0
+                                  ? `+ despesas manuais`
+                                  : (orcamento.tipoMargem || 'percentual') === 'percentual'
+                                    ? `+ margem ${orcamento.margem || 15}%`
+                                    : `+ custo R$ ${(orcamento.margem || 15).toFixed(2)}`
+                                }
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {getStatusBadge(orcamento.status)}

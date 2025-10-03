@@ -1,0 +1,17 @@
+{
+  "name": "sistema-orçamentos-netlify",
+  "version": "1.0.0",
+  "description": "Sistema de orçamentos para deploy no Netlify",
+  "main": "index.html",
+  "scripts": {
+    "atualizar-orçamentos": "node orçamento/gerenciador-orçamentos.js",
+    "deploy": "npm run atualizar-orçamentos && echo 'Orçamentos atualizados! Pronto para deploy.'"
+  },
+  "keywords": ["orçamentos", "netlify", "html"],
+  "author": "Sistema PIENG",
+  "license": "MIT",
+  "devDependencies": {
+    "node": ">=14.0.0"
+  }
+}
+

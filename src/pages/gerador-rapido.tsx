@@ -28,8 +28,8 @@ export default function GeradorRapido() {
     hsp: 5.21,
     tarifa: 1.10,
     performanceRate: 0.75,
-    pdespesaFixo: 6500,
-    pdespesaVariavel: 78,
+    pdespesaFixo: 3000,
+    pdespesaVariavel: 22,
     metodo: 'variavel'
   });
 
@@ -485,8 +485,8 @@ consolidado_orcamentos_distribuidores:
       hsp: 5.21,
       tarifa: 1.10,
       performanceRate: 0.75,
-      pdespesaFixo: 6500,
-      pdespesaVariavel: 78,
+      pdespesaFixo: 3000,
+      pdespesaVariavel: 22,
       metodo: 'variavel'
     });
     mostrarYamlStatus('🗑️ Histórico limpo! Dados padrão restaurados.', 'info');

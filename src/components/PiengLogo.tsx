@@ -46,7 +46,7 @@ export const PiengLogo: React.FC<PiengLogoProps> = ({
 
   // Mapeamento das variantes para arquivos reais PNG/JPG
   const logoFiles = {
-    main: '/assets/logos/logo-pieng.png',        // Logo principal colorido
+    main: '/assets/logos/logo-pieng-oficial.png',        // Logo principal oficial
     grayscale: '/assets/logos/grayscale_logo.png', // Logo em escala de cinza
     simple: '/assets/logos/logo.png'             // Logo simples
   };

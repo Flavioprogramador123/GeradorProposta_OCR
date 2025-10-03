@@ -92,8 +92,8 @@ body {
 /* Systems Grid */
 .systems-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
     margin-bottom: 30px;
 }
 
@@ -265,10 +265,23 @@ body {
     margin: 30px 0;
     box-shadow: 0 8px 30px rgba(0,0,0,0.1);
     overflow-x: auto;
+    position: relative;
+}
+
+.comparison-table::after {
+    content: "← Deslize para ver mais →";
+    position: absolute;
+    bottom: 5px;
+    right: 20px;
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0.7;
+    display: none;
 }
 
 .table {
     width: 100%;
+    min-width: 600px;
     border-collapse: collapse;
     margin-top: 15px;
 }
@@ -406,6 +419,45 @@ body {
     .insights-grid {
         grid-template-columns: 1fr;
     }
+    
+    /* Melhorias para tabela em mobile */
+    .comparison-table {
+        padding: 15px;
+        margin: 20px 0;
+        overflow-x: auto;
+    }
+    
+    .comparison-table::after {
+        display: block;
+    }
+    
+    .table {
+        min-width: 500px;
+        font-size: 12px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .comparison-table {
+        padding: 10px;
+        margin: 15px 0;
+    }
+    
+    .table {
+        min-width: 450px;
+        font-size: 11px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 6px 4px;
+    }
 }
 
 /* Print Styles */
@@ -421,4 +473,31 @@ body {
     .urgency-banner {
         animation: none !important;
     }
+}
+
+/* Classes para Priscado */
+.price-old {
+    color: var(--danger);
+    text-decoration: line-through;
+    font-size: 16px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.price-new {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 10px;
+}
+
+.price-tag {
+    background: var(--danger);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 15px;
 }
