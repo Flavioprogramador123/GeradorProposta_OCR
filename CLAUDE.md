@@ -6,7 +6,43 @@ Sistema completo de geração de propostas solares com administração web, extr
 
 ---
 
-## 🎉 **ÚLTIMA ATUALIZAÇÃO - 03/10/2025**
+## 🎉 **ÚLTIMA ATUALIZAÇÃO - 03/10/2025 - 23:45**
+
+### ✅ **CORREÇÕES CRÍTICAS + IMPLEMENTAÇÃO DE IDENTIDADE VISUAL**
+
+**Status**: 🟢 **DEPLOY EM ANDAMENTO**
+
+#### 🔧 **CORREÇÕES APLICADAS HOJE**:
+
+1. **🛠️ EROFS - Filesystem Read-Only (Netlify)**:
+   - ✅ Detecta ambiente serverless corretamente
+   - ✅ Usa `/tmp` em produção (Netlify/Vercel)
+   - ✅ Usa `src/data/clientes` em desenvolvimento
+   - ✅ Retorna HTML inline na resposta da API
+   - ✅ Salva JSON apenas em desenvolvimento
+   
+2. **📤 Botão "Enviar para Consultor"**:
+   - ✅ Implementado com `localStorage`
+   - ✅ Gera slug único por cliente
+   - ✅ Transfere dados do Gerador Rápido → Sistema do Consultor
+   - ✅ Abre automaticamente em nova aba
+   - ✅ Validação e feedback visual
+   
+3. **🎨 Logo PIENG em Todo o Sistema**:
+   - ✅ Favicon atualizado (logo real)
+   - ✅ Logo no template HTML principal
+   - ✅ Meta tags (apple-touch-icon, theme-color)
+   - ✅ Substituído logo CSS por logo real
+   - ✅ Logo em `/public/assets/logos/logo-pieng-principal.jpg`
+   
+4. **🧹 Limpeza de Páginas Não Utilizadas**:
+   - ✅ Removido: `/admin/debug.tsx`
+   - ✅ Removido: `/admin/estatica.tsx`
+   - ✅ Removido: `/admin/simples.tsx`
+   - ✅ Removido: `/api/admin/componentes.ts`
+   - ✅ Removido: link para componentes em orçamentos
+
+---
 
 ### ✅ **SISTEMA DE TEMPLATES VARIANTES COMPLETO** (FASES 1-6)
 
