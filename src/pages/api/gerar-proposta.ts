@@ -407,7 +407,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 </html>`;
 
     // 🔧 CORREÇÃO NETLIFY: Verificar se estamos em ambiente serverless (Netlify/Vercel)
-    const isServerless = process.env.NETLIFY || process.env.VERCEL || !process.env.NODE_ENV || process.env.NODE_ENV === 'production';
+    const isServerless = process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production';
     
     // Em produção (Netlify), usar /tmp. Em dev local, usar src/data/clientes
     const baseDir = isServerless ? '/tmp' : path.join(process.cwd(), 'src/data/clientes');
@@ -609,10 +609,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         const melhorSistema = sistemas[melhorIndice];
-        const paybacks = sistemas.map(s => s.paybackMeses || 0);
-        const geracoes = sistemas.map(s => s.geracaoMensal || 0);
-        const coberturas = sistemas.map(s => s.cobertura || 0);
-        const tirs = sistemas.map(s => s.tirAnual || 0);
+        const paybacks = sistemas.map((s: any) => s.paybackMeses || 0);
+        const geracoes = sistemas.map((s: any) => s.geracaoMensal || 0);
+        const coberturas = sistemas.map((s: any) => s.cobertura || 0);
+        const tirs = sistemas.map((s: any) => s.tirAnual || 0);
 
         return {
           paybackMin: Math.min(...paybacks).toFixed(1),
