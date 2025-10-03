@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #3366CC;
+    --secondary: #FF6B35;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --light: #f8f9fa;
+    --dark: #343a40;
+    --muted: #6c757d;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply font-sans leading-relaxed text-pieng-dark;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .pieng-container {
+    @apply max-w-7xl mx-auto px-4 py-5;
+  }
+
+  .pieng-card {
+    @apply bg-white rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl;
+  }
+
+  .pieng-button-primary {
+    @apply bg-gradient-to-r from-pieng-primary to-blue-600 text-white font-bold py-4 px-6 rounded-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 w-full text-center;
+  }
+
+  .pieng-button-secondary {
+    @apply bg-gradient-to-r from-pieng-secondary to-orange-500 text-white font-bold py-4 px-6 rounded-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 w-full text-center;
+  }
+
+  .pieng-badge {
+    @apply absolute top-4 right-4 bg-pieng-warning text-white px-4 py-2 rounded-full text-xs font-bold z-10 animate-glow;
+  }
+
+  .pieng-logo-container {
+    @apply flex flex-col items-center mb-5;
+  }
+
+  .pieng-logo-circle {
+    @apply w-32 h-32 rounded-full bg-gradient-to-r from-pieng-primary to-pieng-secondary flex items-center justify-center shadow-lg mb-3 relative overflow-hidden;
+  }
+
+  .pieng-logo-circle::before {
+    content: '';
+    @apply absolute top-4 left-4 w-24 h-24 rounded-full bg-white bg-opacity-10;
+  }
+
+  .pieng-logo-text {
+    @apply text-5xl font-black text-white drop-shadow-lg relative z-10;
+  }
+
+  .pieng-brand-text {
+    @apply text-2xl font-black text-pieng-primary tracking-widest drop-shadow-sm;
+  }
+
+  .pieng-urgency-banner {
+    @apply bg-gradient-to-r from-pieng-danger to-red-600 text-white text-center py-4 font-bold text-lg rounded-lg mb-8 animate-pulse-custom shadow-lg;
+  }
+
+  .pieng-specs-list {
+    @apply list-none space-y-2;
+  }
+
+  .pieng-specs-list li {
+    @apply relative pl-6;
+  }
+
+  .pieng-specs-list li::before {
+    content: "✓";
+    @apply absolute left-0 text-pieng-success font-bold;
+  }
+
+  .pieng-pricing-section {
+    @apply bg-pieng-light p-5 rounded-xl mb-5 text-center;
+  }
+
+  .pieng-original-price {
+    @apply text-pieng-danger line-through text-sm mb-1;
+  }
+
+  .pieng-current-price {
+    @apply text-2xl font-bold text-pieng-primary mb-2;
+  }
+
+  .pieng-discount-tag {
+    @apply bg-pieng-danger text-white px-3 py-1 rounded-full text-xs font-bold inline-block mb-4;
+  }
+
+  .pieng-payment-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4;
+  }
+
+  .pieng-payment-option {
+    @apply bg-white p-3 rounded-lg text-center text-sm border-2 border-transparent;
+  }
+
+  .pieng-payment-highlight {
+    @apply border-pieng-success bg-green-50;
+  }
+
+  .pieng-performance-box {
+    @apply bg-green-50 border-l-4 border-pieng-success p-4 rounded-lg mb-5;
+  }
+
+  .pieng-system-grid {
+    @apply grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-10;
+  }
+
+  .pieng-system-card {
+    @apply pieng-card overflow-hidden relative hover:-translate-y-2;
+  }
+
+  .pieng-system-recommended {
+    @apply border-4 border-pieng-success scale-105;
+  }
+
+  .pieng-card-header {
+    @apply bg-gradient-to-r from-pieng-primary to-purple-600 text-white p-6 text-center;
+  }
+
+  .pieng-insights-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5;
+  }
+
+  .pieng-insight-item {
+    @apply bg-pieng-light p-5 rounded-xl border-l-4 border-pieng-primary;
+  }
+
+  .pieng-table {
+    @apply w-full border-collapse mt-4;
+  }
+
+  .pieng-table th,
+  .pieng-table td {
+    @apply p-3 text-center border-b border-gray-200 text-sm;
+  }
+
+  .pieng-table th {
+    @apply bg-pieng-light font-bold text-pieng-dark;
+  }
+
+  .pieng-table-recommended {
+    @apply bg-green-50 font-bold;
+  }
+
+  .pieng-footer {
+    @apply bg-pieng-dark text-white rounded-2xl p-8 mt-8 text-center;
+  }
+
+  .pieng-footer-grid {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-5 mb-5;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .animate-pulse-custom {
+    animation: pulse-custom 2s infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s infinite alternate;
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+  }
+  
+  .pieng-container {
+    box-shadow: none !important;
+  }
+  
+  .pieng-urgency-banner {
+    animation: none !important;
+  }
+}

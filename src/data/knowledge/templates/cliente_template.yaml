@@ -1,0 +1,121 @@
+# ==================================================================
+# TEMPLATE DE DADOS TÉCNICOS DO CLIENTE - PIENG v2.0
+# ==================================================================
+cliente:
+  nome: "{{NOME_CLIENTE}}"
+  cidade: "{{CIDADE_CLIENTE}}"
+  estado: "{{ESTADO_CLIENTE}}"
+  consumo_mensal_kwh: {{CONSUMO_MENSAL}}
+  tipo_imovel: "{{TIPO_IMOVEL}}"
+  hsp_local: {{HSP_LOCAL}}
+  tarifa_kwh: {{TARIFA_KWH}}
+
+# ==================================================================
+# ORÇAMENTOS EXTRAÍDOS (MÚLTIPLOS)
+# ==================================================================
+orcamentos:
+  - id: "orcamento_01"
+    fornecedor: "{{FORNECEDOR_01}}"
+    potencia_total_kwp: {{POTENCIA_TOTAL_01}}
+    preco_custo: {{PRECO_CUSTO_01}}
+    preco_despesa: {{PRECO_DESPESA_01}}
+    preco_total: {{PRECO_TOTAL_01}}
+    
+    inversores:
+      - marca: "{{INVERSOR_MARCA_01}}"
+        modelo: "{{INVERSOR_MODELO_01}}"
+        potencia_kw: {{INVERSOR_POTENCIA_01}}
+        quantidade: {{INVERSOR_QTD_01}}
+    
+    modulos:
+      - marca: "{{MODULO_MARCA_01}}"
+        modelo: "{{MODULO_MODELO_01}}"
+        potencia_wp: {{MODULO_POTENCIA_01}}
+        quantidade: {{MODULO_QTD_01}}
+        tipo: "{{MODULO_TIPO_01}}" # Monofacial/Bifacial
+    
+    outros_componentes:
+      - "{{COMPONENTE_01}}"
+      - "{{COMPONENTE_02}}"
+      - "{{COMPONENTE_03}}"
+
+  - id: "orcamento_02"
+    fornecedor: "{{FORNECEDOR_02}}"
+    potencia_total_kwp: {{POTENCIA_TOTAL_02}}
+    preco_custo: {{PRECO_CUSTO_02}}
+    preco_despesa: {{PRECO_DESPESA_02}}
+    preco_total: {{PRECO_TOTAL_02}}
+    
+    inversores:
+      - marca: "{{INVERSOR_MARCA_02}}"
+        modelo: "{{INVERSOR_MODELO_02}}"
+        potencia_kw: {{INVERSOR_POTENCIA_02}}
+        quantidade: {{INVERSOR_QTD_02}}
+    
+    modulos:
+      - marca: "{{MODULO_MARCA_02}}"
+        modelo: "{{MODULO_MODELO_02}}"
+        potencia_wp: {{MODULO_POTENCIA_02}}
+        quantidade: {{MODULO_QTD_02}}"
+        tipo: "{{MODULO_TIPO_02}}"
+
+# ==================================================================
+# CÁLCULOS TÉCNICOS (PYTHON)
+# ==================================================================
+calculos_tecnicos:
+  performance_rate: 0.75
+  fator_capacidade: {{FATOR_CAPACIDADE}}
+  geracao_mensal_kwh: {{GERACAO_MENSAL}}
+  geracao_anual_kwh: {{GERACAO_ANUAL}}
+  cobertura_consumo: {{COBERTURA_CONSUMO}}%
+
+# ==================================================================
+# ANÁLISE FINANCEIRA (PYTHON)
+# ==================================================================
+analise_financeira:
+  payback_simples_meses: {{PAYBACK_SIMPLES}}
+  payback_descontado_meses: {{PAYBACK_DESCONTADO}}
+  tir_anual: {{TIR_ANUAL}}%
+  vpl_25_anos: {{VPL_25_ANOS}}
+  economia_mensal: {{ECONOMIA_MENSAL}}
+  economia_anual: {{ECONOMIA_ANUAL}}
+  tarifa_tusd: {{TARIFA_TUSD}}
+
+# ==================================================================
+# PREÇOS COMERCIAIS (FÓRMULAS PIENG)
+# ==================================================================
+precos_comerciais:
+  preco_pix: {{PRECO_PIX}}
+  preco_12x: {{PRECO_12X}}
+  preco_18x: {{PRECO_18X}}
+  desconto_pix: {{DESCONTO_PIX}}%
+  preco_riscado: {{PRECO_RISCADO}}
+
+# ==================================================================
+# MÉTRICAS COMPARATIVAS (EVITA ALUCINAÇÃO)
+# ==================================================================
+metricas_comparativas:
+  menor_payback: {{MENOR_PAYBACK}}
+  maior_tir: {{MAIOR_TIR}}
+  melhor_cobertura: {{MELHOR_COBERTURA}}%
+  sistema_recomendado: "{{SISTEMA_RECOMENDADO}}"
+  potencia_recomendada: "{{POTENCIA_RECOMENDADA}}"
+
+# ==================================================================
+# DADOS DA EMPRESA (ESTÁTICOS)
+# ==================================================================
+empresa:
+  nome: "PIENG Soluções"
+  contato: "(62) 99167-0536"
+  email: "contato@piengsolucoes.com.br"
+  site: "www.piengsolucoes.com.br"
+  whatsapp: "5562991670536"
+
+# ==================================================================
+# METADADOS DO DOCUMENTO
+# ==================================================================
+documento:
+  data_geracao: "{{DATA_GERACAO}}"
+  data_validade: "{{DATA_VALIDADE}}"
+  versao_template: "2.0"
+  status: "{{STATUS_DOCUMENTO}}"

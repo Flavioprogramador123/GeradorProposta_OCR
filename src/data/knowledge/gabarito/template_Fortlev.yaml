@@ -1,0 +1,71 @@
+# ==================================================================
+# TEMPLATE DE EXTRAÇÃO OCR: Fortlev Solar v1.0
+# ==================================================================
+template_metadata:
+  distribuidor: "Fortlev Solar"
+  tipo_documento: "Gerador Fotovoltaico - Orçamento"
+  versao: "1.0"
+  descricao: "Template para o layout da Fortlev, que organiza os componentes em seções (blocos) em vez de uma tabela única. A busca é baseada em encontrar cabeçalhos de seção."
+
+# ==================================================================
+# DEFINIÇÃO DE ZONAS (QUADRANTES LÓGICOS)
+# ==================================================================
+extraction_zones:
+  - zone_name: "zona_resumo_pedido"
+    description: "Caixa de 'Resumo do Pedido' que contém o valor total."
+  - zone_name: "zona_lista_componentes"
+    description: "Área principal onde os componentes são listados sob seus respectivos títulos (Módulos, Inversores)."
+
+# ==================================================================
+# REGRAS DE EXTRAÇÃO POR CAMPO
+# ==================================================================
+field_definitions:
+  - field_name: "valor_total"
+    data_type: "float"
+    search_zone: "zona_resumo_pedido"
+    extraction_rules:
+      - method: "keyword_based"
+        parameters:
+          keywords: ["Total do pedido:"]
+          value_position: "right"
+          expected_format: "currency_br"
+          post_processing: ["remove_currency_symbol", "convert_to_float_br"]
+
+  - field_name: "inversores"
+    data_type: "list_of_objects"
+    search_zone: "zona_lista_componentes"
+    extraction_rules:
+      # A IA deve primeiro encontrar o cabeçalho 'Inversores' e depois procurar os dados abaixo dele.
+      - method: "section_based"
+        parameters:
+          section_header: "Inversores"
+          item_identifier_keywords: ["MICROINVERSOR"]
+          field_extractors:
+            - target_field: "marca"
+              # Procura a primeira palavra em maiúsculas após "MICROINVERSOR"
+              value_regex: "MICROINVERSOR\\s+([A-Z]+)"
+            - target_field: "potencia_wp"
+              value_regex: "BDM-(\\d+)" # Extrai a potência do código do modelo
+              data_type: "integer"
+            - target_field: "quantidade"
+              # Procura pela palavra-chave 'Quantidade:' na área do item
+              value_keyword: "Quantidade:"
+              data_type: "integer"
+
+  - field_name: "modulos_solares"
+    data_type: "list_of_objects"
+    search_zone: "zona_lista_componentes"
+    extraction_rules:
+      - method: "section_based"
+        parameters:
+          section_header: "Módulos"
+          item_identifier_keywords: ["PAINEL"]
+          field_extractors:
+            - target_field: "marca"
+              value_regex: "PAINEL\\s+HJT\\s+([A-Z]+)" # Extrai a marca (ex: RISEN)
+            - target_field: "potencia_wp"
+              value_regex: "(\\d+)W"
+              data_type: "integer"
+            - target_field: "quantidade"
+              value_keyword: "Quantidade:"
+              data_type: "integer"

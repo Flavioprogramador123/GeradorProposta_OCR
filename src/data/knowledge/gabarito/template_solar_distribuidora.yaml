@@ -1,0 +1,73 @@
+# ==================================================================
+# TEMPLATE DE EXTRAÇÃO OCR: Sollar Distribuidora v1.0
+# ==================================================================
+template_metadata:
+  distribuidor: "Sollar Distribuidora"
+  tipo_documento: "Orçamento de Equipamentos Fotovoltaicos"
+  versao: "1.0"
+  descricao: "Este template guia a extração de dados de orçamentos da Sollar. O layout é caracterizado por uma tabela de itens e um rodapé com totais financeiros."
+
+# ==================================================================
+# DEFINIÇÃO DE ZONAS (QUADRANTES LÓGICOS)
+# ==================================================================
+# A IA deve segmentar o documento nessas áreas para otimizar a busca.
+extraction_zones:
+  - zone_name: "zona_cabecalho"
+    description: "Área superior com dados do cliente."
+  - zone_name: "zona_tabela_itens"
+    description: "Corpo principal do documento, onde os produtos são listados."
+  - zone_name: "zona_rodape_financeiro"
+    description: "Área final com Subtotal, Frete e Valor Total."
+
+# ==================================================================
+# REGRAS DE EXTRAÇÃO POR CAMPO
+# ==================================================================
+field_definitions:
+  - field_name: "valor_total"
+    data_type: "float"
+    search_zone: "zona_rodape_financeiro"
+    extraction_rules:
+      - method: "keyword_based"
+        parameters:
+          keywords: ["Total:"]
+          value_position: "right"
+          expected_format: "currency_br" # Ex: 11.902,52
+          post_processing: ["remove_currency_symbol", "convert_to_float_br"]
+
+  - field_name: "inversores"
+    data_type: "list_of_objects" # A IA criará uma lista com cada inversor encontrado
+    search_zone: "zona_tabela_itens"
+    extraction_rules:
+      - method: "table_row_based"
+        parameters:
+          row_identifier_keywords: ["MICRO-INVERSOR", "INVERSOR"]
+          columns:
+            - target_field: "marca"
+              source_column_header: "Nome (Variação)"
+              value_regex: "(SAJ|DEYE|HOYMILES|TSUN)" # Regex para capturar marcas conhecidas
+            - target_field: "potencia_kw"
+              source_column_header: "Nome (Variação)"
+              value_regex: "([0-9,.]+)KW" # Captura o número antes de "KW"
+              post_processing: ["convert_to_float_br"]
+            - target_field: "quantidade"
+              source_column_header: "Quant"
+              data_type: "integer"
+
+  - field_name: "modulos_solares"
+    data_type: "list_of_objects"
+    search_zone: "zona_tabela_itens"
+    extraction_rules:
+      - method: "table_row_based"
+        parameters:
+          row_identifier_keywords: ["MODULO", "PAINEL"]
+          columns:
+            - target_field: "marca"
+              source_column_header: "Nome (Variação)"
+              value_regex: "(JETION|RISEN|JA SOLAR|CANADIAN)"
+            - target_field: "potencia_wp"
+              source_column_header: "Nome (Variação)"
+              value_regex: "(\\d+)W" # Captura o número antes de "W"
+              data_type: "integer"
+            - target_field: "quantidade"
+              source_column_header: "Quant"
+              data_type: "integer"

@@ -1,0 +1,75 @@
+# ==================================================================
+# TEMPLATE DE EXTRAÇÃO OCR: BelEnergy v1.0
+# ==================================================================
+template_metadata:
+  distribuidor: "BelEnergy"
+  tipo_documento: "Cotação WEB de Equipamentos Fotovoltaicos"
+  versao: "1.0"
+  descricao: "Este template guia a extração de dados de cotações da BelEnergy. O layout inclui uma tabela de produtos com o campo 'Fabricante' e um rodapé com o valor total."
+
+# ==================================================================
+# DEFINIÇÃO DE ZONAS (QUADRANTES LÓGICOS)
+# ==================================================================
+extraction_zones:
+  - zone_name: "zona_cabecalho"
+    description: "Área superior com dados do cliente e da cotação."
+  - zone_name: "zona_tabela_itens"
+    description: "Tabela principal com colunas 'Produto' e 'Quantidade'."
+  - zone_name: "zona_rodape_financeiro"
+    description: "Área final com o 'Valor total:'."
+
+# ==================================================================
+# REGRAS DE EXTRAÇÃO POR CAMPO
+# ==================================================================
+field_definitions:
+  - field_name: "valor_total"
+    data_type: "float"
+    search_zone: "zona_rodape_financeiro"
+    extraction_rules:
+      - method: "keyword_based"
+        parameters:
+          keywords: ["Valor total:"]
+          value_position: "below" # O valor está na linha de baixo
+          expected_format: "currency_br"
+          post_processing: ["remove_currency_symbol", "convert_to_float_br"]
+
+  - field_name: "inversores"
+    data_type: "list_of_objects"
+    search_zone: "zona_tabela_itens"
+    extraction_rules:
+      - method: "table_row_based"
+        parameters:
+          row_identifier_keywords: ["MICROINVERSOR"]
+          columns:
+            - target_field: "marca"
+              source_column_header: "Produto"
+              # Procura pela palavra-chave 'Fabricante:' dentro do texto da célula
+              value_regex: "Fabricante:\\s*(\\w+)"
+            - target_field: "potencia_kw"
+              source_column_header: "Produto"
+              value_regex: "([0-9,.]+)KW"
+              post_processing: ["convert_to_float_br"]
+            - target_field: "quantidade"
+              source_column_header: "Quantidade"
+              value_regex: "(\\d+)\\s*PC" # Captura o número antes de "PC"
+              data_type: "integer"
+
+  - field_name: "modulos_solares"
+    data_type: "list_of_objects"
+    search_zone: "zona_tabela_itens"
+    extraction_rules:
+      - method: "table_row_based"
+        parameters:
+          row_identifier_keywords: ["MODULO"]
+          columns:
+            - target_field: "marca"
+              source_column_header: "Produto"
+              value_regex: "MODULO BIFACIAL.*?(\\w+)$" # Captura a última palavra como marca (ex: HONOR)
+            - target_field: "potencia_wp"
+              source_column_header: "Produto"
+              value_regex: "(\\d+)W"
+              data_type: "integer"
+            - target_field: "quantidade"
+              source_column_header: "Quantidade"
+              value_regex: "(\\d+)\\s*PC"
+              data_type: "integer"

@@ -1,0 +1,59 @@
+{
+  "template_variables": {
+    "version": "1.0",
+    "description": "Mapeamento de variáveis dinâmicas para template HTML PIENG",
+    "variables": {
+      "cliente_info": {
+        "CLIENTE_NOME": "Nome completo do cliente",
+        "CLIENTE_CIDADE": "Cidade/Estado do cliente", 
+        "CLIENTE_CONSUMO_KWH": "Consumo mensal em kWh",
+        "CLIENTE_CONSUMO_TIPO": "Tipo do imóvel (Residência, Comércio, etc)",
+        "HSP_LOCAL": "HSP da cidade específica"
+      },
+      "sistemas": {
+        "TOTAL_SISTEMAS": "Quantidade total de sistemas (3-5)",
+        "SISTEMA_1_TITULO": "Título do primeiro sistema",
+        "SISTEMA_1_POTENCIA": "Potência em kWp",
+        "SISTEMA_1_MODULOS": "Descrição dos módulos",
+        "SISTEMA_1_INVERSORES": "Descrição dos inversores", 
+        "SISTEMA_1_PIX": "Valor PIX formatado",
+        "SISTEMA_1_12X": "Valor parcela 12x formatado",
+        "SISTEMA_1_18X": "Valor parcela 18x formatado",
+        "SISTEMA_1_GERACAO": "Geração mensal em kWh",
+        "SISTEMA_1_COBERTURA": "Percentual de cobertura",
+        "SISTEMA_1_ECONOMIA": "Economia mensal formatada",
+        "SISTEMA_1_PAYBACK": "Payback em meses",
+        "SISTEMA_1_TIR": "TIR anual em %",
+        "SISTEMA_1_PRECO_RISCADO": "Preço riscado (priscado)"
+      },
+      "analise_estrategica": {
+        "PAYBACK_MIN": "Menor payback entre os sistemas",
+        "PAYBACK_MAX": "Maior payback entre os sistemas", 
+        "MELHOR_SISTEMA_NOME": "Nome do sistema com melhor payback",
+        "MELHOR_SISTEMA_POTENCIA": "Potência do melhor sistema",
+        "MELHOR_SISTEMA_PIX": "Valor PIX do melhor sistema",
+        "MELHOR_SISTEMA_PAYBACK": "Payback do melhor sistema",
+        "GERACAO_MAX": "Maior geração entre os sistemas",
+        "COBERTURA_MAX": "Maior cobertura entre os sistemas",
+        "TIR_MAX": "Maior TIR entre os sistemas",
+        "ECONOMIA_TARIFA": "Valor da economia por kWh"
+      },
+      "configuracoes": {
+        "ANO_ATUAL": "Ano da proposta",
+        "DATA_GERACAO": "Data de geração da proposta",
+        "BANNER_URGENCIA": "Texto do banner de urgência",
+        "EMPRESA_CONTATO": "(62) 99167-0536",
+        "EMPRESA_EMAIL": "contato@piengsolucoes.com.br",
+        "EMPRESA_SITE": "www.piengsolucoes.com.br"
+      }
+    },
+    "dados_sigilosos_removidos": [
+      "pdespesa",
+      "pcusto", 
+      "margem_lucro",
+      "estrategia_pricing",
+      "fornecedor_interno",
+      "markup_percentual"
+    ]
+  }
+}

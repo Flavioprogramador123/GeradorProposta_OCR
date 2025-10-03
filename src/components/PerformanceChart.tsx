@@ -1,0 +1,129 @@
+import React from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+
+interface Sistema {
+  titulo: string;
+  potencia: string;
+  geracao: string;
+  cobertura: string;
+  payback: string;
+  tir: string;
+  isRecommended?: boolean;
+}
+
+interface PerformanceChartProps {
+  sistemas: Sistema[];
+}
+
+export const PerformanceChart: React.FC<PerformanceChartProps> = ({ sistemas }) => {
+  // Preparar dados para o gráfico
+  const chartData = sistemas.map((sistema, index) => ({
+    nome: `Sistema ${index + 1}`,
+    titulo: sistema.titulo,
+    geracao: parseFloat(sistema.geracao.replace(' kWh', '').replace(',', '')) || 0,
+    payback: parseFloat(sistema.payback.replace(' meses', '').replace(',', '.')) || 0,
+    tir: parseFloat(sistema.tir.replace('%', '').replace(',', '.')) || 0,
+    isRecommended: sistema.isRecommended || false
+  }));
+
+  // Cores personalizadas
+  const COLORS = ['#3366CC', '#FF6B35', '#2ecc71', '#f39c12', '#e74c3c'];
+  const getBarColor = (index: number, isRecommended: boolean) =>
+    isRecommended ? '#2ecc71' : COLORS[index % COLORS.length];
+
+  return (
+    <section className="pieng-card p-8 mb-8">
+      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+        📊 Análise Comparativa de Performance
+      </h3>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Gráfico de Geração Mensal */}
+        <div>
+          <h4 className="text-base font-bold mb-4 text-pieng-primary">Geração Mensal (kWh)</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="nome" />
+              <YAxis />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                        <p className="font-bold text-pieng-primary">{data.titulo}</p>
+                        <p className="text-sm">Geração: <strong>{data.geracao} kWh/mês</strong></p>
+                        {data.isRecommended && (
+                          <p className="text-xs text-pieng-success font-bold mt-1">⭐ Recomendado</p>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="geracao" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getBarColor(index, entry.isRecommended)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Gráfico de Payback */}
+        <div>
+          <h4 className="text-base font-bold mb-4 text-pieng-primary">Retorno do Investimento (meses)</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="nome" />
+              <YAxis />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                        <p className="font-bold text-pieng-primary">{data.titulo}</p>
+                        <p className="text-sm">Payback: <strong>{data.payback} meses</strong></p>
+                        <p className="text-sm">TIR: <strong>{data.tir}% ao ano</strong></p>
+                        {data.isRecommended && (
+                          <p className="text-xs text-pieng-success font-bold mt-1">⭐ Recomendado</p>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="payback" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getBarColor(index, entry.isRecommended)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-xs text-pieng-muted text-center mt-2">
+            💡 Quanto menor o payback, mais rápido você recupera o investimento
+          </p>
+        </div>
+      </div>
+
+      {/* Legenda */}
+      <div className="mt-6 p-4 bg-pieng-light rounded-lg">
+        <div className="flex flex-wrap gap-4 justify-center text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#2ecc71' }}></div>
+            <span>Sistema Recomendado</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-pieng-primary"></div>
+            <span>Outras Opções</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};

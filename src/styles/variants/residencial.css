@@ -1,0 +1,179 @@
+/**
+ * 🏠 CSS CUSTOMIZADO - RESIDENCIAL PREMIUM
+ * Tema: Azul moderno + Laranja energético
+ */
+
+.variant-residencial {
+  --variant-primary: #3366CC;
+  --variant-secondary: #FF6B35;
+  --variant-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --variant-accent: #FFD93D;
+  --variant-bg-light: #F8F9FF;
+}
+
+/* Hero Section */
+.variant-residencial .hero-section {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.variant-residencial .hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.variant-residencial .hero-section p {
+  font-size: 1.2rem;
+  opacity: 0.95;
+  margin-bottom: 25px;
+}
+
+/* Cards de Sistema */
+.variant-residencial .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-residencial .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(51, 102, 204, 0.2);
+  transform: translateY(-5px);
+}
+
+.variant-residencial .pieng-system-recommended {
+  border-color: var(--variant-secondary);
+  background: linear-gradient(to bottom, #FFF9F0 0%, white 100%);
+}
+
+.variant-residencial .pieng-badge {
+  background: var(--variant-secondary);
+  color: white;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
+}
+
+/* Seção de Benefícios */
+.variant-residencial .benefits-section {
+  background: var(--variant-bg-light);
+  padding: 40px 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-residencial .benefit-item {
+  padding: 12px 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  border-bottom: 1px solid rgba(51, 102, 204, 0.1);
+}
+
+.variant-residencial .benefit-item::before {
+  content: '✓ ';
+  color: var(--variant-primary);
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 1.3rem;
+}
+
+/* Valorização do Imóvel */
+.variant-residencial .valorization-section {
+  background: linear-gradient(135deg, #FFD93D 0%, #FFA726 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+.variant-residencial .valorization-section h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.variant-residencial .valorization-value {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 20px 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Impacto Ambiental */
+.variant-residencial .environmental-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-residencial .environmental-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+}
+
+/* CTA Button */
+.variant-residencial .cta-button {
+  background: var(--variant-secondary);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+  transition: all 0.3s ease;
+}
+
+.variant-residencial .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(255, 107, 53, 0.5);
+}
+
+/* Gráficos */
+.variant-residencial .chart-container {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  margin: 25px 0;
+}
+
+/* Tabelas */
+.variant-residencial table {
+  border-collapse: collapse;
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-residencial th {
+  background: var(--variant-primary);
+  color: white;
+  padding: 15px;
+  font-weight: 600;
+}
+
+.variant-residencial td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.variant-residencial tr:hover {
+  background: var(--variant-bg-light);
+}

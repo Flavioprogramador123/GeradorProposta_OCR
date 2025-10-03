@@ -1,0 +1,240 @@
+# ==================================================================
+# TEMPLATE DE DADOS TÉCNICOS DO CLIENTE - PIENG v3.0 (PNL Otimizado)
+# Máximo 5 propostas para evitar confusão do cliente
+# ==================================================================
+
+# Dados básicos do cliente
+cliente:
+  nome: "{{NOME_CLIENTE}}"
+  cidade: "{{CIDADE_CLIENTE}}"
+  estado: "{{ESTADO_CLIENTE}}"
+  consumo_mensal_kwh: {{CONSUMO_MENSAL}}
+  tipo_imovel: "{{TIPO_IMOVEL}}"
+  hsp_local: {{HSP_LOCAL}}
+  tarifa_kwh: {{TARIFA_KWH}}
+  data_cadastro: "{{DATA_CADASTRO}}"
+
+# ==================================================================
+# TOP 5 PROPOSTAS SELECIONADAS (PNL Otimizado)
+# ==================================================================
+top_5_propostas:
+  # Proposta 1 - MELHOR CUSTO/BENEFÍCIO (Ancoragem)
+  proposta_01:
+    titulo: "Opção Premium"
+    distribuidor: "{{PROPOSTA_01_DISTRIBUIDOR}}"
+    orcamento_id: "{{PROPOSTA_01_ID}}"
+    arquivo_origem: "{{PROPOSTA_01_ARQUIVO}}"
+    preco_total: {{PROPOSTA_01_PRECO}}
+    potencia_total_sistema: "{{PROPOSTA_01_POTENCIA}} kWp"
+    custo_kwp: "{{PROPOSTA_01_CUSTO_KWP}}"
+    inversores:
+      - quantidade: {{PROPOSTA_01_INV_QTD}}
+        marca: "{{PROPOSTA_01_INV_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_01_INV_POTENCIA}}"
+    modulos:
+      - quantidade: {{PROPOSTA_01_MOD_QTD}}
+        marca: "{{PROPOSTA_01_MOD_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_01_MOD_POTENCIA}}W"
+    badge: "🥇 MELHOR CUSTO/BENEFÍCIO"
+    is_recommended: true
+    pnl_strategy: "ancoragem"
+
+  # Proposta 2 - EQUILIBRIO PERFEITO (Decoy Effect)
+  proposta_02:
+    titulo: "Opção Equilibrada"
+    distribuidor: "{{PROPOSTA_02_DISTRIBUIDOR}}"
+    orcamento_id: "{{PROPOSTA_02_ID}}"
+    arquivo_origem: "{{PROPOSTA_02_ARQUIVO}}"
+    preco_total: {{PROPOSTA_02_PRECO}}
+    potencia_total_sistema: "{{PROPOSTA_02_POTENCIA}} kWp"
+    custo_kwp: "{{PROPOSTA_02_CUSTO_KWP}}"
+    inversores:
+      - quantidade: {{PROPOSTA_02_INV_QTD}}
+        marca: "{{PROPOSTA_02_INV_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_02_INV_POTENCIA}}"
+    modulos:
+      - quantidade: {{PROPOSTA_02_MOD_QTD}}
+        marca: "{{PROPOSTA_02_MOD_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_02_MOD_POTENCIA}}W"
+    badge: "⚖️ EQUILÍBRIO PERFEITO"
+    is_recommended: false
+    pnl_strategy: "decoy_effect"
+
+  # Proposta 3 - MAIOR POTÊNCIA (Social Proof)
+  proposta_03:
+    titulo: "Opção Potência Máxima"
+    distribuidor: "{{PROPOSTA_03_DISTRIBUIDOR}}"
+    orcamento_id: "{{PROPOSTA_03_ID}}"
+    arquivo_origem: "{{PROPOSTA_03_ARQUIVO}}"
+    preco_total: {{PROPOSTA_03_PRECO}}
+    potencia_total_sistema: "{{PROPOSTA_03_POTENCIA}} kWp"
+    custo_kwp: "{{PROPOSTA_03_CUSTO_KWP}}"
+    inversores:
+      - quantidade: {{PROPOSTA_03_INV_QTD}}
+        marca: "{{PROPOSTA_03_INV_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_03_INV_POTENCIA}}"
+    modulos:
+      - quantidade: {{PROPOSTA_03_MOD_QTD}}
+        marca: "{{PROPOSTA_03_MOD_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_03_MOD_POTENCIA}}W"
+    badge: "⚡ MAIOR POTÊNCIA"
+    is_recommended: false
+    pnl_strategy: "social_proof"
+
+  # Proposta 4 - MENOR INVESTIMENTO (Urgência)
+  proposta_04:
+    titulo: "Opção Entrada"
+    distribuidor: "{{PROPOSTA_04_DISTRIBUIDOR}}"
+    orcamento_id: "{{PROPOSTA_04_ID}}"
+    arquivo_origem: "{{PROPOSTA_04_ARQUIVO}}"
+    preco_total: {{PROPOSTA_04_PRECO}}
+    potencia_total_sistema: "{{PROPOSTA_04_POTENCIA}} kWp"
+    custo_kwp: "{{PROPOSTA_04_CUSTO_KWP}}"
+    inversores:
+      - quantidade: {{PROPOSTA_04_INV_QTD}}
+        marca: "{{PROPOSTA_04_INV_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_04_INV_POTENCIA}}"
+    modulos:
+      - quantidade: {{PROPOSTA_04_MOD_QTD}}
+        marca: "{{PROPOSTA_04_MOD_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_04_MOD_POTENCIA}}W"
+    badge: "💰 MENOR INVESTIMENTO"
+    is_recommended: false
+    pnl_strategy: "urgencia"
+
+  # Proposta 5 - PREMIUM (Autoridade)
+  proposta_05:
+    titulo: "Opção Premium Plus"
+    distribuidor: "{{PROPOSTA_05_DISTRIBUIDOR}}"
+    orcamento_id: "{{PROPOSTA_05_ID}}"
+    arquivo_origem: "{{PROPOSTA_05_ARQUIVO}}"
+    preco_total: {{PROPOSTA_05_PRECO}}
+    potencia_total_sistema: "{{PROPOSTA_05_POTENCIA}} kWp"
+    custo_kwp: "{{PROPOSTA_05_CUSTO_KWP}}"
+    inversores:
+      - quantidade: {{PROPOSTA_05_INV_QTD}}
+        marca: "{{PROPOSTA_05_INV_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_05_INV_POTENCIA}}"
+    modulos:
+      - quantidade: {{PROPOSTA_05_MOD_QTD}}
+        marca: "{{PROPOSTA_05_MOD_MARCA}}"
+        potencia_unitaria: "{{PROPOSTA_05_MOD_POTENCIA}}W"
+    badge: "👑 PREMIUM PLUS"
+    is_recommended: false
+    pnl_strategy: "autoridade"
+
+# ==================================================================
+# ANÁLISE PNL E MARKETING
+# ==================================================================
+analise_pnl:
+  estrategia_principal: "ancoragem"
+  proposta_ancora: "proposta_01"
+  proposta_decoy: "proposta_02"
+  proposta_social_proof: "proposta_03"
+  proposta_urgencia: "proposta_04"
+  proposta_autoridade: "proposta_05"
+  
+  triggers_psicologicos:
+    - "Melhor custo/benefício do mercado"
+    - "Equilíbrio perfeito entre preço e qualidade"
+    - "Maior potência disponível"
+    - "Menor investimento inicial"
+    - "Solução premium com garantia estendida"
+
+# ==================================================================
+# ANÁLISE COMPARATIVA (TOP 5)
+# ==================================================================
+analise_comparativa:
+  total_propostas_analisadas: {{TOTAL_ORCAMENTOS}}
+  propostas_selecionadas: 5
+  menor_preco: {{MENOR_PRECO}}
+  maior_preco: {{MAIOR_PRECO}}
+  menor_potencia: "{{MENOR_POTENCIA}} kWp"
+  maior_potencia: "{{MAIOR_POTENCIA}} kWp"
+  melhor_custo_kwp: "{{MELHOR_CUSTO_KWP}}"
+  
+  ranking_pnl:
+    - posicao: 1
+      proposta: "proposta_01"
+      estrategia: "ancoragem"
+      custo_kwp: "{{PROPOSTA_01_CUSTO_KWP}}"
+    - posicao: 2
+      proposta: "proposta_02"
+      estrategia: "decoy_effect"
+      custo_kwp: "{{PROPOSTA_02_CUSTO_KWP}}"
+    - posicao: 3
+      proposta: "proposta_03"
+      estrategia: "social_proof"
+      custo_kwp: "{{PROPOSTA_03_CUSTO_KWP}}"
+    - posicao: 4
+      proposta: "proposta_04"
+      estrategia: "urgencia"
+      custo_kwp: "{{PROPOSTA_04_CUSTO_KWP}}"
+    - posicao: 5
+      proposta: "proposta_05"
+      estrategia: "autoridade"
+      custo_kwp: "{{PROPOSTA_05_CUSTO_KWP}}"
+
+# ==================================================================
+# CÁLCULOS TÉCNICOS (PYTHON)
+# ==================================================================
+calculos_tecnicos:
+  performance_rate: 0.75
+  fator_capacidade: {{FATOR_CAPACIDADE}}
+  geracao_mensal_kwh: {{GERACAO_MENSAL}}
+  geracao_anual_kwh: {{GERACAO_ANUAL}}
+  cobertura_consumo: {{COBERTURA_CONSUMO}}%
+
+# ==================================================================
+# ANÁLISE FINANCEIRA (PYTHON)
+# ==================================================================
+analise_financeira:
+  payback_simples_meses: {{PAYBACK_SIMPLES}}
+  payback_descontado_meses: {{PAYBACK_DESCONTADO}}
+  tir_anual: {{TIR_ANUAL}}%
+  vpl_25_anos: {{VPL_25_ANOS}}
+  economia_mensal: {{ECONOMIA_MENSAL}}
+  economia_anual: {{ECONOMIA_ANUAL}}
+  tarifa_tusd: {{TARIFA_TUSD}}
+
+# ==================================================================
+# PREÇOS COMERCIAIS (FÓRMULAS PIENG)
+# ==================================================================
+precos_comerciais:
+  preco_pix: {{PRECO_PIX}}
+  preco_12x: {{PRECO_12X}}
+  preco_18x: {{PRECO_18X}}
+  desconto_pix: {{DESCONTO_PIX}}%
+  preco_riscado: {{PRECO_RISCADO}}
+
+# ==================================================================
+# MÉTRICAS COMPARATIVAS (EVITA ALUCINAÇÃO)
+# ==================================================================
+metricas_comparativas:
+  menor_payback: {{MENOR_PAYBACK}}
+  maior_tir: {{MAIOR_TIR}}
+  melhor_cobertura: {{MELHOR_COBERTURA}}%
+  sistema_recomendado: "{{SISTEMA_RECOMENDADO}}"
+  potencia_recomendada: "{{POTENCIA_RECOMENDADA}}"
+  melhor_custo_kwp: "{{MELHOR_CUSTO_KWP}}"
+
+# ==================================================================
+# DADOS DA EMPRESA (ESTÁTICOS)
+# ==================================================================
+empresa:
+  nome: "PIENG Soluções"
+  contato: "(62) 99167-0536"
+  email: "contato@piengsolucoes.com.br"
+  site: "www.piengsolucoes.com.br"
+  whatsapp: "5562991670536"
+
+# ==================================================================
+# METADADOS DO DOCUMENTO
+# ==================================================================
+documento:
+  data_geracao: "{{DATA_GERACAO}}"
+  data_validade: "{{DATA_VALIDADE}}"
+  versao_template: "3.0-PNL"
+  status: "{{STATUS_DOCUMENTO}}"
+  modelo_base: "orcamento_dutra.yaml"
+  estrategia_pnl: "5_propostas_otimizadas"
