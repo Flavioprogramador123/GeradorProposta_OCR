@@ -310,6 +310,49 @@ export default function GerenciarOrcamentos() {
               </a></Link>
 
               <button
+                onClick={() => {
+                  if (orcamentos.length === 0) {
+                    alert('❌ Não há orçamentos para reaproveitar!');
+                    return;
+                  }
+
+                  // Preparar TODOS os orçamentos para reaproveitar
+                  const todosOrcamentos = orcamentos.map(orc => ({
+                    fornecedor: orc.fornecedor || 'Fornecedor',
+                    potencia: orc.potencia || 0,
+                    modulos: orc.componentes?.modulos?.quantidade || 0,
+                    pot_modulo: orc.componentes?.modulos?.potencia || 550,
+                    marca_modulo: orc.componentes?.modulos?.marca || 'Padrão',
+                    inversores: orc.componentes?.inversores?.quantidade || 1,
+                    pot_inv: orc.componentes?.inversores?.potencia || 2.5,
+                    marca_inversor: orc.componentes?.inversores?.marca || 'Padrão',
+                    valorTotal: orc.valorTotal || 0,
+                    precoCusto: orc.precoCustoYaml || orc.valorTotal || 0,
+                    componentes: orc.componentes || {},
+                  }));
+
+                  const dadosReaproveitamento = {
+                    orcamentos: todosOrcamentos,
+                    origem: `${orcamentos.length} orçamento(s) de ${cliente?.nome || 'cliente'}`,
+                    quantidadeTotal: orcamentos.length
+                  };
+
+                  // Salvar no localStorage
+                  localStorage.setItem('orcamentos-reaproveitar-todos', JSON.stringify(dadosReaproveitamento));
+
+                  // Abrir Gerador Rápido em nova aba
+                  window.open('/gerador-rapido?modo=reaproveitar-todos', '_blank');
+                }}
+                disabled={orcamentos.length === 0}
+                className="p-6 bg-gradient-to-r from-green-500 to-teal-600 rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Copiar ${orcamentos.length} orçamento(s) para novo cliente`}
+              >
+                <div className="text-3xl mb-3">♻️</div>
+                <h3 className="font-semibold mb-1">Reaproveitar Todos</h3>
+                <p className="text-sm opacity-90">{orcamentos.length} orçamento(s) para novo cliente</p>
+              </button>
+
+              <button
                 onClick={gerarPropostas}
                 disabled={orcamentos.filter(o => o.status === 'aprovado').length === 0}
                 className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed"

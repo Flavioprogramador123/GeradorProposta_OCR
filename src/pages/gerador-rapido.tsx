@@ -57,7 +57,7 @@ export default function GeradorRapido() {
 
     carregarConfigSistema();
     
-    // Verificar se está no modo "reaproveitar"
+    // Verificar se está no modo "reaproveitar" (um único orçamento)
     const params = new URLSearchParams(window.location.search);
     if (params.get('modo') === 'reaproveitar') {
       const dadosReaproveitamento = localStorage.getItem('orcamento-reaproveitar');
@@ -94,6 +94,45 @@ export default function GeradorRapido() {
         } catch (error) {
           console.error('Erro ao reaproveitar orçamento:', error);
           alert('❌ Erro ao carregar orçamento. Tente novamente.');
+        }
+      }
+    }
+    
+    // Verificar se está no modo "reaproveitar-todos" (múltiplos orçamentos)
+    if (params.get('modo') === 'reaproveitar-todos') {
+      const dadosReaproveitamento = localStorage.getItem('orcamentos-reaproveitar-todos');
+      if (dadosReaproveitamento) {
+        try {
+          const dados = JSON.parse(dadosReaproveitamento);
+          console.log('♻️ Reaproveitando TODOS os orçamentos:', dados);
+          
+          // Criar orçamentos a partir dos dados reaproveitados
+          const orcamentosReaproveitados: Orcamento[] = dados.orcamentos.map((orc: any, index: number) => ({
+            nome: `Reaproveitado ${index + 1} - ${orc.fornecedor}`,
+            distribuidora: orc.fornecedor || 'Fornecedor',
+            pcusto: orc.precoCusto || orc.valorTotal || 0,
+            modulos: orc.modulos || 0,
+            pot_modulo: orc.pot_modulo || 550,
+            marca_modulo: orc.marca_modulo || 'Padrão',
+            inversores: orc.inversores || 1,
+            pot_inv: orc.pot_inv || 2.5,
+            marca_inversor: orc.marca_inversor || 'Padrão',
+            pdespesa_fixo: config.pdespesaFixo,
+            pdespesa_variavel_percent: config.pdespesaVariavel,
+            pdespesa_total: 0
+          }));
+          
+          // Adicionar TODOS os orçamentos à lista
+          setOrcamentos(orcamentosReaproveitados);
+          
+          // Limpar localStorage
+          localStorage.removeItem('orcamentos-reaproveitar-todos');
+          
+          // Mostrar mensagem de sucesso
+          alert(`✅ ${dados.quantidadeTotal} orçamento(s) reaproveitado(s)!\n\n${dados.origem}\n\nVocê pode agora:\n- Preencher os dados do NOVO cliente\n- Adicionar/remover orçamentos\n- Calcular e gerar proposta`);
+        } catch (error) {
+          console.error('Erro ao reaproveitar orçamentos:', error);
+          alert('❌ Erro ao carregar orçamentos. Tente novamente.');
         }
       }
     }
