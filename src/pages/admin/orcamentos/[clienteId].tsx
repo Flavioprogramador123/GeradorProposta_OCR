@@ -50,7 +50,7 @@ interface Orcamento {
   margem?: number;          // Valor da margem (% ou R$)
   despesas?: Array<{id: string, categoria: string, descricao: string, valor: number}>;
   observacoes?: string;
-  arquivos: {
+  arquivos?: {
     nome: string;
     url: string;
     tipo: 'pdf' | 'jpg' | 'png';
@@ -427,7 +427,7 @@ export default function GerenciarOrcamentos() {
                               {orcamento.fornecedor}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {orcamento.arquivos.length} arquivo{orcamento.arquivos.length !== 1 ? 's' : ''}
+                              {orcamento.arquivos?.length || 0} arquivo{(orcamento.arquivos?.length || 0) !== 1 ? 's' : ''}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
