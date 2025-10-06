@@ -19,7 +19,8 @@
   }
 
   body {
-    @apply font-sans leading-relaxed text-pieng-dark;
+    @apply font-sans leading-relaxed;
+    color: #0d2847;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
   }
@@ -150,7 +151,9 @@
   }
 
   .pieng-table th {
-    @apply bg-pieng-light font-bold text-pieng-dark;
+    @apply font-bold;
+    background-color: #5c8ae6;
+    color: #0d2847;
   }
 
   .pieng-table-recommended {

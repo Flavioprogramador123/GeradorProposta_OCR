@@ -1,61 +1,30 @@
 {
-  "name": "pieng-propostas-solares",
-  "version": "2.0.0",
-  "description": "Sistema completo de propostas solares com IA, administração web e extração inteligente de dados para Vercel",
+  "name": "pieng-propostas",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "export": "next export"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@types/formidable": "^3.4.5",
-    "@types/js-yaml": "^4.0.9",
+    "next": "^13.5.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0",
+    "js-yaml": "^4.1.0",
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/uuid": "^10.0.0",
-    "autoprefixer": "^10.4.16",
-    "chart.js": "^4.5.0",
-    "clsx": "^2.0.0",
-    "date-fns": "^2.30.0",
-    "dotenv": "^17.2.3",
-    "formidable": "^3.5.4",
-    "googleapis": "^161.0.0",
-    "js-yaml": "^4.1.0",
-    "lucide-react": "^0.294.0",
-    "next": "^14.0.0",
-    "open": "^10.2.0",
-    "openai": "^5.20.1",
-    "postcss": "^8.4.31",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-dropzone": "^14.3.8",
-    "recharts": "^3.2.1",
-    "tailwindcss": "^3.3.0",
+    "@types/js-yaml": "^4.0.5",
     "typescript": "^5.0.0",
-    "uuid": "^13.0.0"
-  },
-  "devDependencies": {
-    "eslint": "^8.54.0",
-    "eslint-config-next": "^14.0.0"
-  },
-  "keywords": [
-    "energia-solar",
-    "propostas",
-    "pieng",
-    "vercel",
-    "next.js",
-    "inteligencia-artificial",
-    "extração-dados",
-    "pdf-processing",
-    "solar-proposals",
-    "admin-dashboard",
-    "crud-system"
-  ],
-  "author": "PIENG Soluções Energéticas",
-  "license": "MIT"
+    "tailwindcss": "^3.3.0",
+    "postcss": "^8.4.31",
+    "autoprefixer": "^10.4.16"
+  }
 }
