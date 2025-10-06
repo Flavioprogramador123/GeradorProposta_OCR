@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIENG | Proposta Solar Personalizada - Anápolis/GO</title>
+    <meta name="theme-color" content="#3366CC">
+    <link rel="icon" href="/assets/logos/logo-pieng-principal.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="/assets/logos/logo-pieng-principal.jpg">
+    <title>PIENG | Proposta Solar Personalizada - São Paulo</title>
     <style>
         :root {
             --primary: #3366CC;
@@ -46,53 +49,27 @@
             position: relative;
         }
 
-        .pieng-logo-css {
+        .pieng-logo-real {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin-bottom: 20px;
         }
 
-        .logo-circle {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3366CC, #FF6B35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 25px rgba(51, 102, 204, 0.3);
-            margin-bottom: 10px;
-            position: relative;
-            overflow: hidden;
+        .pieng-logo-real img {
+            max-width: 250px;
+            height: auto;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
         }
 
-        .logo-circle::before {
-            content: '';
-            position: absolute;
-            top: 15%;
-            left: 15%;
-            width: 70%;
-            height: 70%;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .logo-pi {
-            font-size: 48px;
-            font-weight: 900;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            z-index: 1;
-            position: relative;
-        }
-
-        .logo-text {
-            font-size: 24px;
-            font-weight: 900;
+        .company-tagline {
+            font-size: 16px;
+            font-weight: 600;
             color: var(--primary);
-            letter-spacing: 3px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 10px;
         }
 
         .company-name {
@@ -479,19 +456,16 @@
     <div class="container">
         <!-- HEADER -->
         <header class="header">
-            <div class="pieng-logo-css">
-                <div class="logo-circle">
-                    <span class="logo-pi">π</span>
-                </div>
-                <div class="logo-text">PIENG</div>
+            <div class="pieng-logo-real">
+                <img src="/assets/logos/logo-pieng-principal.jpg" alt="PIENG Soluções Energéticas" />
+                <div class="company-tagline">Soluções Energéticas</div>
             </div>
-            <div class="company-name">PIENG Soluções Energéticas</div>
             <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
             <div class="client-info">
-                <strong>Cliente:</strong> Daniel-001 | 
-                <strong>Cidade:</strong> Anápolis/GO | 
-                <strong>Consumo:</strong> 500 kWh/mês | 
-                <strong>Tipo:</strong> Residencial
+                <strong>Cliente:</strong> Cliente pedrocesar | 
+                <strong>Cidade:</strong> São Paulo | 
+                <strong>Consumo:</strong> 600 kWh/mês | 
+                <strong>Tipo:</strong> residencial
             </div>
         </header>
 
@@ -503,44 +477,44 @@
         <!-- SISTEMAS SOLARES -->
         <section class="systems-grid">
             
-        <div class="system-card recommended">
-          <div class="card-badge">⭐ RECOMENDADO</div>
+        <div class="system-card ">
+          
           <div class="card-header">
-            <div class="card-title">SISTEMA 1 ⭐ RECOMENDADO</div>
-            <div class="card-power">Potência: 3.51 kWp</div>
+            <div class="card-title">SISTEMA 1 </div>
+            <div class="card-power">Potência: 11.60 kWp</div>
           </div>
           <div class="card-body">
             <ul class="specs-list">
-              <li>6 módulos 585W RENEPV</li>
-              <li>1 inversor SAJ 3kW</li>
+              <li>20 módulos 580W SOOLLAR</li>
+              <li>1 inversor SOOLLAR 10kW</li>
               <li>Estrutura de alumínio</li>
               <li>Cabeamento CC/CA completo</li>
               <li>String box DC/AC</li>
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">De R$ 10936.26</div>
-              <div class="current-price">R$ 10126.16</div>
-              <div class="discount-tag">ECONOMIA DE 10%</div>
-              <div><strong>PIX: R$ 9113.55</strong></div>
+              <div class="original-price">De R$ 21168.00</div>
+              <div class="current-price">R$ 17640.00</div>
+              <div class="discount-tag">ECONOMIA DE 0%</div>
+              <div><strong>PIX: R$ 17640.00</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× sem juros</strong><br>
-                  R$ 863.03
+                  R$ 1670.45
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ 610.01
+                  R$ 1180.72
                 </div>
               </div>
             </div>
 
             <div class="performance-box">
               <strong>Performance Mensal</strong><br>
-              Geração: 417 kWh | Cobertura: 83%<br>
-              Economia: R$ 458.64 | Payback: 19.9 meses<br>
-              TIR: 60.4% ao ano
+              Geração: 1378 kWh | Cobertura: 230%<br>
+              Economia: R$ 1515.73 | Payback: 11.6 meses<br>
+              TIR: 103.1% ao ano
             </div>
 
             <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
@@ -551,172 +525,84 @@
           
           <div class="card-header">
             <div class="card-title">SISTEMA 2 </div>
-            <div class="card-power">Potência: 4.09 kWp</div>
+            <div class="card-power">Potência: 11.60 kWp</div>
           </div>
           <div class="card-body">
             <ul class="specs-list">
-              <li>7 módulos 585W RENEPV</li>
-              <li>1 inversor SAJ 3kW</li>
+              <li>20 módulos 580W BELENERGY</li>
+              <li>1 inversor BELENERGY 10kW</li>
               <li>Estrutura de alumínio</li>
               <li>Cabeamento CC/CA completo</li>
               <li>String box DC/AC</li>
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">De R$ 11675.60</div>
-              <div class="current-price">R$ 10810.74</div>
-              <div class="discount-tag">ECONOMIA DE 10%</div>
-              <div><strong>PIX: R$ 9729.67</strong></div>
+              <div class="original-price">De R$ 20436.00</div>
+              <div class="current-price">R$ 17030.00</div>
+              <div class="discount-tag">ECONOMIA DE 0%</div>
+              <div><strong>PIX: R$ 17030.00</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× sem juros</strong><br>
-                  R$ 921.37
+                  R$ 1612.69
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ 651.25
+                  R$ 1139.89
                 </div>
               </div>
             </div>
 
             <div class="performance-box">
               <strong>Performance Mensal</strong><br>
-              Geração: 486 kWh | Cobertura: 97%<br>
-              Economia: R$ 535.08 | Payback: 18.2 meses<br>
-              TIR: 66.0% ao ano
+              Geração: 1378 kWh | Cobertura: 230%<br>
+              Economia: R$ 1515.73 | Payback: 11.2 meses<br>
+              TIR: 106.8% ao ano
             </div>
 
             <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
           </div>
         </div>
       
-        <div class="system-card ">
-          
+        <div class="system-card recommended">
+          <div class="card-badge">⭐ RECOMENDADO</div>
           <div class="card-header">
-            <div class="card-title">SISTEMA 3 </div>
-            <div class="card-power">Potência: 4.64 kWp</div>
+            <div class="card-title">SISTEMA 3 ⭐ RECOMENDADO</div>
+            <div class="card-power">Potência: 11.60 kWp</div>
           </div>
           <div class="card-body">
             <ul class="specs-list">
-              <li>8 módulos 580W NPLUS</li>
-              <li>1 inversor SAJ 3kW</li>
+              <li>20 módulos 580W FORTLEV</li>
+              <li>1 inversor FORTLEV 10kW</li>
               <li>Estrutura de alumínio</li>
               <li>Cabeamento CC/CA completo</li>
               <li>String box DC/AC</li>
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">De R$ 12237.94</div>
-              <div class="current-price">R$ 11331.43</div>
-              <div class="discount-tag">ECONOMIA DE 10%</div>
-              <div><strong>PIX: R$ 10198.28</strong></div>
+              <div class="original-price">De R$ 19411.20</div>
+              <div class="current-price">R$ 16176.00</div>
+              <div class="discount-tag">ECONOMIA DE 0%</div>
+              <div><strong>PIX: R$ 16176.00</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× sem juros</strong><br>
-                  R$ 965.75
+                  R$ 1531.82
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ 682.62
+                  R$ 1082.73
                 </div>
               </div>
             </div>
 
             <div class="performance-box">
               <strong>Performance Mensal</strong><br>
-              Geração: 551 kWh | Cobertura: 110%<br>
-              Economia: R$ 606.29 | Payback: 16.8 meses<br>
-              TIR: 71.3% ao ano
-            </div>
-
-            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
-          </div>
-        </div>
-      
-        <div class="system-card ">
-          
-          <div class="card-header">
-            <div class="card-title">SISTEMA 4 </div>
-            <div class="card-power">Potência: 4.92 kWp</div>
-          </div>
-          <div class="card-body">
-            <ul class="specs-list">
-              <li>8 módulos 615W GCL</li>
-              <li>1 inversor SAJ 3kW</li>
-              <li>Estrutura de alumínio</li>
-              <li>Cabeamento CC/CA completo</li>
-              <li>String box DC/AC</li>
-            </ul>
-
-            <div class="pricing-section">
-              <div class="original-price">De R$ 12526.88</div>
-              <div class="current-price">R$ 11598.97</div>
-              <div class="discount-tag">ECONOMIA DE 10%</div>
-              <div><strong>PIX: R$ 10439.07</strong></div>
-
-              <div class="payment-options">
-                <div class="payment-option pix-highlight">
-                  <strong>12× sem juros</strong><br>
-                  R$ 988.55
-                </div>
-                <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  R$ 698.73
-                </div>
-              </div>
-            </div>
-
-            <div class="performance-box">
-              <strong>Performance Mensal</strong><br>
-              Geração: 584 kWh | Cobertura: 117%<br>
-              Economia: R$ 642.88 | Payback: 16.2 meses<br>
-              TIR: 73.9% ao ano
-            </div>
-
-            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
-          </div>
-        </div>
-      
-        <div class="system-card ">
-          
-          <div class="card-header">
-            <div class="card-title">SISTEMA 5 </div>
-            <div class="card-power">Potência: 4.60 kWp</div>
-          </div>
-          <div class="card-body">
-            <ul class="specs-list">
-              <li>8 módulos 575W ASTRONERGY</li>
-              <li>1 inversor AUXSOL 3.3kW</li>
-              <li>Estrutura de alumínio</li>
-              <li>Cabeamento CC/CA completo</li>
-              <li>String box DC/AC</li>
-            </ul>
-
-            <div class="pricing-section">
-              <div class="original-price">De R$ 13399.57</div>
-              <div class="current-price">R$ 12407.01</div>
-              <div class="discount-tag">ECONOMIA DE 10%</div>
-              <div><strong>PIX: R$ 11166.31</strong></div>
-
-              <div class="payment-options">
-                <div class="payment-option pix-highlight">
-                  <strong>12× sem juros</strong><br>
-                  R$ 1057.42
-                </div>
-                <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  R$ 747.41
-                </div>
-              </div>
-            </div>
-
-            <div class="performance-box">
-              <strong>Performance Mensal</strong><br>
-              Geração: 546 kWh | Cobertura: 109%<br>
-              Economia: R$ 601.07 | Payback: 18.6 meses<br>
-              TIR: 64.6% ao ano
+              Geração: 1378 kWh | Cobertura: 230%<br>
+              Economia: R$ 1515.73 | Payback: 10.7 meses<br>
+              TIR: 112.4% ao ano
             </div>
 
             <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
@@ -745,57 +631,35 @@
                     
         <tr class="recommended-row">
           <td>SISTEMA 1 ⭐</td>
-          <td>3.51 kWp</td>
-          <td><strong>R$ 9113.55</strong></td>
-          <td>R$ 863.03</td>
-          <td>R$ 610.01</td>
-          <td>417 kWh</td>
-          <td>19.9 meses</td>
-          <td>60.4%</td>
+          <td>11.60 kWp</td>
+          <td><strong>R$ 17640.00</strong></td>
+          <td>R$ 1670.45</td>
+          <td>R$ 1180.72</td>
+          <td>1378 kWh</td>
+          <td>11.6 meses</td>
+          <td>103.1%</td>
         </tr>
       
         <tr >
           <td>SISTEMA 2 </td>
-          <td>4.09 kWp</td>
-          <td><strong>R$ 9729.67</strong></td>
-          <td>R$ 921.37</td>
-          <td>R$ 651.25</td>
-          <td>486 kWh</td>
-          <td>18.2 meses</td>
-          <td>66.0%</td>
+          <td>11.60 kWp</td>
+          <td><strong>R$ 17030.00</strong></td>
+          <td>R$ 1612.69</td>
+          <td>R$ 1139.89</td>
+          <td>1378 kWh</td>
+          <td>11.2 meses</td>
+          <td>106.8%</td>
         </tr>
       
         <tr >
           <td>SISTEMA 3 </td>
-          <td>4.64 kWp</td>
-          <td><strong>R$ 10198.28</strong></td>
-          <td>R$ 965.75</td>
-          <td>R$ 682.62</td>
-          <td>551 kWh</td>
-          <td>16.8 meses</td>
-          <td>71.3%</td>
-        </tr>
-      
-        <tr >
-          <td>SISTEMA 4 </td>
-          <td>4.92 kWp</td>
-          <td><strong>R$ 10439.07</strong></td>
-          <td>R$ 988.55</td>
-          <td>R$ 698.73</td>
-          <td>584 kWh</td>
-          <td>16.2 meses</td>
-          <td>73.9%</td>
-        </tr>
-      
-        <tr >
-          <td>SISTEMA 5 </td>
-          <td>4.60 kWp</td>
-          <td><strong>R$ 11166.31</strong></td>
-          <td>R$ 1057.42</td>
-          <td>R$ 747.41</td>
-          <td>546 kWh</td>
-          <td>18.6 meses</td>
-          <td>64.6%</td>
+          <td>11.60 kWp</td>
+          <td><strong>R$ 16176.00</strong></td>
+          <td>R$ 1531.82</td>
+          <td>R$ 1082.73</td>
+          <td>1378 kWh</td>
+          <td>10.7 meses</td>
+          <td>112.4%</td>
         </tr>
       
                 </tbody>
@@ -808,22 +672,22 @@
             <div class="insights-grid">
                 <div class="insight-item">
                     <div class="insight-title">💰 Payback Excepcional</div>
-                    <p>Com payback entre 16.2 e 19.9 meses, você recupera seu investimento rapidamente, gerando economia pura por mais de 23 anos da vida útil do sistema.</p>
+                    <p>Com payback entre 10.7 e 11.6 meses, você recupera seu investimento rapidamente, gerando economia pura por mais de 23 anos da vida útil do sistema.</p>
                 </div>
                 
                 <div class="insight-item">
                     <div class="insight-title">🏆 Sistema Recomendado</div>
-                    <p>O solar02.pdf de 4.92 kWp oferece o melhor payback com R$ 10439.07 no PIX e retorno em apenas 16.2 meses, ideal para maximizar seu investimento.</p>
+                    <p>O Opção 3 de 11.60 kWp oferece o melhor payback com R$ 16176.00 no PIX e retorno em apenas 10.7 meses, ideal para maximizar seu investimento.</p>
                 </div>
                 
                 <div class="insight-item">
                     <div class="insight-title">⚡ Cobertura Completa</div>
-                    <p>Com até 584 de geração para seu consumo de 500 kWh/mês, você pode zerar sua conta de energia e ainda ter créditos na distribuidora.</p>
+                    <p>Com até 1378 de geração para seu consumo de 600 kWh/mês, você pode zerar sua conta de energia e ainda ter créditos na distribuidora.</p>
                 </div>
                 
                 <div class="insight-item">
                     <div class="insight-title">🌍 Cenário Energético Local</div>
-                    <p>Com HSP de 5.21 em Anápolis/GO e economia real de R$ 0,982/kWh, as condições são ideais para energia solar com TIR de até 73.9% ao ano.</p>
+                    <p>Com HSP de 5.21 em São Paulo e economia real de R$ 0,982/kWh, as condições são ideais para energia solar com TIR de até 112.4% ao ano.</p>
                 </div>
                 
                 <div class="insight-item">
@@ -833,7 +697,7 @@
                 
                 <div class="insight-item">
                     <div class="insight-title">🔒 Investimento Seguro</div>
-                    <p>Tecnologia consolidada, garantias extensas e retorno garantido fazem da energia solar o investimento mais seguro para Daniel-001.</p>
+                    <p>Tecnologia consolidada, garantias extensas e retorno garantido fazem da energia solar o investimento mais seguro para Cliente pedrocesar.</p>
                 </div>
             </div>
         </section>
@@ -888,10 +752,10 @@
                 <strong>Disclaimers Técnicos:</strong><br>
                 • Performance Rate: 75% conforme padrões da indústria (variação real: 72% a 78% dependendo das condições)<br>
                 • Base legal: Lei 14.300/2022 sobre TUSD • Simultaneidade residencial: 30% (variação ±10%)<br>
-                • HSP Anápolis/GO: 5.21 (fonte: CRESESB/INPE) • Economia considerando tarifa R$ 0,982/kWh para Residencial<br>
-                • Valores válidos até 13/10/2025 • Equipamentos sujeitos à disponibilidade de estoque<br><br>
+                • HSP São Paulo: 5.21 (fonte: CRESESB/INPE) • Economia considerando tarifa R$ 0,982/kWh para residencial<br>
+                • Valores válidos até 20/10/2025 • Equipamentos sujeitos à disponibilidade de estoque<br><br>
                 
-                <em>Proposta gerada em 29/09/2025 • Válida por 7 dias • Sujeita à análise técnica do local</em>
+                <em>Proposta gerada em 06/10/2025 • Válida por 7 dias • Sujeita à análise técnica do local</em>
             </div>
         </footer>
     </div>
