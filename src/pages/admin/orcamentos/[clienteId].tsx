@@ -177,22 +177,60 @@ export default function GerenciarOrcamentos() {
       return;
     }
 
+    if (!cliente) {
+      alert('Dados do cliente não encontrados');
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/admin/gerar-propostas/${clienteId}`, {
+      // Preparar dados do cliente
+      const dadosCliente = {
+        nome: cliente.nome,
+        cidade: cliente.cidade || '',
+        estado: cliente.estado || '',
+        consumoMensal: cliente.consumoMensal || 0,
+        tarifaEnergia: 0.60, // Valor padrão
+      };
+
+      // Preparar sistemas dos orçamentos aprovados
+      const sistemas = aprovados.map((orc, index) => ({
+        id: orc.id || `sistema-${index + 1}`,
+        titulo: `Sistema ${index + 1}`,
+        potencia: orc.potencia || 0,
+        modulos: orc.modulos || 0,
+        inversores: orc.inversores || 0,
+        valorTotal: orc.valorTotal || 0,
+        precoCustoYaml: orc.precoCustoYaml || orc.valorTotal,
+        precoFinal: calculateTotalComMargem(orc),
+        fornecedor: orc.fornecedor || 'Padrão',
+        tipoModulo: orc.tipoModulo || 'Padrão',
+        potenciaModulo: orc.potenciaModulo || 550,
+        tipoInversor: orc.tipoInversor || 'Padrão',
+      }));
+
+      // Chamar API do Gerador Rápido
+      const response = await fetch('/api/gerar-proposta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orcamentos: aprovados })
+        body: JSON.stringify({
+          cliente: dadosCliente,
+          sistemas: sistemas,
+        })
       });
 
       if (response.ok) {
         const result = await response.json();
-        alert('Propostas geradas com sucesso!');
-        router.push(`/proposta/${result.slug}`);
+        alert('✅ Proposta gerada com sucesso!');
+        
+        // Abrir a proposta em nova aba
+        window.open(`/proposta/${result.slug}`, '_blank');
       } else {
-        alert('Erro ao gerar propostas');
+        const errorData = await response.json();
+        alert(`❌ Erro: ${errorData.error || 'Erro ao gerar proposta'}`);
       }
     } catch (error) {
-      alert('Erro ao gerar propostas');
+      console.error('Erro ao gerar propostas:', error);
+      alert('❌ Erro ao gerar propostas');
     }
   };
 
