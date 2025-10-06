@@ -56,6 +56,47 @@ export default function GeradorRapido() {
     };
 
     carregarConfigSistema();
+    
+    // Verificar se está no modo "reaproveitar"
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('modo') === 'reaproveitar') {
+      const dadosReaproveitamento = localStorage.getItem('orcamento-reaproveitar');
+      if (dadosReaproveitamento) {
+        try {
+          const dados = JSON.parse(dadosReaproveitamento);
+          console.log('♻️ Reaproveitando orçamento:', dados);
+          
+          // Criar orçamento a partir dos dados reaproveitados
+          const orc = dados.orcamento;
+          const novoOrcamento: Orcamento = {
+            nome: `Reaproveitado - ${orc.fornecedor}`,
+            distribuidora: orc.fornecedor || 'Fornecedor',
+            pcusto: orc.precoCusto || orc.valorTotal || 0,
+            modulos: orc.modulos || orc.componentes?.modulos?.quantidade || 0,
+            pot_modulo: orc.componentes?.modulos?.potencia || 550,
+            marca_modulo: orc.componentes?.modulos?.marca || 'Padrão',
+            inversores: orc.inversores || orc.componentes?.inversores?.quantidade || 1,
+            pot_inv: orc.componentes?.inversores?.potencia || 2.5,
+            marca_inversor: orc.componentes?.inversores?.marca || 'Padrão',
+            pdespesa_fixo: config.pdespesaFixo,
+            pdespesa_variavel_percent: config.pdespesaVariavel,
+            pdespesa_total: 0
+          };
+          
+          // Adicionar orçamento à lista
+          setOrcamentos([novoOrcamento]);
+          
+          // Limpar localStorage
+          localStorage.removeItem('orcamento-reaproveitar');
+          
+          // Mostrar mensagem de sucesso
+          alert(`✅ Orçamento reaproveitado!\n\n${dados.origem}\n\nVocê pode agora:\n- Preencher os dados do novo cliente\n- Adicionar/remover orçamentos\n- Calcular e gerar proposta`);
+        } catch (error) {
+          console.error('Erro ao reaproveitar orçamento:', error);
+          alert('❌ Erro ao carregar orçamento. Tente novamente.');
+        }
+      }
+    }
   }, []);
 
   // Função para calcular preços usando configurações dinâmicas do sistema

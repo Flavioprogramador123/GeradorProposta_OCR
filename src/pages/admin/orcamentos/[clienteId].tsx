@@ -412,6 +412,33 @@ export default function GerenciarOrcamentos() {
                                 ✏️ Editar
                               </Link>
                               <button
+                                onClick={() => {
+                                  // Preparar dados do orçamento para reaproveitar
+                                  const dadosReaproveitamento = {
+                                    orcamento: {
+                                      fornecedor: orcamento.fornecedor || 'Fornecedor',
+                                      potencia: orcamento.potencia || 0,
+                                      modulos: orcamento.componentes?.modulos?.quantidade || 0,
+                                      inversores: orcamento.componentes?.inversores?.quantidade || 0,
+                                      valorTotal: orcamento.valorTotal || 0,
+                                      precoCusto: orcamento.precoCustoYaml || orcamento.valorTotal || 0,
+                                      componentes: orcamento.componentes || {},
+                                    },
+                                    origem: `Reaproveitado de ${cliente?.nome || 'cliente'}`
+                                  };
+                                  
+                                  // Salvar no localStorage
+                                  localStorage.setItem('orcamento-reaproveitar', JSON.stringify(dadosReaproveitamento));
+                                  
+                                  // Abrir Gerador Rápido em nova aba
+                                  window.open('/gerador-rapido?modo=reaproveitar', '_blank');
+                                }}
+                                className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100"
+                                title="Usar este orçamento em outro cliente"
+                              >
+                                ♻️ Reaproveitar
+                              </button>
+                              <button
                                 onClick={() => deleteOrcamento(orcamento.id)}
                                 className="text-red-600 hover:text-red-900 px-2 py-1 rounded bg-red-50 hover:bg-red-100"
                               >
