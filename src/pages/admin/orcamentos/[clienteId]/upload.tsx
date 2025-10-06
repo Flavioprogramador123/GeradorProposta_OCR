@@ -466,15 +466,21 @@ export default function UploadOrcamento() {
 
       const pdespesaTexto = `Pdespesa: R$ ${pdespesaFixo.toFixed(2)} + ${pdespesaVariavel}%`;
 
+      // Fechar modal IMEDIATAMENTE antes do alert
+      setShowPdespesaModal(false);
+
       const mensagem = errosDetalhados.length > 0 ?
         `✅ ${salvosComSucesso}/${orcamentosParaSalvar.length} orçamentos salvos com sucesso!\n\n❌ Erros encontrados:\n${errosDetalhados.join('\n')}` :
         `✅ ${salvosComSucesso}/${orcamentosParaSalvar.length} orçamentos salvos com sucesso! ${pdespesaTexto} aplicado a todos.`;
 
       alert(mensagem);
-      setShowPdespesaModal(false);
+      
+      // Redirecionar para página de orçamentos
       router.push(`/admin/orcamentos/${clienteId}`);
     } catch (error) {
+      console.error('Erro ao salvar orçamentos:', error);
       setError('Erro ao salvar orçamentos. Tente novamente.');
+      setShowPdespesaModal(false); // Fechar modal mesmo em caso de erro
     }
   };
 
