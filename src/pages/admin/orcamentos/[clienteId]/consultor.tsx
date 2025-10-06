@@ -439,14 +439,199 @@ export default function ConsultorOrcamentosPage() {
               </div>
             )}
 
-            {/* Tabela Comparativa */}
-            <OrcamentosComparisonTable
-              orcamentos={orcamentos}
-              config={config}
-              onOrcamentoUpdate={handleOrcamentoUpdate}
-              onOrcamentoDelete={handleOrcamentoDelete}
-              onBulkAction={handleBulkAction}
-            />
+            {/* Tabela CRUD de Orçamentos - Controle Detalhado */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+              <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  📋 Tabela de Orçamentos - Controle Detalhado
+                </h2>
+                <p className="text-blue-100 text-sm mt-1">
+                  Edite módulos, inversores e quantidades diretamente na tabela
+                </p>
+              </div>
+
+              {orcamentos.length === 0 ? (
+                <div className="p-12 text-center">
+                  <div className="text-6xl mb-4">📄</div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    Nenhum orçamento cadastrado
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Adicione orçamentos para começar a comparar
+                  </p>
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    ➕ Adicionar Primeiro Orçamento
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-blue-50">
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Nº</th>
+                        <th className="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Nome/Origem</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Distribuidora</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">P.Custo (R$)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Qtd Módulos</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Pot/Módulo (W)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Marca Módulo</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Qtd Inversores</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Pot/Inversor (kW)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Marca Inversor</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orcamentos.map((orc, index) => (
+                        <tr key={orc.id} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs font-bold">{index + 1}</td>
+                          <td className="border border-gray-300 px-3 py-2">
+                            <input
+                              type="text"
+                              value={orc.nome}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], nome: e.target.value };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="text"
+                              value={orc.fornecedor}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], fornecedor: e.target.value };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="number"
+                              value={orc.pcusto}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], pcusto: parseFloat(e.target.value) || 0 };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-20 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="number"
+                              value={orc.modulos}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], modulos: parseInt(e.target.value) || 0 };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="number"
+                              value={orc.pot_modulo}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], pot_modulo: parseInt(e.target.value) || 0 };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="text"
+                              value={orc.marca_modulo}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], marca_modulo: e.target.value };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="number"
+                              value={orc.inversores}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], inversores: parseInt(e.target.value) || 0 };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={orc.pot_inv}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], pot_inv: parseFloat(e.target.value) || 0 };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2">
+                            <input
+                              type="text"
+                              value={orc.marca_inversor}
+                              onChange={(e) => {
+                                const updated = [...orcamentos];
+                                updated[index] = { ...updated[index], marca_inversor: e.target.value };
+                                setOrcamentos(updated);
+                              }}
+                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center">
+                            <button
+                              onClick={() => handleOrcamentoDelete(orc.id)}
+                              className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                              title="Excluir orçamento"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Tabela Comparativa - Somente Resultados */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+              <div className="px-6 py-4 bg-gradient-to-r from-green-600 to-teal-600">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  📊 Tabela Comparativa - Resultados Financeiros
+                </h2>
+                <p className="text-green-100 text-sm mt-1">
+                  Análise automática de performance e viabilidade (somente leitura)
+                </p>
+              </div>
+              <OrcamentosComparisonTable
+                orcamentos={orcamentos}
+                config={config}
+                onOrcamentoUpdate={handleOrcamentoUpdate}
+                onOrcamentoDelete={handleOrcamentoDelete}
+                onBulkAction={handleBulkAction}
+              />
+            </div>
 
             {/* Modal Adicionar Orçamento */}
             {showAddModal && (
