@@ -7,9 +7,9 @@ import SystemCard from '@/components/SystemCard';
 import ComparisonTable from '@/components/ComparisonTable';
 import { PerformanceChart } from '@/components/PerformanceChart';
 import TechnicalTable from '@/components/TechnicalTable';
-import ConsultorButton from '@/components/ConsultorButton';
-import InsightsSection from '@/components/InsightsSection';
-import Footer from '@/components/Footer';
+import { ConsultorButton } from '@/components/ConsultorButton';
+import { InsightsSection } from '@/components/InsightsSection';
+import { Footer } from '@/components/Footer';
 import { PropostaData } from '@/lib/types';
 import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/lib/propostaUtils';
 
