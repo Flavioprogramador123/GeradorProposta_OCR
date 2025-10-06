@@ -129,9 +129,15 @@ if [ ! -z "$MAPS_KEY" ]; then
     create_secret "pieng-google-maps-api-key" "$MAPS_KEY"
 fi
 
-# Google Drive OAuth (já conhecido)
-create_secret "pieng-google-drive-client-id" "YOUR_GOOGLE_DRIVE_CLIENT_ID.apps.googleusercontent.com"
-create_secret "pieng-google-drive-client-secret" "GOCSPX-YOUR_GOOGLE_DRIVE_CLIENT_SECRET"
+# Google Drive OAuth (solicitar interativamente - não embutir valores)
+read -p "Digite seu GOOGLE_DRIVE_CLIENT_ID (.apps.googleusercontent.com): " DRIVE_CLIENT_ID
+read -p "Digite seu GOOGLE_DRIVE_CLIENT_SECRET (começa com GOCSPX-): " DRIVE_CLIENT_SECRET
+if [ ! -z "$DRIVE_CLIENT_ID" ]; then
+  create_secret "pieng-google-drive-client-id" "$DRIVE_CLIENT_ID"
+fi
+if [ ! -z "$DRIVE_CLIENT_SECRET" ]; then
+  create_secret "pieng-google-drive-client-secret" "$DRIVE_CLIENT_SECRET"
+fi
 
 # 4. Configurar Service Account
 log "Configurando Service Account..."
