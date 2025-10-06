@@ -1,15 +1,15 @@
 import React from 'react';
 import Head from 'next/head';
 import { GetStaticPaths, GetStaticProps } from 'next';
-import { Header } from '@/components/Header';
-import { UrgencyBanner } from '@/components/UrgencyBanner';
-import { SystemCard } from '@/components/SystemCard';
-import { ComparisonTable } from '@/components/ComparisonTable';
+import Header from '@/components/Header';
+import UrgencyBanner from '@/components/UrgencyBanner';
+import SystemCard from '@/components/SystemCard';
+import ComparisonTable from '@/components/ComparisonTable';
 import { PerformanceChart } from '@/components/PerformanceChart';
-import { TechnicalTable } from '@/components/TechnicalTable';
-import { ConsultorButton } from '@/components/ConsultorButton';
-import { InsightsSection } from '@/components/InsightsSection';
-import { Footer } from '@/components/Footer';
+import TechnicalTable from '@/components/TechnicalTable';
+import ConsultorButton from '@/components/ConsultorButton';
+import InsightsSection from '@/components/InsightsSection';
+import Footer from '@/components/Footer';
 import { PropostaData } from '@/lib/types';
 import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/lib/propostaUtils';
 
