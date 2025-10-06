@@ -72,6 +72,8 @@ export default function GerenciarOrcamentos() {
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBuscarModal, setShowBuscarModal] = useState(false);
+  const [todosOrcamentosDisponiveis, setTodosOrcamentosDisponiveis] = useState<any[]>([]);
 
   useEffect(() => {
     if (clienteId) {
@@ -508,7 +510,7 @@ export default function GerenciarOrcamentos() {
                   </div>
                   
                   <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       
                       {/* Upload de Arquivo */}
                       <Link href={`/admin/orcamentos/${clienteId}/upload`} legacyBehavior><a className="block p-8 border-2 border-dashed border-blue-300 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-colors">
@@ -517,7 +519,7 @@ export default function GerenciarOrcamentos() {
                           Upload de Arquivo
                         </h4>
                         <p className="text-gray-600 mb-4">
-                          PDF, JPG, PNG com extração automática via Docling
+                          PDF, JPG, PNG com extração automática
                         </p>
                         <div className="text-sm text-blue-600 font-medium">
                           Clique para fazer upload →
@@ -537,6 +539,53 @@ export default function GerenciarOrcamentos() {
                           Clique para inserir dados →
                         </div>
                       </a></Link>
+
+                      {/* Buscar Orçamento Existente */}
+                      <button
+                        onClick={async () => {
+                          // Carregar todos os orçamentos do sistema
+                          try {
+                            const res = await fetch('/api/admin/clientes');
+                            if (res.ok) {
+                              const data = await res.json();
+                              const todosOrc: any[] = [];
+                              
+                              // Carregar orçamentos de cada cliente
+                              for (const cli of data.clientes || []) {
+                                const orcRes = await fetch(`/api/admin/orcamentos/${cli.pasta}`);
+                                if (orcRes.ok) {
+                                  const orcData = await orcRes.json();
+                                  (orcData.orcamentos || []).forEach((orc: any) => {
+                                    todosOrc.push({
+                                      ...orc,
+                                      clienteNome: cli.nome,
+                                      clientePasta: cli.pasta,
+                                    });
+                                  });
+                                }
+                              }
+                              
+                              setTodosOrcamentosDisponiveis(todosOrc);
+                              setShowBuscarModal(true);
+                            }
+                          } catch (error) {
+                            console.error('Erro ao carregar orçamentos:', error);
+                            alert('❌ Erro ao carregar orçamentos');
+                          }
+                        }}
+                        className="block p-8 border-2 border-dashed border-purple-300 rounded-lg text-center hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                      >
+                        <div className="text-4xl mb-4 text-purple-600">🔍</div>
+                        <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                          Buscar Orçamento
+                        </h4>
+                        <p className="text-gray-600 mb-4">
+                          Copiar de outro cliente existente
+                        </p>
+                        <div className="text-sm text-purple-600 font-medium">
+                          Clique para buscar →
+                        </div>
+                      </button>
                     </div>
                   </div>
                   
@@ -546,6 +595,125 @@ export default function GerenciarOrcamentos() {
                       className="w-full py-3 px-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                     >
                       Cancelar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Buscar Orçamento */}
+            {showBuscarModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+                <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                  <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+                    <h3 className="text-xl font-semibold text-gray-800">
+                      🔍 Buscar Orçamento para Copiar
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Selecione um orçamento de outro cliente para copiar
+                    </p>
+                  </div>
+                  
+                  <div className="p-6">
+                    {todosOrcamentosDisponiveis.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-6xl mb-4">📭</div>
+                        <p className="text-gray-600">Nenhum orçamento disponível</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {todosOrcamentosDisponiveis.map((orc, index) => (
+                          <div
+                            key={`${orc.clientePasta}-${orc.id}-${index}`}
+                            className="border border-gray-200 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-colors cursor-pointer"
+                            onClick={async () => {
+                              try {
+                                // Copiar orçamento para o cliente atual
+                                const orcamentoCopiado = {
+                                  fornecedor: `${orc.fornecedor} (de ${orc.clienteNome})`,
+                                  valorTotal: orc.valorTotal || 0,
+                                  precoCustoYaml: orc.precoCustoYaml || orc.valorTotal || 0,
+                                  potencia: orc.potencia || 0,
+                                  componentes: orc.componentes || {},
+                                  origem: `copiado-${orc.clientePasta}`,
+                                  status: 'pendente' as const,
+                                  dataOrcamento: new Date().toISOString(),
+                                };
+
+                                const response = await fetch(`/api/admin/orcamentos/${clienteId}`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(orcamentoCopiado),
+                                });
+
+                                if (response.ok) {
+                                  alert(`✅ Orçamento copiado com sucesso!\n\nOrigem: ${orc.clienteNome}\nFornecedor: ${orc.fornecedor}`);
+                                  setShowBuscarModal(false);
+                                  setShowAddModal(false);
+                                  loadOrcamentos(); // Recarregar lista
+                                } else {
+                                  alert('❌ Erro ao copiar orçamento');
+                                }
+                              } catch (error) {
+                                console.error('Erro ao copiar:', error);
+                                alert('❌ Erro ao copiar orçamento');
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-sm font-medium text-purple-600">
+                                    📁 {orc.clienteNome}
+                                  </span>
+                                  <span className="text-xs text-gray-400">→</span>
+                                  <span className="text-sm font-semibold text-gray-800">
+                                    {orc.fornecedor || 'Fornecedor não especificado'}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-4 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-gray-500">Valor:</span>
+                                    <div className="font-medium text-green-600">
+                                      R$ {(orc.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Potência:</span>
+                                    <div className="font-medium text-gray-800">
+                                      {orc.potencia || 0} kWp
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Módulos:</span>
+                                    <div className="font-medium text-gray-800">
+                                      {orc.componentes?.modulos?.quantidade || 0} un
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Inversores:</span>
+                                    <div className="font-medium text-gray-800">
+                                      {orc.componentes?.inversores?.quantidade || 0} un
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                📋 Copiar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-6 border-t border-gray-200 sticky bottom-0 bg-white">
+                    <button
+                      onClick={() => setShowBuscarModal(false)}
+                      className="w-full py-3 px-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      ❌ Cancelar
                     </button>
                   </div>
                 </div>
