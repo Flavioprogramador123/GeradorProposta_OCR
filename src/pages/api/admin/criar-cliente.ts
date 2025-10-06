@@ -49,55 +49,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const folderName = sanitizeFolderName(data.nome);
     const slug = sanitizeSlug(data.nome, data.cidade);
     
-    // Criar pasta do cliente
-    const clientFolder = path.join(process.cwd(), 'src/data/clientes', folderName);
-    await fs.mkdir(clientFolder, { recursive: true });
+    // Detectar ambiente serverless
+    const isServerless = process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production';
+    
+    // Definir diretório base
+    const baseDir = isServerless ? '/tmp' : path.join(process.cwd(), 'src/data/clientes');
+    const clientFolder = path.join(baseDir, folderName);
 
-    // Criar arquivo dadosusuario.md
+    // Criar pasta do cliente (apenas localmente)
+    if (!isServerless) {
+      try {
+        await fs.mkdir(clientFolder, { recursive: true });
+      } catch (error) {
+        console.log('Pasta já existe ou erro ao criar:', error);
+      }
+    }
+
+    // Conteúdo dos arquivos
     const dadosUsuarioContent = `cliente: ${data.nome}
 cidade: ${data.cidade}-${data.estado}${data.observacoes ? ` (${data.observacoes})` : ''};
 IMovel: ${data.tipoImovel};
 HSP: ${data.hspLocal}
 `;
 
-    await fs.writeFile(
-      path.join(clientFolder, 'dadosusuario.md'),
-      dadosUsuarioContent,
-      'utf8'
-    );
-
-    // Criar arquivo proposta.json inicial
     const propostaData = {
       cliente: {
         nome: data.nome,
         cidade: `${data.cidade}/${data.estado}`,
         tipo: data.tipoImovel,
         hspLocal: data.hspLocal.toString(),
-        slug: slug
+        slug: slug,
+        pasta: folderName,
+        consumoMensal: 0,
+        estado: data.estado
       },
       sistemas: [],
+      orcamentos: [],
       metadata: {
         created: new Date().toISOString(),
         status: 'aguardando_orcamentos'
       }
     };
 
-    await fs.writeFile(
-      path.join(clientFolder, 'proposta.json'),
-      JSON.stringify(propostaData, null, 2),
-      'utf8'
-    );
-
-    // Criar arquivo README.md com instruções
     const readmeContent = `# Cliente: ${data.nome}
 
 ## Próximos Passos:
 
-1. **Solicitar Orçamentos**: Coletar PDFs de fornecedores
-2. **Extrair Dados**: Usar Task tool para extrair dados dos PDFs
-3. **Gerar Proposta**: Sistema calculará automaticamente
-4. **Adicionar Slug**: Adicionar '${slug}' em src/pages/proposta/[slug].tsx
-5. **Deploy**: Fazer commit e deploy para ativar URL
+1. **Adicionar Orçamentos**: Use /admin/orcamentos/${folderName}
+2. **Gerar Proposta**: Sistema calculará automaticamente
+3. **URL da Proposta**: /proposta/${slug}
 
 ## Dados do Cliente:
 - **Nome**: ${data.nome}
@@ -107,24 +107,50 @@ HSP: ${data.hspLocal}
 - **Status**: Aguardando orçamentos
 
 ## URL Final:
-\`https://pieng-propostas.vercel.app/proposta/${slug}\`
+\`https://pieng-propostas.netlify.app/proposta/${slug}\`
 `;
 
-    await fs.writeFile(
-      path.join(clientFolder, 'README.md'),
-      readmeContent,
-      'utf8'
-    );
+    // Salvar arquivos apenas localmente
+    if (!isServerless) {
+      await fs.writeFile(
+        path.join(clientFolder, 'dadosusuario.md'),
+        dadosUsuarioContent,
+        'utf8'
+      );
 
+      await fs.writeFile(
+        path.join(clientFolder, 'proposta.json'),
+        JSON.stringify(propostaData, null, 2),
+        'utf8'
+      );
+
+      await fs.writeFile(
+        path.join(clientFolder, 'README.md'),
+        readmeContent,
+        'utf8'
+      );
+    }
+
+    // Resposta com dados do cliente
     res.status(200).json({ 
       message: 'Cliente criado com sucesso!',
       folderName,
       slug,
-      clientFolder: `src/data/clientes/${folderName}/`
+      clientFolder: `src/data/clientes/${folderName}/`,
+      cliente: propostaData.cliente,
+      isServerless,
+      files: !isServerless ? {
+        dadosusuario: dadosUsuarioContent,
+        proposta: propostaData,
+        readme: readmeContent
+      } : null
     });
 
   } catch (error) {
     console.error('Erro ao criar cliente:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    res.status(500).json({ 
+      message: 'Erro interno do servidor',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
   }
 }
