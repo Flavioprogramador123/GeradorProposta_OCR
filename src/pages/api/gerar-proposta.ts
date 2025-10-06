@@ -683,10 +683,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(response);
 
   } catch (error) {
-    console.error('Erro ao gerar proposta:', error);
+    console.error('❌ ERRO COMPLETO ao gerar proposta:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    
     res.status(500).json({ 
       message: 'Erro interno do servidor',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
+      details: {
+        clienteRecebido: !!req.body?.cliente,
+        sistemasRecebidos: req.body?.sistemas?.length || 0,
+        orcamentosRecebidos: req.body?.orcamentos?.length || 0
+      }
     });
   }
 }
