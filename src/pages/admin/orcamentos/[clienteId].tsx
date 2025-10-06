@@ -545,32 +545,60 @@ export default function GerenciarOrcamentos() {
                         onClick={async () => {
                           // Carregar todos os orçamentos do sistema
                           try {
+                            console.log('🔄 Carregando clientes...');
                             const res = await fetch('/api/admin/clientes');
-                            if (res.ok) {
-                              const data = await res.json();
-                              const todosOrc: any[] = [];
+                            
+                            if (!res.ok) {
+                              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                            }
+                            
+                            const data = await res.json();
+                            console.log('✅ Clientes carregados:', data.clientes?.length || 0);
+                            
+                            const todosOrc: any[] = [];
+                            
+                            // Carregar orçamentos de cada cliente com limite de concorrência
+                            const clientes = data.clientes || [];
+                            const batchSize = 5; // Processar 5 clientes por vez
+                            
+                            for (let i = 0; i < clientes.length; i += batchSize) {
+                              const batch = clientes.slice(i, i + batchSize);
                               
-                              // Carregar orçamentos de cada cliente
-                              for (const cli of data.clientes || []) {
-                                const orcRes = await fetch(`/api/admin/orcamentos/${cli.pasta}`);
-                                if (orcRes.ok) {
-                                  const orcData = await orcRes.json();
-                                  (orcData.orcamentos || []).forEach((orc: any) => {
-                                    todosOrc.push({
+                              const promises = batch.map(async (cli: any) => {
+                                try {
+                                  console.log(`🔄 Carregando orçamentos de ${cli.nome}...`);
+                                  const orcRes = await fetch(`/api/admin/orcamentos/${cli.pasta}`);
+                                  
+                                  if (orcRes.ok) {
+                                    const orcData = await orcRes.json();
+                                    return (orcData.orcamentos || []).map((orc: any) => ({
                                       ...orc,
                                       clienteNome: cli.nome,
                                       clientePasta: cli.pasta,
-                                    });
-                                  });
+                                    }));
+                                  } else {
+                                    console.warn(`⚠️ Erro ao carregar orçamentos de ${cli.nome}: ${orcRes.status}`);
+                                    return [];
+                                  }
+                                } catch (error) {
+                                  console.warn(`⚠️ Erro ao processar ${cli.nome}:`, error);
+                                  return [];
                                 }
-                              }
+                              });
                               
-                              setTodosOrcamentosDisponiveis(todosOrc);
-                              setShowBuscarModal(true);
+                              const batchResults = await Promise.all(promises);
+                              batchResults.forEach(orcamentos => {
+                                todosOrc.push(...orcamentos);
+                              });
                             }
+                            
+                            console.log('✅ Orçamentos carregados:', todosOrc.length);
+                            setTodosOrcamentosDisponiveis(todosOrc);
+                            setShowBuscarModal(true);
+                            
                           } catch (error) {
-                            console.error('Erro ao carregar orçamentos:', error);
-                            alert('❌ Erro ao carregar orçamentos');
+                            console.error('❌ Erro ao carregar orçamentos:', error);
+                            alert(`❌ Erro ao carregar orçamentos: ${error.message || 'Erro desconhecido'}`);
                           }
                         }}
                         className="block p-8 border-2 border-dashed border-purple-300 rounded-lg text-center hover:border-purple-500 hover:bg-purple-50 transition-colors"

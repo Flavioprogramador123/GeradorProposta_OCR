@@ -61,7 +61,6 @@ export const PiengLogo: React.FC<PiengLogoProps> = ({
           alt="PIENG Soluções Energéticas"
           fill
           className="object-contain drop-shadow-lg rounded-full"
-          priority
         />
       </div>
       <div className="pieng-brand-text">PIENG</div>
