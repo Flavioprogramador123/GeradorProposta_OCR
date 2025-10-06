@@ -185,53 +185,11 @@ export default function AdminIndex() {
                 <p className="text-sm text-gray-600">Parâmetros do sistema</p>
               </a></Link>
 
-              <div className="relative group">
-                <div className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center cursor-pointer">
-                  <div className="text-3xl mb-3">📋</div>
-                  <h3 className="font-semibold text-gray-800 mb-1">Orçamentos</h3>
-                  <p className="text-sm text-gray-600">Gerenciar orçamentos</p>
-                </div>
-                
-                {/* Dropdown Menu */}
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-200">
-                  <div className="p-2">
-                    <div className="text-xs font-medium text-gray-500 px-3 py-2">
-                      Selecione um cliente:
-                    </div>
-                    {clientes.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-500 text-center">
-                        Nenhum cliente cadastrado
-                      </div>
-                    ) : (
-                      <div className="max-h-40 overflow-y-auto">
-                        {clientes.slice(0, 5).map((cliente, index) => (
-                          <Link 
-                            key={index}
-                            href={`/admin/orcamentos/${cliente.pasta}`}
-                            legacyBehavior
-                          ><a className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                            <div className="font-medium">{cliente.nome}</div>
-                            <div className="text-xs text-gray-500">{cliente.cidade}</div>
-                          </a></Link>
-                        ))}
-                        {clientes.length > 5 && (
-                          <div className="px-3 py-1 text-xs text-gray-500 text-center border-t border-gray-100 mt-1">
-                            +{clientes.length - 5} outros clientes
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div className="border-t border-gray-100 mt-2 pt-2">
-                      <button
-                        onClick={() => router.push('/test-logos')}
-                        className="block w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-left"
-                      >
-                        🎨 Teste Logos
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Link href="/admin/orcamentos" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
+                <div className="text-3xl mb-3">📋</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Orçamentos</h3>
+                <p className="text-sm text-gray-600">Gerenciar orçamentos</p>
+              </a></Link>
 
               <button
                 onClick={loadClientesData}
