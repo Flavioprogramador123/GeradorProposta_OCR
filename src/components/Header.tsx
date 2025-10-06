@@ -1,37 +1,23 @@
 import React from 'react';
-import { PiengLogo } from './PiengLogo';
+import { Sun, Menu } from 'lucide-react';
 
-interface HeaderProps {
-  clienteNome: string;
-  clienteCidade: string;
-  clienteConsumo: string;
-  clienteTipo: string;
-}
-
-export const Header: React.FC<HeaderProps> = ({
-  clienteNome,
-  clienteCidade,
-  clienteConsumo,
-  clienteTipo
-}) => {
+const Header = () => {
   return (
-    <header className="pieng-card p-8 mb-5 text-center">
-      <PiengLogo variant="main" size="md" />
-      
-      <div className="text-2xl font-bold text-pieng-primary mb-3">
-        PIENG Soluções Energéticas
-      </div>
-      
-      <div className="text-base text-pieng-muted mb-5">
-        35+ anos de experiência em sistemas elétricos de potência
-      </div>
-      
-      <div className="bg-pieng-light p-4 rounded-lg text-sm text-pieng-dark mt-4">
-        <strong>Cliente:</strong> {clienteNome} | {' '}
-        <strong>Cidade:</strong> {clienteCidade} | {' '}
-        <strong>Consumo:</strong> {clienteConsumo} kWh/mês | {' '}
-        <strong>Tipo:</strong> {clienteTipo}
+    <header className="bg-white shadow-sm border-b">
+      <div className="px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Sun className="h-8 w-8 text-yellow-500" />
+            <h1 className="text-2xl font-bold text-gray-900">PIENG SOLUÇÕES ENERGÉTICAS</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">Sistema Unificado</span>
+            <Menu className="h-6 w-6 text-gray-600" />
+          </div>
+        </div>
       </div>
     </header>
   );
 };
+
+export default Header;
