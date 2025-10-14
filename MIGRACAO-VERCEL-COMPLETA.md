@@ -233,9 +233,12 @@ https://pieng-propostas.vercel.app/propostas/
 1. **✅ FEITO** - Migração completa para Vercel
 2. **✅ FEITO** - URLs atualizadas
 3. **✅ FEITO** - Commit e push
-4. **⏳ AGUARDANDO** - Deploy automático no Vercel
-5. **⏳ PENDENTE** - Configurar 3 secrets no GitHub
-6. **⏳ PENDENTE** - Testar tudo em produção
+4. **✅ FEITO** - Corrigir .gitignore (permitir public/propostas/**/*.html)
+5. **✅ FEITO** - Adicionar 28 propostas HTML ao repositório
+6. **✅ FEITO** - Push final com todas as propostas
+7. **⏳ AGUARDANDO** - Deploy automático no Vercel (em andamento)
+8. **⏳ PENDENTE** - Configurar 3 secrets no GitHub (opcional para auto-deploy)
+9. **⏳ PENDENTE** - Testar tudo em produção após deploy
 
 ---
 
