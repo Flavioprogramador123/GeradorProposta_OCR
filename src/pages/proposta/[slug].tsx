@@ -13,65 +13,9 @@ import { Footer } from '@/components/Footer';
 import { PropostaData } from '@/lib/types';
 import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/lib/propostaUtils';
 
-// Função helper para dados exemplo
-function getExamplePropostaData(slug: string): PropostaData {
-  return {
-    cliente: {
-      nome: `Cliente ${slug}`,
-      cidade: 'Anápolis/GO',
-      consumoKwh: '450',
-      tipo: 'Residencial',
-      hspLocal: '5.42'
-    },
-    sistemas: [
-      {
-        titulo: 'Sistema Econômico',
-        potencia: '4,62 kWp',
-        especificacoes: [
-          '14 módulos 330W monocristalino',
-          '1 inversor 5kW string',
-          'Estrutura alumínio',
-          'Cabeamento CC/CA completo',
-          'String box DC/AC'
-        ],
-        precoRiscado: 'R$ 21.500,00',
-        precoAtual: 'R$ 16.847,73',
-        tagDesconto: 'ECONOMIA DE 22%',
-        precoPixDecimal: 15980.34,
-        preco12x: 'R$ 1.403,98',
-        preco18x: 'R$ 1.069,32',
-        geracao: '630 kWh',
-        cobertura: '140%',
-        economia: 'R$ 378,00',
-        payback: '19,6 meses',
-        tir: '61,2%',
-        isRecommended: true,
-        badge: '⭐ MELHOR PAYBACK'
-      }
-    ],
-    analise: {
-      paybackMin: '19,6',
-      paybackMax: '19,6',
-      melhorSistemaNome: 'Sistema Econômico',
-      melhorSistemaPotencia: '4,62 kWp',
-      melhorSistemaPix: 'R$ 15.980,34',
-      melhorSistemaPayback: '19,6 meses',
-      geracaoMax: '630',
-      coberturaMax: '140%',
-      tirMax: '61,2%',
-      economiaTarifa: 'R$ 0,60'
-    },
-    empresa: {
-      contato: '(62) 99167-0536',
-      email: 'contato@piengsolucoes.com.br',
-      site: 'www.piengsolucoes.com.br',
-      whatsapp: '5562991670536'
-    },
-    bannerUrgencia: '⚡ OFERTA ESPECIAL: PROPOSTA PERSONALIZADA! VÁLIDA POR TEMPO LIMITADO! ⚡',
-    dataGeracao: new Date().toLocaleDateString('pt-BR'),
-    dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
-  };
-}
+// ❌ DADOS FAKE REMOVIDOS
+// Esta página agora só mostra dados reais de proposta.json
+// Se não encontrar dados reais, retorna 404
 
 interface PropostaPageProps {
   proposta: PropostaData;
@@ -200,29 +144,31 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const slug = params?.slug as string;
 
-  // Tentar carregar dados do cliente se existir, senão usar dados exemplo
-  let proposta: PropostaData;
-
   try {
     const fs = await import('fs');
     const path = await import('path');
 
     const propostaPath = path.join(process.cwd(), 'src/data/clientes', slug, 'proposta.json');
     const propostaData = await fs.promises.readFile(propostaPath, 'utf8');
-    proposta = JSON.parse(propostaData);
-    
-    console.log('✅ Dados carregados para slug:', slug);
-    console.log('📊 Sistemas encontrados:', proposta.sistemas?.length || 0);
-  } catch (error) {
-    console.error('❌ Erro ao carregar dados para slug:', slug, error);
-    // Fallback para dados exemplo
-    proposta = getExamplePropostaData(slug);
-  }
+    const proposta: PropostaData = JSON.parse(propostaData);
 
-  return {
-    props: {
-      proposta
-    },
-    revalidate: 60 // Revalidar a cada 60 segundos
-  };
+    console.log('✅ Dados REAIS carregados para:', slug);
+    console.log('📊 Sistemas encontrados:', proposta.sistemas?.length || 0);
+
+    return {
+      props: {
+        proposta
+      },
+      revalidate: 60 // Revalidar a cada 60 segundos
+    };
+  } catch (error) {
+    console.error('❌ Proposta não encontrada para:', slug);
+    console.log('💡 Use: https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_' + slug + '.html');
+
+    // Retornar 404 se não encontrar dados reais
+    return {
+      notFound: true,
+      revalidate: 60
+    };
+  }
 };
