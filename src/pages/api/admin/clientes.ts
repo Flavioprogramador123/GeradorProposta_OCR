@@ -11,97 +11,130 @@ interface ClienteInfo {
   temProposta: boolean;
 }
 
+interface PropostaData {
+  cliente: {
+    nome: string;
+    cidade: string;
+    consumoMensal: number;
+    tipoInstalacao?: string;
+  };
+  sistemas: Array<{
+    titulo: string;
+    potencia: string;
+    valorTotal: number;
+  }>;
+  metadata?: {
+    created: string;
+    status: string;
+  };
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
-    const clientesDir = path.join(process.cwd(), 'src/data/clientes');
+    // Detectar ambiente serverless
+    const isServerless = process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production';
+    
+    // Definir diretório base baseado no ambiente
+    const baseDir = isServerless ? '/tmp' : process.cwd();
+    const clientesDir = path.join(baseDir, 'src/data/clientes');
     
     // Verificar se o diretório existe
+    let pastas: string[] = [];
     try {
       await fs.access(clientesDir);
+      pastas = await fs.readdir(clientesDir);
     } catch {
-      return res.status(200).json({ 
-        clientes: [], 
-        stats: { totalClientes: 0, proposasGeradas: 0, aguardandoOrcamentos: 0 }
-      });
+      // Se não conseguir acessar, tentar caminho alternativo
+      const altClientesDir = path.join(process.cwd(), 'src/data/clientes');
+      try {
+        await fs.access(altClientesDir);
+        pastas = await fs.readdir(altClientesDir);
+      } catch {
+        console.log('Diretório de clientes não encontrado, retornando lista vazia');
+        return res.status(200).json({ 
+          clientes: [], 
+          stats: { totalClientes: 0, proposasGeradas: 0, aguardandoOrcamentos: 0 }
+        });
+      }
     }
 
-    const pastas = await fs.readdir(clientesDir);
     const clientes: ClienteInfo[] = [];
-    
     let proposasGeradas = 0;
     let aguardandoOrcamentos = 0;
 
     for (const pasta of pastas) {
       const clientePath = path.join(clientesDir, pasta);
-      const stat = await fs.stat(clientePath);
       
-      if (!stat.isDirectory()) continue;
-
       try {
-        // Tentar ler dados do usuário
-        let nome = pasta;
-        let cidade = 'N/A';
-        let status = 'aguardando_orcamentos';
-        let temProposta = false;
+        const stat = await fs.stat(clientePath);
+        if (!stat.isDirectory()) continue;
 
-        // Ler dadosusuario.md se existe
-        const dadosPath = path.join(clientePath, 'dadosusuario.md');
-        try {
-          const dadosContent = await fs.readFile(dadosPath, 'utf8');
-          const nomeMatch = dadosContent.match(/cliente:\s*(.+)/i);
-          const cidadeMatch = dadosContent.match(/cidade:\s*(.+)/i);
-          
-          if (nomeMatch) nome = nomeMatch[1].trim();
-          if (cidadeMatch) cidade = cidadeMatch[1].trim();
-        } catch {
-          // Arquivo não existe
-        }
-
-        // Verificar se tem proposta.json
-        const propostaPath = path.join(clientePath, 'proposta.json');
-        try {
-          const propostaContent = await fs.readFile(propostaPath, 'utf8');
-          const propostaData = JSON.parse(propostaContent);
-          temProposta = true;
-          
-          if (propostaData.sistemas && propostaData.sistemas.length > 0) {
-            status = 'concluido';
-            proposasGeradas++;
-          } else {
-            status = 'em_andamento';
-          }
-        } catch {
-          // Proposta não existe ou erro no JSON
-          status = 'aguardando_orcamentos';
-          aguardandoOrcamentos++;
-        }
-
-        if (status === 'aguardando_orcamentos' && !temProposta) {
-          aguardandoOrcamentos++;
-        }
-
-        clientes.push({
-          nome,
-          cidade,
+        // Tentar ler proposta.json primeiro
+        let clienteData: ClienteInfo = {
+          nome: pasta,
+          cidade: 'N/A',
           pasta,
-          status,
+          status: 'aguardando_orcamentos',
           ultimaModificacao: stat.mtime.toLocaleDateString('pt-BR'),
-          temProposta
-        });
+          temProposta: false
+        };
+
+        try {
+          const propostaPath = path.join(clientePath, 'proposta.json');
+          const propostaData = await fs.readFile(propostaPath, 'utf8');
+          const proposta: PropostaData = JSON.parse(propostaData);
+          
+          // Usar dados da proposta
+          clienteData.nome = proposta.cliente.nome;
+          clienteData.cidade = proposta.cliente.cidade;
+          clienteData.temProposta = true;
+          clienteData.status = proposta.metadata?.status || 'proposta_gerada';
+          clienteData.ultimaModificacao = proposta.metadata?.created 
+            ? new Date(proposta.metadata.created).toLocaleDateString('pt-BR')
+            : stat.mtime.toLocaleDateString('pt-BR');
+          
+          proposasGeradas++;
+          
+        } catch (error) {
+          // Se não conseguir ler proposta.json, tentar dadosusuario.md
+          try {
+            const dadosUsuarioPath = path.join(clientePath, 'dadosusuario.md');
+            const dadosUsuario = await fs.readFile(dadosUsuarioPath, 'utf8');
+            
+            // Parse básico do arquivo dadosusuario.md
+            const lines = dadosUsuario.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('cliente:')) {
+                clienteData.nome = line.split(':')[1]?.trim() || pasta;
+              } else if (line.startsWith('cidade:')) {
+                clienteData.cidade = line.split(':')[1]?.trim() || 'N/A';
+              }
+            }
+            
+            aguardandoOrcamentos++;
+            
+          } catch (error2) {
+            // Se não conseguir ler nenhum arquivo, usar dados mínimos
+            console.log(`Cliente ${pasta}: usando dados mínimos`);
+            aguardandoOrcamentos++;
+          }
+        }
+
+        clientes.push(clienteData);
 
       } catch (error) {
         console.error(`Erro ao processar cliente ${pasta}:`, error);
-        // Adicionar cliente com dados mínimos
+        // Adicionar cliente com dados mínimos mesmo com erro
         clientes.push({
           nome: pasta,
           cidade: 'Erro ao carregar',
           pasta,
           status: 'erro',
-          ultimaModificacao: stat.mtime.toLocaleDateString('pt-BR'),
+          ultimaModificacao: new Date().toLocaleDateString('pt-BR'),
           temProposta: false
         });
       }
@@ -117,6 +150,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       proposasGeradas,
       aguardandoOrcamentos
     };
+
+    console.log(`API Clientes: ${clientes.length} clientes encontrados (${propostasGeradas} com propostas, ${aguardandoOrcamentos} aguardando)`);
 
     res.status(200).json({ clientes, stats });
 
