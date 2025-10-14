@@ -377,7 +377,7 @@ export default function AdminIndex() {
               </button>
 
               <a
-                href="https://pieng-propostas-solares.netlify.app/propostas-publicas.html"
+                href="https://pieng-propostas.vercel.app/propostas/propostas-publicas.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center"
@@ -466,7 +466,7 @@ export default function AdminIndex() {
                               {cliente.temProposta && (
                                 <>
                                   <a
-                                    href={`https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`}
+                                    href={`https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
@@ -475,7 +475,7 @@ export default function AdminIndex() {
                                   </a>
                                   <button
                                     onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const propostaUrl = `https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`;
                                       const mensagem = `Olá! Sua proposta de energia solar está pronta! 🌞\n\nAcesse aqui: ${propostaUrl}\n\nQualquer dúvida, estou à disposição!\n\nPIENG Soluções Energéticas`;
                                       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
                                       window.open(whatsappUrl, '_blank');
@@ -486,7 +486,7 @@ export default function AdminIndex() {
                                   </button>
                                   <button
                                     onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const propostaUrl = `https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`;
                                       navigator.clipboard.writeText(propostaUrl);
                                       alert('Link copiado! Cole no WhatsApp ou email do cliente.');
                                     }}
