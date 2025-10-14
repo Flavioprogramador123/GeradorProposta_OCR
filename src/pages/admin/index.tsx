@@ -21,6 +21,17 @@ export default function AdminIndex() {
     proposasGeradas: 0,
     aguardandoOrcamentos: 0
   });
+  const [showEnviarModal, setShowEnviarModal] = useState(false);
+  const [enviarForm, setEnviarForm] = useState({
+    clienteNome: '',
+    clienteEmail: '',
+    clienteTelefone: '',
+    propostaSlug: '',
+    cidade: 'Anápolis/GO',
+    consumoMensal: 2500,
+    tipoInstalacao: 'Telhado Fibrocimento'
+  });
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
 
   useEffect(() => {
     loadClientesData();
@@ -170,6 +181,71 @@ export default function AdminIndex() {
     }
   };
 
+  const openEnviarPropostaModal = () => {
+    setShowEnviarModal(true);
+  };
+
+  const closeEnviarModal = () => {
+    setShowEnviarModal(false);
+    setEnviarForm({
+      clienteNome: '',
+      clienteEmail: '',
+      clienteTelefone: '',
+      propostaSlug: '',
+      cidade: 'Anápolis/GO',
+      consumoMensal: 2500,
+      tipoInstalacao: 'Telhado Fibrocimento'
+    });
+  };
+
+  const handleEnviarFormChange = (field: string, value: string | number) => {
+    setEnviarForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const enviarPropostaParaCliente = async () => {
+    if (!enviarForm.clienteNome || !enviarForm.clienteEmail || !enviarForm.propostaSlug) {
+      alert('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setEnviandoEmail(true);
+
+    try {
+      const response = await fetch('/api/enviar-proposta-cliente', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clienteNome: enviarForm.clienteNome,
+          clienteEmail: enviarForm.clienteEmail,
+          clienteTelefone: enviarForm.clienteTelefone,
+          cidade: enviarForm.cidade,
+          consumoMensal: enviarForm.consumoMensal,
+          tipoInstalacao: enviarForm.tipoInstalacao,
+          propostaSlug: enviarForm.propostaSlug
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`✅ Email enviado com sucesso!\n\nCliente: ${enviarForm.clienteNome}\nEmail: ${enviarForm.clienteEmail}\nProposta: ${result.propostaUrl}`);
+        closeEnviarModal();
+      } else {
+        const error = await response.json();
+        alert(`❌ Erro ao enviar email: ${error.error || error.message}`);
+      }
+    } catch (error) {
+      console.error('Erro ao enviar proposta:', error);
+      alert('❌ Erro ao enviar email. Tente novamente.');
+    } finally {
+      setEnviandoEmail(false);
+    }
+  };
+
   return (
     <>
       <Head>
@@ -293,6 +369,21 @@ export default function AdminIndex() {
                 <h3 className="font-semibold text-gray-800 mb-1">Google Drive</h3>
                 <p className="text-sm text-gray-600">Sincronizar com nuvem</p>
               </button>
+
+              <Link href="/propostas-publicas" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
+                <div className="text-3xl mb-3">🌐</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Propostas Públicas</h3>
+                <p className="text-sm text-gray-600">Ver index.html principal</p>
+              </a></Link>
+
+              <button
+                onClick={openEnviarPropostaModal}
+                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
+              >
+                <div className="text-3xl mb-3">📧</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Enviar Proposta</h3>
+                <p className="text-sm text-gray-600">Enviar link para cliente</p>
+              </button>
             </div>
 
             {/* Lista de Clientes */}
@@ -393,6 +484,151 @@ export default function AdminIndex() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Envio de Proposta */}
+      {showEnviarModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">📧 Enviar Proposta para Cliente</h3>
+              <button
+                onClick={closeEnviarModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Cliente *
+                </label>
+                <input
+                  type="text"
+                  value={enviarForm.clienteNome}
+                  onChange={(e) => handleEnviarFormChange('clienteNome', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nome completo do cliente"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email do Cliente *
+                </label>
+                <input
+                  type="email"
+                  value={enviarForm.clienteEmail}
+                  onChange={(e) => handleEnviarFormChange('clienteEmail', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="cliente@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone/WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  value={enviarForm.clienteTelefone}
+                  onChange={(e) => handleEnviarFormChange('clienteTelefone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="(62) 99999-9999"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Slug da Proposta *
+                </label>
+                <select
+                  value={enviarForm.propostaSlug}
+                  onChange={(e) => handleEnviarFormChange('propostaSlug', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione uma proposta</option>
+                  {clientes.filter(c => c.temProposta).map(cliente => (
+                    <option key={cliente.pasta} value={cliente.pasta}>
+                      {cliente.nome} ({cliente.pasta})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cidade
+                </label>
+                <input
+                  type="text"
+                  value={enviarForm.cidade}
+                  onChange={(e) => handleEnviarFormChange('cidade', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Anápolis/GO"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Consumo Mensal (kWh)
+                </label>
+                <input
+                  type="number"
+                  value={enviarForm.consumoMensal}
+                  onChange={(e) => handleEnviarFormChange('consumoMensal', parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="2500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Instalação
+                </label>
+                <select
+                  value={enviarForm.tipoInstalacao}
+                  onChange={(e) => handleEnviarFormChange('tipoInstalacao', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Telhado Fibrocimento">Telhado Fibrocimento</option>
+                  <option value="Telhado Cerâmico">Telhado Cerâmico</option>
+                  <option value="Telhado Metálico">Telhado Metálico</option>
+                  <option value="Solo">Solo</option>
+                  <option value="Laje">Laje</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={closeEnviarModal}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                disabled={enviandoEmail}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={enviarPropostaParaCliente}
+                disabled={enviandoEmail}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {enviandoEmail ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    📧 Enviar Proposta
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
