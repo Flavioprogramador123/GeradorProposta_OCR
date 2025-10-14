@@ -44,6 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Verificar se o diretório existe
     let pastas: string[] = [];
+    let finalClientesDir = clientesDir;
+
     try {
       await fs.access(clientesDir);
       pastas = await fs.readdir(clientesDir);
@@ -53,10 +55,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         await fs.access(altClientesDir);
         pastas = await fs.readdir(altClientesDir);
+        finalClientesDir = altClientesDir;
       } catch {
         console.log('Diretório de clientes não encontrado, retornando lista vazia');
-        return res.status(200).json({ 
-          clientes: [], 
+        return res.status(200).json({
+          clientes: [],
           stats: { totalClientes: 0, proposasGeradas: 0, aguardandoOrcamentos: 0 }
         });
       }
@@ -67,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let aguardandoOrcamentos = 0;
 
     for (const pasta of pastas) {
-      const clientePath = path.join(clientesDir, pasta);
+      const clientePath = path.join(finalClientesDir, pasta);
       
       try {
         const stat = await fs.stat(clientePath);
