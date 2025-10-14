@@ -370,11 +370,16 @@ export default function AdminIndex() {
                 <p className="text-sm text-gray-600">Sincronizar com nuvem</p>
               </button>
 
-              <Link href="/propostas-publicas" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
+              <a
+                href="https://pieng-propostas-solares.netlify.app/propostas-publicas.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center"
+              >
                 <div className="text-3xl mb-3">🌐</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Propostas Públicas</h3>
-                <p className="text-sm text-gray-600">Ver index.html principal</p>
-              </a></Link>
+                <h3 className="font-semibold mb-1">Propostas Públicas</h3>
+                <p className="text-sm opacity-90">Ver todas propostas online</p>
+              </a>
 
               <button
                 onClick={openEnviarPropostaModal}
@@ -448,16 +453,39 @@ export default function AdminIndex() {
                             {cliente.ultimaModificacao}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior><a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">
                                 📋 Orçamentos
                               </a></Link>
                               {cliente.temProposta && (
-                                <Link href={`/proposta/${cliente.pasta}`} legacyBehavior><a className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100">
-                                  👁️ Ver
-                                </a></Link>
+                                <>
+                                  <Link href={`/proposta/${cliente.pasta}`} legacyBehavior><a className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100">
+                                    👁️ Ver
+                                  </a></Link>
+                                  <button
+                                    onClick={() => {
+                                      const propostaUrl = `https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const mensagem = `Olá! Sua proposta de energia solar está pronta! 🌞\n\nAcesse aqui: ${propostaUrl}\n\nQualquer dúvida, estou à disposição!\n\nPIENG Soluções Energéticas`;
+                                      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+                                      window.open(whatsappUrl, '_blank');
+                                    }}
+                                    className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100 flex items-center gap-1"
+                                  >
+                                    💬 WhatsApp
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const propostaUrl = `https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      navigator.clipboard.writeText(propostaUrl);
+                                      alert('Link copiado! Cole no WhatsApp ou email do cliente.');
+                                    }}
+                                    className="text-indigo-600 hover:text-indigo-900 px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100"
+                                  >
+                                    🔗 Copiar
+                                  </button>
+                                </>
                               )}
-                              <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior><a className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100">
+                              <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior><a className="text-yellow-600 hover:text-yellow-900 px-2 py-1 rounded bg-yellow-50 hover:bg-yellow-100">
                                 ✏️ Editar
                               </a></Link>
                               <button

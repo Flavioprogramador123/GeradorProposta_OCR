@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIENG Soluções - Propostas Solares</title>
+    <meta name="description" content="Sistema de propostas solares personalizadas - PIENG Soluções Energéticas">
+    <meta name="robots" content="index, follow">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3366CC 0%, #FF6B35 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #3366CC;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3366CC;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .propostas-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .propostas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .proposta-card {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .proposta-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-color: #3366CC;
+        }
+        
+        .proposta-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3366CC, #FF6B35);
+        }
+        
+        .proposta-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .proposta-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #3366CC, #FF6B35);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .proposta-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(51, 102, 204, 0.3);
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer-info {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #3366CC;
+        }
+        
+        .timestamp {
+            font-size: 0.9em;
+            color: #999;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .propostas-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌞 PIENG Soluções Energéticas</h1>
+            <p>Sistema de Propostas Solares Personalizadas</p>
+        </div>
+        
+        <div class="content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">32</div>
+                    <div class="stat-label">Propostas Ativas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">2025</div>
+                    <div class="stat-label">Ano Atual</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Satisfação</div>
+                </div>
+            </div>
+            
+            <div class="propostas-section">
+                <h2>📋 Propostas Disponíveis</h2>
+                <div class="propostas-grid">
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Betania 01 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_betania-01-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Cliente Padrao 01 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_cliente-padrao-01-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Cliente Padrao 06 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_cliente-padrao-06-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Cliente Padrao 14 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_cliente-padrao-14-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Cliente Teste 14 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_cliente-teste-14-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Danie009 29 09 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_danie009-29-09-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Daniel 001 29 09 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_daniel-001-29-09-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Daniel Verdura</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/orçamento-daniel-verdura.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Daniel Verdura 03 03 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_daniel-verdura-03-03-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Daniel Verdura 03 06 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_daniel-verdura-03-06-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Daniel Verdura 29 09 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_daniel-verdura-29-09-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Dorvalina Ioneide 06 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_dorvalina-ioneide-06-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Jaime</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/orçamento-jaime.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Jose Rubem</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/orçamento-jose-rubem.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Marcelo 14 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_marcelo-14-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Orçamento   Dorvalina Ioneide</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/orçamento - DORVALINA IONEIDE.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Pedro Silva 29 09 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_pedro-silva-29-09-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Betania 01 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_betania-01-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Cliente Padrao 01 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_cliente-padrao-01-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Cliente Padrao 06 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_cliente-padrao-06-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Cliente Padrao 14 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_cliente-padrao-14-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Cliente Teste 14 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_cliente-teste-14-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Danie009 29 09 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_danie009-29-09-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Daniel 001 29 09 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_daniel-001-29-09-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Daniel Verdura 03 03 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_daniel-verdura-03-03-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Daniel Verdura 03 06 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_daniel-verdura-03-06-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Dorvalina Ioneide 06 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_dorvalina-ioneide-06-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Marcelo 14 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_marcelo-14-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Teste Correcao 03 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_teste-correcao-03-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Resultados Teste Local 03 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_resultados_teste-local-03-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Teste Correcao 03 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_teste-correcao-03-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                    <div class="proposta-card">
+                        <div class="proposta-title">Teste Local 03 10 2025</div>
+                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
+                        <a href="orçamento/clientes/proposta_teste-local-03-10-2025.html" class="proposta-link" target="_blank">
+                            📄 Ver Proposta Completa
+                        </a>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-info">
+                <h3>ℹ️ Informações do Sistema</h3>
+                <p>Este sistema gera automaticamente propostas solares personalizadas com base no consumo energético e características do imóvel.</p>
+                <p><strong>🚀 Deploy automático via Netlify</strong> - Atualizado em tempo real!</p>
+                <div class="timestamp">
+                    Última atualização: 14/10/2025, 17:28:58
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
