@@ -465,9 +465,14 @@ export default function AdminIndex() {
                               </a></Link>
                               {cliente.temProposta && (
                                 <>
-                                  <Link href={`/proposta/${cliente.pasta}`} legacyBehavior><a className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100">
-                                    👁️ Ver
-                                  </a></Link>
+                                  <a
+                                    href={`https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
+                                  >
+                                    👁️ Ver Real
+                                  </a>
                                   <button
                                     onClick={() => {
                                       const propostaUrl = `https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_${cliente.pasta}.html`;
