@@ -57,6 +57,8 @@ Thumbs.db
 *.html.backup
 template_proposta_pieng.html
 proposta_*.html
+# Mas permitir propostas no public/ para Vercel
+!public/propostas/**/*.html
 manual_*.md
 
 # Obsolete/Test files

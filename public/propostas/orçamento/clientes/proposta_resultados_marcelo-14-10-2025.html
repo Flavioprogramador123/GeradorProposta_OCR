@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3366CC">
+    <link rel="icon" href="/assets/logos/logo-pieng-principal.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="/assets/logos/logo-pieng-principal.jpg">
+    <title>PIENG | Proposta Solar Personalizada - Anápolis/GO</title>
+    <style>
+        :root {
+            --primary: #3366CC;
+            --secondary: #FF6B35;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --muted: #6c757d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+        }
+
+        .pieng-logo-real {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .pieng-logo-real img {
+            max-width: 250px;
+            height: auto;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+        }
+
+        .company-tagline {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .client-info {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--dark);
+            margin-top: 15px;
+        }
+
+        .urgency-banner {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 18px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .system-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .system-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .system-card.recommended {
+            border: 3px solid var(--success);
+            transform: scale(1.05);
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--warning);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 2;
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 5px var(--warning); }
+            to { box-shadow: 0 0 20px var(--warning); }
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-power {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .specs-list {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .specs-list li {
+            padding: 5px 0;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .specs-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .pricing-section {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .original-price {
+            color: var(--danger);
+            text-decoration: line-through;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .current-price {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .discount-tag {
+            background: var(--danger);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .payment-option {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            border: 2px solid transparent;
+        }
+
+        .payment-option.pix-highlight {
+            border-color: var(--success);
+            background: rgba(46, 204, 113, 0.1);
+        }
+
+        /* PIX em verde */
+        .pix-price {
+            color: var(--success);
+            font-weight: 800;
+        }
+
+        .performance-box {
+            background: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--secondary), #e55039);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(51, 102, 204, 0.3);
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin: 30px 0;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .comparison-table::after {
+            content: "← Deslize para ver mais →";
+            position: absolute;
+            bottom: 5px;
+            right: 20px;
+            font-size: 10px;
+            color: var(--muted);
+            opacity: 0.7;
+            display: none;
+        }
+
+        .table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .table th {
+            background: var(--light);
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .table .recommended-row {
+            background: rgba(46, 204, 113, 0.1);
+            font-weight: 700;
+        }
+
+        .insights-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .insight-item {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .insight-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .cta-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .cta-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            display: block;
+        }
+
+        .footer {
+            background: var(--dark);
+            color: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .systems-grid { grid-template-columns: 1fr; }
+            .insights-grid { grid-template-columns: 1fr; }
+            .cta-buttons { grid-template-columns: 1fr; }
+            .system-card.recommended { transform: none; }
+            .payment-options { grid-template-columns: 1fr; }
+            
+            /* Melhorias para tabela em mobile */
+            .comparison-table {
+                padding: 15px;
+                margin: 20px 0;
+                overflow-x: auto;
+            }
+            
+            .comparison-table::after {
+                display: block;
+            }
+            
+            .table {
+                min-width: 500px;
+                font-size: 12px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 8px 6px;
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .comparison-table {
+                padding: 10px;
+                margin: 15px 0;
+            }
+            
+            .table {
+                min-width: 450px;
+                font-size: 11px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 6px 4px;
+            }
+        }
+
+        @media print {
+            body { background: white !important; }
+            .container { box-shadow: none !important; }
+            .urgency-banner { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="pieng-logo-real">
+                <img src="/assets/logos/logo.png" alt="PIENG Soluções Energéticas" />
+                <div class="company-tagline">Soluções Energéticas</div>
+            </div>
+            <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
+            <div class="client-info">
+                <strong>Cliente:</strong> MARCELO | 
+                <strong>Cidade:</strong> Anápolis/GO | 
+                <strong>Consumo:</strong> 2500 kWh/mês | 
+                <strong>Tipo:</strong> Residencial | 
+                <strong>Instalação:</strong> 
+            </div>
+        </header>
+
+        <!-- BANNER DE URGÊNCIA -->
+        <div class="urgency-banner">
+            🚀 Oferta especial válida até o final do mês!
+        </div>
+
+        <!-- SISTEMAS SOLARES -->
+        <section class="systems-grid">
+            
+        <div class="system-card recommended">
+          <div class="card-badge">⭐ RECOMENDADO</div>
+          <div class="card-header">
+            <div class="card-title">SISTEMA 1 ⭐ RECOMENDADO</div>
+            <div class="card-power">Potência: 19.36 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>32 módulos 605W RENEPV</li>
+              <li>1 inversor SAJ 15kW</li>
+              <li>Estrutura de alumínio para telhado fibrocimento</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 41616.37</div>
+              <div class="current-price">R$ 38533.67</div>
+              <div class="discount-tag">ECONOMIA DE 10%</div>
+              <div class="pix-price"><strong>PIX: R$ 34680.31</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 3284.12
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 2321.31
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 2300 kWh | Cobertura: 92%<br>
+              Economia: R$ 2529.71 | Payback: 13.7 meses<br>
+              TIR: 87.5% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        <div class="system-card ">
+          
+          <div class="card-header">
+            <div class="card-title">SISTEMA 2 </div>
+            <div class="card-power">Potência: 19.36 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>32 módulos 605W EGING PV</li>
+              <li>1 inversor AUXSOL 15kW</li>
+              <li>Estrutura de alumínio para telhado fibrocimento</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 44144.17</div>
+              <div class="current-price">R$ 40874.23</div>
+              <div class="discount-tag">ECONOMIA DE 10%</div>
+              <div class="pix-price"><strong>PIX: R$ 36786.81</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 3483.60
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 2462.30
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 2300 kWh | Cobertura: 92%<br>
+              Economia: R$ 2529.71 | Payback: 14.5 meses<br>
+              TIR: 82.5% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        <div class="system-card ">
+          
+          <div class="card-header">
+            <div class="card-title">SISTEMA 3 </div>
+            <div class="card-power">Potência: 19.36 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>32 módulos 605W EGING PV</li>
+              <li>1 inversor AUXSOL 15kW</li>
+              <li>Estrutura de Solo</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 49692.75</div>
+              <div class="current-price">R$ 46011.80</div>
+              <div class="discount-tag">ECONOMIA DE 10%</div>
+              <div class="pix-price"><strong>PIX: R$ 41410.62</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 3921.46
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 2771.80
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 2300 kWh | Cobertura: 92%<br>
+              Economia: R$ 2529.71 | Payback: 16.4 meses<br>
+              TIR: 73.3% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        <div class="system-card ">
+          
+          <div class="card-header">
+            <div class="card-title">SISTEMA 4 </div>
+            <div class="card-power">Potência: 24.20 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>40 módulos 605W EGING PV</li>
+              <li>1 inversor AUXSOL 20kW</li>
+              <li>Estrutura de alumínio para telhado fibrocimento</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 52365.42</div>
+              <div class="current-price">R$ 48486.50</div>
+              <div class="discount-tag">ECONOMIA DE 10%</div>
+              <div class="pix-price"><strong>PIX: R$ 43637.85</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 4132.37
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 2920.87
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 2875 kWh | Cobertura: 115%<br>
+              Economia: R$ 3162.14 | Payback: 13.8 meses<br>
+              TIR: 87.0% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        <div class="system-card ">
+          
+          <div class="card-header">
+            <div class="card-title">SISTEMA 5 </div>
+            <div class="card-power">Potência: 24.20 kWp</div>
+          </div>
+          <div class="card-body">
+            <ul class="specs-list">
+              <li>40 módulos 605W EGING PV</li>
+              <li>1 inversor AUXSOL 20kW</li>
+              <li>Estrutura de Solo</li>
+              <li>Cabeamento CC/CA completo</li>
+              <li>String box DC/AC</li>
+            </ul>
+
+            <div class="pricing-section">
+              <div class="original-price">De R$ 66252.22</div>
+              <div class="current-price">R$ 61344.65</div>
+              <div class="discount-tag">ECONOMIA DE 10%</div>
+              <div class="pix-price"><strong>PIX: R$ 55210.19</strong></div>
+
+              <div class="payment-options">
+                <div class="payment-option pix-highlight">
+                  <strong>12× sem juros</strong><br>
+                  R$ 5228.24
+                </div>
+                <div class="payment-option">
+                  <strong>18× cartão</strong><br>
+                  R$ 3695.46
+                </div>
+              </div>
+            </div>
+
+            <div class="performance-box">
+              <strong>Performance Mensal</strong><br>
+              Geração: 2875 kWh | Cobertura: 115%<br>
+              Economia: R$ 3162.14 | Payback: 17.5 meses<br>
+              TIR: 68.7% ao ano
+            </div>
+
+            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+          </div>
+        </div>
+      
+        </section>
+
+        <!-- TABELA COMPARATIVA -->
+        <section class="comparison-table">
+            <h3>📊 Comparação Detalhada dos Sistemas</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Sistema</th>
+                        <th>Potência</th>
+                        <th>PIX</th>
+                        <th>12x S/Juros</th>
+                        <th>18x Cartão</th>
+                        <th>Geração/Mês</th>
+                        <th>Payback</th>
+                        <th>TIR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="recommended-row">
+          <td>SISTEMA 1 ⭐</td>
+          <td>19.36 kWp</td>
+          <td class="pix-price"><strong>R$ 34680.31</strong></td>
+          <td>R$ 3284.12</td>
+          <td>R$ 2321.31</td>
+          <td>2300 kWh</td>
+          <td>13.7 meses</td>
+          <td>87.5%</td>
+        </tr>
+      
+        <tr >
+          <td>SISTEMA 2 </td>
+          <td>19.36 kWp</td>
+          <td class="pix-price"><strong>R$ 36786.81</strong></td>
+          <td>R$ 3483.60</td>
+          <td>R$ 2462.30</td>
+          <td>2300 kWh</td>
+          <td>14.5 meses</td>
+          <td>82.5%</td>
+        </tr>
+      
+        <tr >
+          <td>SISTEMA 3 </td>
+          <td>19.36 kWp</td>
+          <td class="pix-price"><strong>R$ 41410.62</strong></td>
+          <td>R$ 3921.46</td>
+          <td>R$ 2771.80</td>
+          <td>2300 kWh</td>
+          <td>16.4 meses</td>
+          <td>73.3%</td>
+        </tr>
+      
+        <tr >
+          <td>SISTEMA 4 </td>
+          <td>24.20 kWp</td>
+          <td class="pix-price"><strong>R$ 43637.85</strong></td>
+          <td>R$ 4132.37</td>
+          <td>R$ 2920.87</td>
+          <td>2875 kWh</td>
+          <td>13.8 meses</td>
+          <td>87.0%</td>
+        </tr>
+      
+        <tr >
+          <td>SISTEMA 5 </td>
+          <td>24.20 kWp</td>
+          <td class="pix-price"><strong>R$ 55210.19</strong></td>
+          <td>R$ 5228.24</td>
+          <td>R$ 3695.46</td>
+          <td>2875 kWh</td>
+          <td>17.5 meses</td>
+          <td>68.7%</td>
+        </tr>
+      
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ANÁLISE ESTRATÉGICA -->
+        <section class="insights-section">
+            <h3>🎯 Análise Estratégica Personalizada</h3>
+            <div class="insights-grid">
+                <div class="insight-item">
+                    <div class="insight-title">💰 Payback Excepcional</div>
+                    <p>Com payback entre 13.7 e 17.5 meses, você recupera seu investimento rapidamente, gerando economia pura por mais de 23 anos da vida útil do sistema.</p>
+                </div>
+                
+                <div class="insight-item">
+                    <div class="insight-title">🏆 Sistema Recomendado</div>
+                    <p>O cotacaosolar.pdf de 19.36 kWp oferece o melhor payback com R$ 34680.31 no PIX e retorno em apenas 13.7 meses, ideal para maximizar seu investimento.</p>
+                </div>
+                
+                <div class="insight-item">
+                    <div class="insight-title">⚡ Cobertura Completa</div>
+                    <p>Com até 2875 de geração para seu consumo de 2500 kWh/mês, você pode zerar sua conta de energia e ainda ter créditos na distribuidora.</p>
+                </div>
+                
+                <div class="insight-item">
+                    <div class="insight-title">🌍 Cenário Energético Local</div>
+                    <p>Com HSP de 5.21 em Anápolis/GO e economia real de R$ 0,982/kWh, as condições são ideais para energia solar com TIR de até 87.5% ao ano.</p>
+                </div>
+                
+                <div class="insight-item">
+                    <div class="insight-title">📈 Proteção contra Inflação Energética</div>
+                    <p>Enquanto a energia elétrica sofre reajustes anuais, seu sistema solar mantém custos fixos, protegendo seu orçamento por décadas.</p>
+                </div>
+                
+                <div class="insight-item">
+                    <div class="insight-title">🔒 Investimento Seguro</div>
+                    <p>Tecnologia consolidada, garantias extensas e retorno garantido fazem da energia solar o investimento mais seguro para MARCELO.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CHAMADAS PARA AÇÃO -->
+        <section class="cta-section">
+            <h3>🚀 Próximos Passos</h3>
+            <p>Transforme sua relação com a energia elétrica hoje mesmo!</p>
+            
+            <div class="cta-buttons">
+                <a href="tel:(62) 99167-0536" class="cta-primary">
+                    📞 Ligar Agora<br>
+                    <small>(62) 99167-0536</small>
+                </a>
+                <a href="https://wa.me/5562991670536" class="cta-primary">
+                    💬 WhatsApp<br>
+                    <small>Resposta imediata</small>
+                </a>
+                <a href="mailto:contato@piengsolucoes.com.br" class="cta-primary">
+                    ✉️ E-mail<br>
+                    <small>contato@piengsolucoes.com.br</small>
+                </a>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div>
+                    <strong>PIENG Soluções Energéticas</strong><br>
+                    35+ anos de experiência<br>
+                    Especialistas em sistemas elétricos de potência<br>
+                    Base operacional: Anápolis/GO
+                </div>
+                
+                <div>
+                    <strong>Contatos</strong><br>
+                    📞 (62) 99167-0536<br>
+                    ✉️ contato@piengsolucoes.com.br<br>
+                    🌐 www.piengsolucoes.com.br
+                </div>
+                
+                <div>
+                    <strong>Certificações</strong><br>
+                    ✅ INMETRO<br>
+                    ✅ Projeto aprovado pela concessionária<br>
+                    ✅ Conformidade ANEEL
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #666; font-size: 12px;">
+                <strong>Disclaimers Técnicos:</strong><br>
+                • Performance Rate: 75% conforme padrões da indústria (variação real: 72% a 78% dependendo das condições)<br>
+                • Base legal: Lei 14.300/2022 sobre TUSD • Simultaneidade residencial: 30% (variação ±10%)<br>
+                • HSP Anápolis/GO: 5.21 (fonte: CRESESB/INPE) • Economia considerando tarifa R$ 0,982/kWh para Residencial<br>
+                • Valores válidos até 28/10/2025 • Equipamentos sujeitos à disponibilidade de estoque<br><br>
+                
+                <em>Proposta gerada em 14/10/2025 • Válida por 7 dias • Sujeita à análise técnica do local</em>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
