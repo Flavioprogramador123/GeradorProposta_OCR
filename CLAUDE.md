@@ -6,6 +6,44 @@
 
 ---
 
+## 🔔 **ATENÇÃO: PRIMEIRA COISA A FAZER AMANHÃ (15/10/2025)**
+
+### **⚠️ AÇÃO PRIORITÁRIA:**
+1. **Testar URLs de Produção** (15 min):
+   - Abrir: https://pieng-propostas.vercel.app/admin
+   - Abrir: https://pieng-propostas.vercel.app/propostas/propostas-publicas.html
+   - Abrir: https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_marcelo-14-10-2025.html
+   - **CRÍTICO**: Confirmar que proposta do Marcelo mostra dados REAIS (não fake)
+
+2. **Testar Funcionalidades**:
+   - Clicar botão "Ver Proposta" no admin
+   - Clicar botão "💬 WhatsApp"
+   - Clicar botão "📋 Copiar Link"
+
+3. **Se tudo OK**: Atualizar este arquivo e marcar migração como 100% completa
+
+4. **Se houver problemas**: Consultar [SESSAO-14-10-2025.md](SESSAO-14-10-2025.md) seção "Troubleshooting"
+
+### **📚 Documentos de Referência para Continuidade:**
+- **[SESSAO-14-10-2025.md](SESSAO-14-10-2025.md)** - Resumo completo do que foi feito ontem (LEIA PRIMEIRO!)
+- **[MIGRACAO-VERCEL-COMPLETA.md](MIGRACAO-VERCEL-COMPLETA.md)** - Guia técnico detalhado da migração
+- **Este arquivo (CLAUDE.md)** - Status geral do projeto e roadmap
+
+### **🔍 Contexto Rápido do Que Foi Feito Ontem:**
+```
+✅ Migração Netlify → Vercel 100% completa
+✅ 28 propostas HTML adicionadas ao repositório
+✅ Bug fake data corrigido (removido getExamplePropostaData)
+✅ Bug .gitignore corrigido (propostas agora tracked)
+✅ WhatsApp share + Copy Link implementados
+✅ Documentação completa criada
+⏳ Deploy Vercel em andamento (deve estar completo hoje)
+```
+
+**Últimos commits**: ba4de79, ac92e53, d4979ae, c3077bf
+
+---
+
 ## 🎯 **MIGRAÇÃO NETLIFY → VERCEL CONCLUÍDA**
 
 ### **✅ O QUE FOI REALIZADO:**
@@ -211,22 +249,52 @@ Status: 404
 
 ---
 
-## 🎯 **PRÓXIMOS PASSOS**
+## 🎯 **PRÓXIMOS PASSOS (AMANHÃ - 15/10/2025)**
 
-### **🔥 PRIORIDADE ALTA:**
+### **🔥 PRIORIDADE CRÍTICA - FAZER PRIMEIRO (15 MIN):**
 
-#### **1. ⏳ Aguardar Deploy Vercel**
-- [ ] Verificar build completo (~2-3 min)
-- [ ] Testar URL: https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_marcelo-14-10-2025.html
-- [ ] Validar todas as 28 propostas acessíveis
+#### **1. ✅ Validar Deploy Vercel em Produção**
+**Status**: Deploy foi realizado em 14/10/2025 às 17:35, deve estar completo
 
-#### **2. 🧪 Testes em Produção**
-- [ ] Testar botão "Ver Proposta" no admin
-- [ ] Testar botão "💬 WhatsApp" (mensagem formatada)
-- [ ] Testar botão "📋 Copiar Link"
-- [ ] Verificar página Propostas Públicas
+**Ações**:
+```bash
+# 1. Abrir e testar as seguintes URLs:
 
-#### **3. 🔐 Configurar GitHub Secrets (Opcional)**
+# Admin Dashboard
+https://pieng-propostas.vercel.app/admin
+✓ Verifica se mostra todos os clientes
+✓ Conta quantos clientes aparecem
+
+# Lista de Propostas Públicas
+https://pieng-propostas.vercel.app/propostas/propostas-publicas.html
+✓ Verifica se mostra 28 propostas
+✓ Testa 2-3 links de propostas
+
+# Proposta Específica (REAL - NÃO FAKE)
+https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_marcelo-14-10-2025.html
+✓ CRÍTICO: Confirma que mostra dados REAIS (não fake)
+✓ Verifica layout completo
+```
+
+#### **2. 🧪 Testar Funcionalidades do Admin**
+- [ ] **Botão "Ver Proposta"**: Clica e confirma que abre URL Vercel correta
+- [ ] **Botão "💬 WhatsApp"**: Clica e verifica mensagem formatada
+- [ ] **Botão "📋 Copiar Link"**: Clica e confirma que copia URL correto
+- [ ] **Card "Propostas Públicas"**: Clica e verifica que abre lista
+- [ ] **Stats do Admin**: Confirma números corretos (total clientes, propostas geradas)
+
+#### **3. 📝 Atualizar Status no CLAUDE.md**
+Após validação dos testes acima:
+- [ ] Marcar todos os itens como ✅ concluídos
+- [ ] Atualizar seção "STATUS ATUAL DO PROJETO" com data 15/10/2025
+- [ ] Mudar status para: `✅ **SISTEMA 100% FUNCIONAL EM PRODUÇÃO**`
+- [ ] Commitar: `git add CLAUDE.md && git commit -m "Validação produção completa: 15/10/2025" && git push`
+
+---
+
+### **⚡ PRIORIDADE MÉDIA (SE TUDO ACIMA OK):**
+
+#### **4. 🔐 Configurar GitHub Secrets (10 MIN - Opcional)**
 Para CI/CD automático com GitHub Actions:
 ```bash
 # Adicionar em: https://github.com/Flavioprogramador123/PIENG-PROPOSTAS-SOLARES/settings/secrets/actions
@@ -236,26 +304,37 @@ VERCEL_ORG_ID=team_KDl4jKQK6VuFv9eGRTeHsPjV
 VERCEL_PROJECT_ID=prj_DW2ZGnSzAOA4aA8r9BIAYpOK14Md
 ```
 
-### **⚡ PRIORIDADE MÉDIA:**
-
-#### **4. Integração Google Drive (Token Expirado)**
+#### **5. 🔄 Integração Google Drive (15 MIN - Token Expirado)**
 - [ ] Renovar token OAuth2 do Google Drive
 - [ ] Atualizar GOOGLE_DRIVE_REFRESH_TOKEN no .env
 - [ ] Testar persistência de propostas na nuvem
+- [ ] Validar upload automático
 
-#### **5. Otimizações**
+#### **6. ⚡ Otimizações (Se Houver Tempo)**
 - [ ] Implementar cache Redis (opcional)
 - [ ] Otimizar imagens (next/image)
-- [ ] Adicionar loading states
+- [ ] Adicionar loading states nos botões
 - [ ] Melhorar SEO (meta tags)
+- [ ] Adicionar toast notifications ao copiar link
 
-### **🔧 PRIORIDADE BAIXA:**
+---
 
-#### **6. Melhorias de UX**
+### **🔧 PRIORIDADE BAIXA (Backlog Futuro):**
+
+#### **7. Melhorias de UX**
 - [ ] Modo escuro (dark mode)
 - [ ] Filtros na lista de clientes
 - [ ] Busca de propostas
-- [ ] Paginação
+- [ ] Paginação da lista
+- [ ] Ordenação por data/nome
+- [ ] Export CSV/PDF da lista
+
+#### **8. Novas Funcionalidades**
+- [ ] Sistema de notificações
+- [ ] Dashboard analytics
+- [ ] Histórico de alterações
+- [ ] Versionamento de propostas
+- [ ] Sistema de comentários
 
 ---
 
