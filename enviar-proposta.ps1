@@ -19,7 +19,7 @@ Write-Host ""
 
 # Configuracoes
 $API_URL = "https://pieng-propostas-solares.netlify.app/.netlify/functions/send-proposal-email"
-$PROPOSTA_URL = "https://pieng-propostas-solares.netlify.app/proposta/$PropostaSlug"
+$PROPOSTA_URL = "https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_$PropostaSlug.html"
 
 # Dados para envio
 $emailData = @{

@@ -6,9 +6,9 @@ Write-Host "🚀 DEPLOY RÁPIDO NETLIFY" -ForegroundColor Blue
 Write-Host "========================" -ForegroundColor Blue
 Write-Host ""
 
-# Gerar index.html automaticamente
-Write-Host "📝 Gerando index.html..." -ForegroundColor Yellow
-node scripts/generate-netlify-index.js
+# Sincronizar propostas e gerar index.html automaticamente
+Write-Host "🔄 Sincronizando propostas..." -ForegroundColor Yellow
+node scripts/sync-and-generate-netlify.js
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Index.html gerado!" -ForegroundColor Green
