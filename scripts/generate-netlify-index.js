@@ -1,4 +1,81 @@
-<!DOCTYPE html>
+#!/usr/bin/env node
+
+/**
+ * 🚀 GERADOR AUTOMÁTICO DE INDEX.HTML PARA NETLIFY
+ * 
+ * Este script gera automaticamente o arquivo index.html
+ * com todas as propostas disponíveis na pasta pastanetilify
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Configurações
+const PROPOSTAS_DIR = path.join(__dirname, '../pastanetilify/orçamento/clientes');
+const OUTPUT_FILE = path.join(__dirname, '../pastanetilify/index.html');
+const NETLIFY_URL = 'https://pieng-propostas-solares.netlify.app';
+
+/**
+ * Escaneia a pasta de propostas e retorna lista de arquivos
+ */
+function scanPropostas() {
+    try {
+        if (!fs.existsSync(PROPOSTAS_DIR)) {
+            console.log('❌ Pasta de propostas não encontrada:', PROPOSTAS_DIR);
+            return [];
+        }
+
+        const files = fs.readdirSync(PROPOSTAS_DIR);
+        const propostas = files
+            .filter(file => file.endsWith('.html'))
+            .map(file => {
+                const name = file.replace('.html', '');
+                const displayName = formatDisplayName(name);
+                return {
+                    file,
+                    name,
+                    displayName,
+                    url: `orçamento/clientes/${file}`
+                };
+            })
+            .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+        console.log(`✅ Encontradas ${propostas.length} propostas`);
+        return propostas;
+    } catch (error) {
+        console.error('❌ Erro ao escanear propostas:', error.message);
+        return [];
+    }
+}
+
+/**
+ * Formata o nome da proposta para exibição
+ */
+function formatDisplayName(name) {
+    // Remove prefixos comuns
+    let displayName = name
+        .replace(/^proposta_/, '')
+        .replace(/^orçamento_/, '')
+        .replace(/^orçamento-/, '')
+        .replace(/-/g, ' ')
+        .replace(/_/g, ' ');
+
+    // Capitaliza primeira letra de cada palavra
+    displayName = displayName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+
+    return displayName;
+}
+
+/**
+ * Gera o HTML do index
+ */
+function generateIndexHTML(propostas) {
+    const timestamp = new Date().toLocaleString('pt-BR');
+    
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -186,11 +263,11 @@
         <div class="content">
             <div class="stats">
                 <div class="stat-card">
-                    <div class="stat-number">5</div>
+                    <div class="stat-number">${propostas.length}</div>
                     <div class="stat-label">Propostas Ativas</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">2025</div>
+                    <div class="stat-number">${new Date().getFullYear()}</div>
                     <div class="stat-label">Ano Atual</div>
                 </div>
                 <div class="stat-card">
@@ -202,47 +279,15 @@
             <div class="propostas-section">
                 <h2>📋 Propostas Disponíveis</h2>
                 <div class="propostas-grid">
-                    
+                    ${propostas.map(proposta => `
                     <div class="proposta-card">
-                        <div class="proposta-title">Daniel Verdura</div>
+                        <div class="proposta-title">${proposta.displayName}</div>
                         <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
-                        <a href="orçamento/clientes/orçamento-daniel-verdura.html" class="proposta-link" target="_blank">
+                        <a href="${proposta.url}" class="proposta-link" target="_blank">
                             📄 Ver Proposta Completa
                         </a>
                     </div>
-                    
-                    <div class="proposta-card">
-                        <div class="proposta-title">Jaime</div>
-                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
-                        <a href="orçamento/clientes/orçamento-jaime.html" class="proposta-link" target="_blank">
-                            📄 Ver Proposta Completa
-                        </a>
-                    </div>
-                    
-                    <div class="proposta-card">
-                        <div class="proposta-title">Jose Rubem</div>
-                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
-                        <a href="orçamento/clientes/orçamento-jose-rubem.html" class="proposta-link" target="_blank">
-                            📄 Ver Proposta Completa
-                        </a>
-                    </div>
-                    
-                    <div class="proposta-card">
-                        <div class="proposta-title">Orçamento   Dorvalina Ioneide</div>
-                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
-                        <a href="orçamento/clientes/orçamento - DORVALINA IONEIDE.html" class="proposta-link" target="_blank">
-                            📄 Ver Proposta Completa
-                        </a>
-                    </div>
-                    
-                    <div class="proposta-card">
-                        <div class="proposta-title">Resultados Marcelo 14 10 2025</div>
-                        <p>Proposta solar personalizada com análise completa de viabilidade e retorno do investimento.</p>
-                        <a href="orçamento/clientes/proposta_resultados_marcelo-14-10-2025.html" class="proposta-link" target="_blank">
-                            📄 Ver Proposta Completa
-                        </a>
-                    </div>
-                    
+                    `).join('')}
                 </div>
             </div>
         </div>
@@ -253,10 +298,56 @@
                 <p>Este sistema gera automaticamente propostas solares personalizadas com base no consumo energético e características do imóvel.</p>
                 <p><strong>🚀 Deploy automático via Netlify</strong> - Atualizado em tempo real!</p>
                 <div class="timestamp">
-                    Última atualização: 14/10/2025, 11:49:13
+                    Última atualização: ${timestamp}
                 </div>
             </div>
         </div>
     </div>
 </body>
-</html>
+</html>`;
+}
+
+/**
+ * Função principal
+ */
+function main() {
+    console.log('🚀 GERADOR AUTOMÁTICO DE INDEX.HTML');
+    console.log('=====================================');
+    
+    // Escanear propostas
+    const propostas = scanPropostas();
+    
+    if (propostas.length === 0) {
+        console.log('❌ Nenhuma proposta encontrada. Verifique a pasta:', PROPOSTAS_DIR);
+        process.exit(1);
+    }
+    
+    // Gerar HTML
+    console.log('📝 Gerando HTML...');
+    const html = generateIndexHTML(propostas);
+    
+    // Salvar arquivo
+    try {
+        fs.writeFileSync(OUTPUT_FILE, html, 'utf8');
+        console.log('✅ Index.html gerado com sucesso!');
+        console.log('📁 Arquivo salvo em:', OUTPUT_FILE);
+        console.log(`📊 Total de propostas: ${propostas.length}`);
+        
+        // Listar propostas encontradas
+        console.log('\n📋 Propostas encontradas:');
+        propostas.forEach((proposta, index) => {
+            console.log(`   ${index + 1}. ${proposta.displayName} (${proposta.file})`);
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar arquivo:', error.message);
+        process.exit(1);
+    }
+}
+
+// Executar se chamado diretamente
+if (require.main === module) {
+    main();
+}
+
+module.exports = { scanPropostas, generateIndexHTML };

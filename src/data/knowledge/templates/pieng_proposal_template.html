@@ -253,6 +253,12 @@
             background: rgba(46, 204, 113, 0.1);
         }
 
+        /* PIX em verde */
+        .pix-price {
+            color: var(--success);
+            font-weight: 800;
+        }
+
         .performance-box {
             background: rgba(46, 204, 113, 0.1);
             border-left: 4px solid var(--success);
@@ -457,7 +463,7 @@
         <!-- HEADER -->
         <header class="header">
             <div class="pieng-logo-real">
-                <img src="/assets/logos/logo-pieng-principal.jpg" alt="PIENG Soluções Energéticas" />
+                <img src="/assets/logos/logo.png" alt="PIENG Soluções Energéticas" />
                 <div class="company-tagline">Soluções Energéticas</div>
             </div>
             <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
@@ -465,7 +471,8 @@
                 <strong>Cliente:</strong> {{CLIENTE_NOME}} | 
                 <strong>Cidade:</strong> {{CLIENTE_CIDADE}} | 
                 <strong>Consumo:</strong> {{CLIENTE_CONSUMO_KWH}} kWh/mês | 
-                <strong>Tipo:</strong> {{CLIENTE_CONSUMO_TIPO}}
+                <strong>Tipo:</strong> {{CLIENTE_CONSUMO_TIPO}} | 
+                <strong>Instalação:</strong> {{CLIENTE_TIPO_INSTALACAO}}
             </div>
         </header>
 

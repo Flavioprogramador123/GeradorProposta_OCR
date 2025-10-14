@@ -218,6 +218,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           inversores: orc.inversores || 1,
           pot_inv: orc.pot_inv || Math.ceil(potTotal),
           marca_inversor: orc.marca_inversor || 'N/A',
+          tipo_instalacao: orc.tipo_instalacao || 'Telhado Fibrocimento',
           // Usar dados já calculados do frontend ou calculados agora
           ppix: orc.ppix || 0,
           pavista: orc.pavista || precos.pavista || 0,
@@ -253,6 +254,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inversores: orc.inversores,
         pot_inv: orc.pot_inv,
         marca_inversor: orc.marca_inversor,
+        tipo_instalacao: orc.tipo_instalacao || 'Telhado Fibrocimento',
         ...precos,
         ...performance
       };
@@ -434,7 +436,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           consumoMensal: cliente.consumo_mensal,
           consumoKwh: cliente.consumo_mensal.toString(),
           tipo: cliente.tipo_imovel,
-          hspLocal: (cliente.hsp || 5.21).toString()
+          hspLocal: (cliente.hsp || 5.21).toString(),
+          // Novo: tipo de instalação vindo do payload/YAML
+          tipoInstalacao: (cliente.tipoInstalacao || cliente.tipo_instalacao || cliente.instalacao || '').toString()
         },
         sistemas: sistemas.map((sistema: any) => ({
           // Dados básicos do sistema
@@ -448,6 +452,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           inversores: sistema.inversores,
           pot_inv: sistema.pot_inv,
           marca_inversor: sistema.marca_inversor,
+          tipo_instalacao: sistema.tipo_instalacao || 'Telhado Fibrocimento',
 
           // Preços (valores numéricos para template engine)
           ppix: sistema.ppix,

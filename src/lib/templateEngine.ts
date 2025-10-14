@@ -277,6 +277,7 @@ interface TemplateVariables {
   CLIENTE_CIDADE: string;
   CLIENTE_CONSUMO_KWH: string;
   CLIENTE_CONSUMO_TIPO: string;
+  CLIENTE_TIPO_INSTALACAO: string;
   HSP_LOCAL: string;
 
   // Banner e Data
@@ -314,11 +315,21 @@ interface Sistema {
   priscado: number;
   p12x: number;
   p18x_parcela: number;
+  p12x_total?: number;
+  p18x_total?: number;
   geracaoMensal: number;
   cobertura: number;
   economiaMensal: number;
   paybackMeses: number;
   tirAnual: number;
+  // Campos adicionais opcionais usados na renderização
+  modulos?: number;
+  pot_modulo?: number;
+  marca_modulo?: string;
+  inversores?: number;
+  pot_inv?: number;
+  marca_inversor?: string;
+  tipo_instalacao?: string;
 }
 
 interface PropostaData {
@@ -327,6 +338,7 @@ interface PropostaData {
     cidade: string;
     consumoMensal: number;
     tipo: string;
+    tipoInstalacao?: string;
     hsp?: number;
   };
   sistemas: Sistema[];
@@ -368,6 +380,7 @@ export class TemplateEnginePadrao {
       CLIENTE_CIDADE: data.cliente.cidade,
       CLIENTE_CONSUMO_KWH: data.cliente.consumoMensal.toString(),
       CLIENTE_CONSUMO_TIPO: data.cliente.tipo,
+      CLIENTE_TIPO_INSTALACAO: (data.cliente.tipoInstalacao || '').toString(),
       HSP_LOCAL: (data.cliente.hsp || 5.21).toString(),
 
       // Datas
@@ -421,7 +434,7 @@ export class TemplateEnginePadrao {
       variables[`SISTEMA_${num}_12X`] = `R$ ${(sistema.p12x || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_18X`] = `R$ ${(sistema.p18x_parcela || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_GERACAO`] = `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`;
-      variables[`SISTEMA_${num}_COBERTURA`] = `${(parseFloat(sistema.cobertura) || 0).toFixed(0)}%`;
+      variables[`SISTEMA_${num}_COBERTURA`] = `${(Number(sistema.cobertura) || 0).toFixed(0)}%`;
       variables[`SISTEMA_${num}_ECONOMIA`] = `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_PAYBACK`] = `${(sistema.paybackMeses || 0).toFixed(1)} meses`;
       variables[`SISTEMA_${num}_TIR`] = `${(sistema.tirAnual || 0).toFixed(1)}%`;
@@ -435,13 +448,14 @@ export class TemplateEnginePadrao {
       const inversoresReais = sistemaReal.inversores || 1;
       const potInversorReal = sistemaReal.pot_inv || Math.ceil(sistemaReal.potTotal);
       const marcaInversorReal = sistemaReal.marca_inversor || 'string';
+      const tipoInstalacao = sistemaReal.tipo_instalacao || 'Telhado Fibrocimento';
 
       variables[`SISTEMA_${num}_ESPECIFICACOES`] = `
-        <li>${modulosReais} módulos ${potModuloReal}W ${marcaModuloReal}</li>
+        <li>${modulosReais} módulos ${marcaModuloReal} ${potModuloReal}W</li>
         <li>${inversoresReais} inversor${inversoresReais > 1 ? 'es' : ''} ${marcaInversorReal} ${potInversorReal}kW</li>
-        <li>Estrutura de alumínio</li>
+        <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
         <li>Cabeamento CC/CA completo</li>
-        <li>String box DC/AC</li>
+        <li>String box DC/AC + proteções</li>
       `;
     });
 
@@ -592,7 +606,7 @@ export class TemplateEnginePadrao {
 
   private getMaxCoverage(sistemas: Sistema[]): string {
     if (sistemas.length === 0) return "0%";
-    const max = Math.max(...sistemas.map(s => parseFloat(s.cobertura) || 0));
+    const max = Math.max(...sistemas.map(s => Number(s.cobertura) || 0));
     return `${max.toFixed(0)}%`;
   }
 
@@ -611,7 +625,7 @@ export class TemplateEnginePadrao {
         <tr ${className}>
           <td>SISTEMA ${index + 1} ${isRecommended ? '⭐' : ''}</td>
           <td>${(sistema.potTotal || 0).toFixed(2)} kWp</td>
-          <td><strong>R$ ${(sistema.ppix || 0).toFixed(2)}</strong></td>
+          <td class="pix-price"><strong>R$ ${(sistema.ppix || 0).toFixed(2)}</strong></td>
           <td>R$ ${(sistema.p12x || 0).toFixed(2)}</td>
           <td>R$ ${(sistema.p18x_parcela || 0).toFixed(2)}</td>
           <td>${(sistema.geracaoMensal || 0).toFixed(0)} kWh</td>
@@ -656,10 +670,10 @@ export class TemplateEnginePadrao {
 
   private generateSystemCards(sistemas: Sistema[]): string {
     // Encontrar o sistema com melhor payback (menor valor em meses)
-    const melhorPayback = Math.min(...sistemas.map(s => parseFloat(s.paybackMeses) || 999));
+    const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     
     return sistemas.map((sistema, index) => {
-      const paybackAtual = parseFloat(sistema.paybackMeses) || 999;
+      const paybackAtual = Number(sistema.paybackMeses) || 999;
       const isRecommended = paybackAtual === melhorPayback;
       const recommendedClass = isRecommended ? 'recommended' : '';
       const badge = isRecommended ? '<div class="card-badge">⭐ RECOMENDADO</div>' : '';
@@ -671,6 +685,7 @@ export class TemplateEnginePadrao {
       const inversoresReais = sistema.inversores || 1;
       const potInversorReal = sistema.pot_inv || Math.ceil(sistema.potTotal || 0);
       const marcaInversorReal = sistema.marca_inversor || 'string';
+      const tipoInstalacao = sistema.tipo_instalacao || 'Telhado Fibrocimento';
 
       return `
         <div class="system-card ${recommendedClass}">
@@ -683,7 +698,7 @@ export class TemplateEnginePadrao {
             <ul class="specs-list">
               <li>${modulosReais} módulos ${potModuloReal}W ${marcaModuloReal}</li>
               <li>${inversoresReais} inversor${inversoresReais > 1 ? 'es' : ''} ${marcaInversorReal} ${potInversorReal}kW</li>
-              <li>Estrutura de alumínio</li>
+              <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
               <li>Cabeamento CC/CA completo</li>
               <li>String box DC/AC</li>
             </ul>
@@ -692,7 +707,7 @@ export class TemplateEnginePadrao {
               <div class="original-price">De R$ ${(sistema.priscado || 0).toFixed(2)}</div>
               <div class="current-price">R$ ${(sistema.pavista || 0).toFixed(2)}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
-              <div><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
+              <div class="pix-price"><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
@@ -708,7 +723,7 @@ export class TemplateEnginePadrao {
 
             <div class="performance-box">
               <strong>Performance Mensal</strong><br>
-              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${(parseFloat(sistema.cobertura) || 0).toFixed(0)}%<br>
+              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${(Number(sistema.cobertura) || 0).toFixed(0)}%<br>
               Economia: R$ ${(sistema.economiaMensal || 0).toFixed(2)} | Payback: ${(sistema.paybackMeses || 0).toFixed(1)} meses<br>
               TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
             </div>
@@ -723,10 +738,10 @@ export class TemplateEnginePadrao {
   // NOVO: Gerar cartões baseados nos Resultados Financeiros (estilo Gerador Rápido)
   private generateSystemCardsResultados(sistemas: Sistema[]): string {
     // Encontrar o sistema com melhor payback (menor valor em meses)
-    const melhorPayback = Math.min(...sistemas.map(s => parseFloat(s.paybackMeses) || 999));
+    const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     
     return sistemas.map((sistema, index) => {
-      const paybackAtual = parseFloat(sistema.paybackMeses) || 999;
+      const paybackAtual = Number(sistema.paybackMeses) || 999;
       const isRecommended = paybackAtual === melhorPayback;
       const recommendedClass = isRecommended ? 'recommended' : '';
       const badge = isRecommended ? '<div class="card-badge">🏆 MELHOR PAYBACK</div>' : '';
@@ -738,6 +753,7 @@ export class TemplateEnginePadrao {
       const inversoresReais = sistema.inversores || 1;
       const potInversorReal = sistema.pot_inv || Math.ceil(sistema.potTotal || 0);
       const marcaInversorReal = sistema.marca_inversor || 'string';
+      const tipoInstalacao = sistema.tipo_instalacao || 'Telhado Fibrocimento';
 
       return `
         <div class="system-card ${recommendedClass}">
@@ -754,7 +770,7 @@ export class TemplateEnginePadrao {
             <ul class="specs-list">
               <li>${modulosReais} módulos ${potModuloReal}W ${marcaModuloReal}</li>
               <li>${inversoresReais} inversor${inversoresReais > 1 ? 'es' : ''} ${marcaInversorReal} ${potInversorReal}kW</li>
-              <li>Estrutura de alumínio</li>
+              <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
               <li>Cabeamento CC/CA completo</li>
               <li>String box DC/AC</li>
             </ul>
@@ -785,7 +801,7 @@ export class TemplateEnginePadrao {
               <strong>📊 Análise Financeira Completa</strong><br>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 13px;">
                 <div><strong>Geração:</strong> ${(sistema.geracaoMensal || 0).toFixed(0)} kWh</div>
-                <div><strong>Cobertura:</strong> ${(parseFloat(sistema.cobertura) || 0).toFixed(0)}%</div>
+                <div><strong>Cobertura:</strong> ${(Number(sistema.cobertura) || 0).toFixed(0)}%</div>
                 <div><strong>Economia:</strong> R$ ${(sistema.economiaMensal || 0).toFixed(2)}</div>
                 <div><strong>Payback:</strong> ${(sistema.paybackMeses || 0).toFixed(1)} meses</div>
                 <div><strong>TIR:</strong> ${(sistema.tirAnual || 0).toFixed(1)}%</div>
