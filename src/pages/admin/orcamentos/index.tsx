@@ -21,6 +21,9 @@ interface OrcamentoItem {
   valorTotal: number;
   status: 'pendente' | 'aprovado' | 'rejeitado';
   data: string;
+  geracaoMensal?: number;
+  paybackMeses?: number;
+  cobertura?: number;
 }
 
 export default function TodosOrcamentos() {
@@ -37,37 +40,28 @@ export default function TodosOrcamentos() {
 
   const loadData = async () => {
     try {
-      // Carregar clientes
-      const clientesRes = await fetch('/api/admin/clientes');
-      if (clientesRes.ok) {
-        const clientesData = await clientesRes.json();
-        setClientes(clientesData.clientes || []);
-
-        // Carregar orçamentos de cada cliente
-        const todosOrcamentos: OrcamentoItem[] = [];
+      // Carregar todos os orçamentos diretamente das propostas
+      const orcamentosRes = await fetch('/api/admin/orcamentos-todos');
+      if (orcamentosRes.ok) {
+        const orcamentosData = await orcamentosRes.json();
+        setOrcamentos(orcamentosData.orcamentos || []);
         
-        for (const cliente of clientesData.clientes || []) {
-          const orcRes = await fetch(`/api/admin/orcamentos/${cliente.pasta}`);
-          if (orcRes.ok) {
-            const orcData = await orcRes.json();
-            const orcamentosCliente = (orcData.orcamentos || []).map((orc: any) => ({
-              id: orc.id,
-              cliente: cliente.nome,
-              clientePasta: cliente.pasta,
-              potencia: orc.potencia || 0,
-              modulos: orc.modulos || 0,
-              inversores: orc.inversores || 0,
-              valorTotal: orc.valorTotal || 0,
-              status: orc.status || 'pendente',
-              data: orc.data || new Date().toISOString(),
-            }));
-            todosOrcamentos.push(...orcamentosCliente);
+        // Extrair clientes únicos dos orçamentos
+        const clientesUnicos = new Map();
+        (orcamentosData.orcamentos || []).forEach((orc: OrcamentoItem) => {
+          if (!clientesUnicos.has(orc.clientePasta)) {
+            clientesUnicos.set(orc.clientePasta, {
+              nome: orc.cliente,
+              pasta: orc.clientePasta,
+              cidade: 'N/A', // Será preenchido se necessário
+              status: 'ativo',
+              ultimaModificacao: orc.data,
+              temProposta: true
+            });
           }
-        }
-
-        // Ordenar por data (mais recente primeiro)
-        todosOrcamentos.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-        setOrcamentos(todosOrcamentos);
+        });
+        
+        setClientes(Array.from(clientesUnicos.values()));
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -225,7 +219,7 @@ export default function TodosOrcamentos() {
                           {orc.status === 'aprovado' ? '✅ Aprovado' : orc.status === 'rejeitado' ? '❌ Rejeitado' : '⏳ Pendente'}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                         <div>
                           <span className="text-gray-500">Potência:</span>
                           <div className="font-medium text-gray-800">{orc.potencia.toFixed(2)} kWp</div>
@@ -244,6 +238,18 @@ export default function TodosOrcamentos() {
                             R$ {orc.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </div>
                         </div>
+                        {orc.geracaoMensal && (
+                          <div>
+                            <span className="text-gray-500">Geração:</span>
+                            <div className="font-medium text-blue-600">{orc.geracaoMensal.toFixed(0)} kWh/mês</div>
+                          </div>
+                        )}
+                        {orc.paybackMeses && (
+                          <div>
+                            <span className="text-gray-500">Payback:</span>
+                            <div className="font-medium text-purple-600">{orc.paybackMeses.toFixed(0)} meses</div>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-2 text-xs text-gray-500">
                         ID: {orc.id} • {new Date(orc.data).toLocaleDateString('pt-BR')}
