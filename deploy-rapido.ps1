@@ -17,7 +17,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "📤 Fazendo commit..." -ForegroundColor Yellow
     git add .
     git commit -m "🤖 Deploy automático: $(Get-Date -Format 'dd/MM/yyyy HH:mm')"
-    git push origin main
+    git push origin clean-main
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✅ Deploy realizado!" -ForegroundColor Green
