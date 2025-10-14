@@ -129,6 +129,47 @@ export default function AdminIndex() {
     }
   };
 
+  const syncWithGoogleDrive = async () => {
+    if (!confirm('Deseja sincronizar todos os clientes com o Google Drive?\n\nIsso irá fazer upload de todos os arquivos para a nuvem.')) return;
+    
+    try {
+      const syncPromises = clientes.map(async (cliente) => {
+        const response = await fetch('/api/admin/sync-google-drive', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clientePasta: cliente.pasta
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`Cliente ${cliente.nome} sincronizado:`, result);
+          return { cliente: cliente.nome, success: true, result };
+        } else {
+          const error = await response.json();
+          console.error(`Erro ao sincronizar ${cliente.nome}:`, error);
+          return { cliente: cliente.nome, success: false, error };
+        }
+      });
+
+      const results = await Promise.all(syncPromises);
+      const successCount = results.filter(r => r.success).length;
+      const errorCount = results.filter(r => !r.success).length;
+
+      alert(`Sincronização concluída!\n\n✅ Sucessos: ${successCount}\n❌ Erros: ${errorCount}`);
+      
+      // Recarregar dados após sincronização
+      loadClientesData();
+      
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      alert('Erro durante a sincronização com Google Drive');
+    }
+  };
+
   return (
     <>
       <Head>
@@ -242,6 +283,15 @@ export default function AdminIndex() {
                 <div className="text-3xl mb-3">🔄</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Atualizar</h3>
                 <p className="text-sm text-gray-600">Recarregar dados</p>
+              </button>
+
+              <button
+                onClick={syncWithGoogleDrive}
+                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
+              >
+                <div className="text-3xl mb-3">☁️</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Google Drive</h3>
+                <p className="text-sm text-gray-600">Sincronizar com nuvem</p>
               </button>
             </div>
 

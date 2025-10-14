@@ -12,6 +12,7 @@
     "@types/recharts": "^1.8.29",
     "chart.js": "^4.4.0",
     "date-fns": "^2.30.0",
+    "googleapis": "^128.0.0",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.544.0",
     "next": "^13.5.0",
