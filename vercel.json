@@ -55,16 +55,5 @@
       "destination": "/admin/orcamentos",
       "permanent": false
     }
-  ],
-  "env": {
-    "VERCEL_TOKEN": "@vercel-token",
-    "GOOGLE_DRIVE_CLIENT_ID": "@google-drive-client-id",
-    "GOOGLE_DRIVE_CLIENT_SECRET": "@google-drive-client-secret",
-    "GOOGLE_DRIVE_REFRESH_TOKEN": "@google-drive-refresh-token",
-    "GOOGLE_DRIVE_FOLDER_ID": "@google-drive-folder-id",
-    "GEMINI_API_KEY": "@gemini-api-key",
-    "OPENAI_API_KEY": "@openai-api-key",
-    "SUPABASE_URL": "@supabase-url",
-    "SUPABASE_ANON_KEY": "@supabase-anon-key"
-  }
+  ]
 }
