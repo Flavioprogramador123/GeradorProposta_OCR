@@ -1,0 +1,62 @@
+name: Update Clients Data
+
+on:
+  # Executar manualmente
+  workflow_dispatch:
+
+  # Executar a cada 6 horas
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Executar quando houver mudanças em src/data/clientes
+  push:
+    paths:
+      - 'src/data/clientes/**'
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔄 Generate clients data JSON
+        run: node scripts/generate-clients-json.js
+
+      - name: 📊 Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet public/clientes-data.json || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: 💾 Commit and push if changed
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git add public/clientes-data.json
+          git commit -m "🤖 Atualiza clientes-data.json automaticamente
+
+          $(date '+%Y-%m-%d %H:%M:%S')
+
+          Gerado por GitHub Actions"
+          git push
+
+      - name: ✅ Summary
+        run: |
+          if [ "${{ steps.check_changes.outputs.changed }}" == "true" ]; then
+            echo "✅ Dados atualizados e commitados!"
+          else
+            echo "ℹ️ Nenhuma mudança detectada nos dados dos clientes."
+          fi

@@ -1,8 +1,24 @@
 {
+  "version": 2,
+  "name": "pieng-propostas",
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"
     }
+  },
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "git": {
+    "deploymentEnabled": true
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true,
+    "silent": false
   },
   "headers": [
     {
@@ -13,6 +29,42 @@
           "value": "public, max-age=3600, s-maxage=86400"
         }
       ]
+    },
+    {
+      "source": "/clientes-data.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=600"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     }
-  ]
+  ],
+  "redirects": [
+    {
+      "source": "/orcamentos",
+      "destination": "/admin/orcamentos",
+      "permanent": false
+    }
+  ],
+  "env": {
+    "VERCEL_TOKEN": "@vercel-token",
+    "GOOGLE_DRIVE_CLIENT_ID": "@google-drive-client-id",
+    "GOOGLE_DRIVE_CLIENT_SECRET": "@google-drive-client-secret",
+    "GOOGLE_DRIVE_REFRESH_TOKEN": "@google-drive-refresh-token",
+    "GOOGLE_DRIVE_FOLDER_ID": "@google-drive-folder-id",
+    "GEMINI_API_KEY": "@gemini-api-key",
+    "OPENAI_API_KEY": "@openai-api-key",
+    "SUPABASE_URL": "@supabase-url",
+    "SUPABASE_ANON_KEY": "@supabase-anon-key"
+  }
 }
