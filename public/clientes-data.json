@@ -1,0 +1,154 @@
+{
+  "clientes": [
+    {
+      "nome": "Betania",
+      "cidade": "Anápolis/GO",
+      "pasta": "betania-01-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Cliente Padrão",
+      "cidade": "Anápolis/GO",
+      "pasta": "cliente-padrao-01-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Cliente Padrão",
+      "cidade": "Anápolis/GO",
+      "pasta": "cliente-padrao-06-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Cliente Padrão",
+      "cidade": "Anápolis/GO",
+      "pasta": "cliente-padrao-14-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "14/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Cliente Teste",
+      "cidade": "Anápolis/GO",
+      "pasta": "cliente-teste-14-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "14/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "danie_009",
+      "cidade": "Anápolis/GO",
+      "pasta": "danie009-29-09-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Daniel-001",
+      "cidade": "Anápolis/GO",
+      "pasta": "daniel-001-29-09-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Daniel Verdura 03",
+      "cidade": "Anápolis/GO",
+      "pasta": "daniel-verdura-03-03-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Daniel Verdura 03",
+      "cidade": "Anápolis/GO",
+      "pasta": "daniel-verdura-03-06-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Daniel - Verdura",
+      "cidade": "Anápolis/GO",
+      "pasta": "daniel-verdura-29-09-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "DORVALINA IONEIDE",
+      "cidade": "Anápolis/GO",
+      "pasta": "dorvalina-ioneide-06-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "DORVALINA IONEIDE",
+      "cidade": "ANAPOLIS/GO",
+      "pasta": "dorvalinaioneide",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Gilberto",
+      "cidade": "Anápolis/GO",
+      "pasta": "gilberto",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "MARCELO",
+      "cidade": "Anápolis/GO",
+      "pasta": "marcelo-14-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "14/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Pedro Silva",
+      "cidade": "Goi�nia/GO",
+      "pasta": "pedro-silva-29-09-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "pedro cesar",
+      "cidade": "Pirenopolis/GO",
+      "pasta": "pedrocesar",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Teste Correcao",
+      "cidade": "Anapolis",
+      "pasta": "teste-correcao-03-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    },
+    {
+      "nome": "Teste Local",
+      "cidade": "Anapolis",
+      "pasta": "teste-local-03-10-2025",
+      "status": "proposta_gerada",
+      "ultimaModificacao": "06/10/2025",
+      "temProposta": true
+    }
+  ],
+  "stats": {
+    "totalClientes": 18,
+    "proposasGeradas": 18,
+    "aguardandoOrcamentos": 0
+  },
+  "ultimaAtualizacao": "2025-10-14T20:52:02.152Z"
+}

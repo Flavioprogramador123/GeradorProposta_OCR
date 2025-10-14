@@ -47,7 +47,13 @@ export default function AdminIndex() {
         console.log('API principal falhou, tentando API alternativa...');
         response = await fetch(`/api/admin/clientes-netlify?t=${Date.now()}`);
       }
-      
+
+      // Se ainda falhar, tentar carregar do JSON estático
+      if (!response.ok) {
+        console.log('APIs falharam, tentando JSON estático...');
+        response = await fetch(`/clientes-data.json?t=${Date.now()}`);
+      }
+
       if (response.ok) {
         const data = await response.json();
         console.log('Dados carregados:', data); // Log temporário para debug
