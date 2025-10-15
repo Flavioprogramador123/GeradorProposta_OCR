@@ -185,50 +185,131 @@ export default function GerenciarOrcamentos() {
     }
 
     try {
-      // Preparar dados do cliente
-      const dadosCliente = {
-        nome: cliente.nome,
-        cidade: cliente.cidade || '',
-        estado: cliente.estado || '',
-        consumoMensal: cliente.consumoMensal || 0,
-        tarifaEnergia: 0.60, // Valor padrão
+      // 🔧 CONFIGURAÇÕES DO SISTEMA (mesmo do Gerador Rápido)
+      const configSistema = {
+        hsp: 5.21,
+        tarifa: 0.982,
+        performanceRate: 0.75,
+        pdespesaFixo: 3000,
+        pdespesaVariavel: 22,
+        descontoPix: 10.0,
+        fatorParcelado: 1.20,
+        fator12x: 0.88,
+        fator18x: 0.83
       };
 
-      // Preparar sistemas dos orçamentos aprovados
-      const sistemas = aprovados.map((orc, index) => ({
-        id: orc.id || `sistema-${index + 1}`,
-        titulo: `Sistema ${index + 1}`,
-        potencia: orc.potencia || 0,
-        modulos: orc.modulos || 0,
-        inversores: orc.inversores || 0,
-        valorTotal: orc.valorTotal || 0,
-        precoCustoYaml: orc.precoCustoYaml || orc.valorTotal,
-        precoFinal: calculateTotalComMargem(orc),
-        fornecedor: orc.fornecedor || 'Padrão',
-        tipoModulo: orc.tipoModulo || 'Padrão',
-        potenciaModulo: orc.potenciaModulo || 550,
-        tipoInversor: orc.tipoInversor || 'Padrão',
-      }));
+      // 🔧 FUNÇÕES DE CÁLCULO (mesmo do Gerador Rápido)
+      const calcularPrecos = (totalFinal: number) => {
+        const ppix = totalFinal;
+        const descontoPix = configSistema.descontoPix > 1 ? configSistema.descontoPix / 100 : configSistema.descontoPix;
+        const pavista = ppix / (1 - descontoPix);
+        const priscado = ppix * configSistema.fatorParcelado;
+        const p12x_total = ppix / configSistema.fator12x;
+        const p12x = p12x_total / 12;
+        const p18x_total = ppix / configSistema.fator18x;
+        const p18x_parcela = p18x_total / 18;
 
-      // Chamar API do Gerador Rápido
+        return { ppix, pavista, priscado, p12x, p18x_parcela, p12x_total, p18x_total };
+      };
+
+      const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
+        const performanceRate = configSistema.performanceRate;
+        const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
+        const cobertura = (geracaoMensal / consumoMensal) * 100;
+        const economiaMensal = geracaoMensal * tarifa;
+        const paybackMeses = investimentoPix / economiaMensal;
+        const tirAnual = (12 / paybackMeses) * 100;
+
+        return { geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual };
+      };
+
+      // 🔧 PROCESSAR ORÇAMENTOS (mesmo do Gerador Rápido)
+      const orcamentosProcessados = aprovados.map((orc, index) => {
+        // Extrair dados dos componentes
+        const modulos = orc.componentes?.modulos?.quantidade || 0;
+        const pot_modulo = orc.componentes?.modulos?.componente?.potencia || 550;
+        const marca_modulo = orc.componentes?.modulos?.componente?.marca || 'Padrão';
+        const inversores = orc.componentes?.inversores?.quantidade || 1;
+        const pot_inv = orc.componentes?.inversores?.componente?.potencia || 2.5;
+        const marca_inversor = orc.componentes?.inversores?.componente?.marca || 'Padrão';
+
+        // Calcular custo e despesas
+        const pcusto = orc.precoCustoYaml || orc.valorTotal || 0;
+        const pdespesa = configSistema.pdespesaFixo + (pcusto * configSistema.pdespesaVariavel / 100);
+        const totalFinal = pcusto + pdespesa;
+
+        // Calcular potência total
+        const potTotal = (modulos * pot_modulo) / 1000;
+
+        // Calcular preços e performance
+        const precos = calcularPrecos(totalFinal);
+        const performance = calcularPerformance(
+          potTotal,
+          configSistema.hsp,
+          cliente.consumoMensal,
+          configSistema.tarifa,
+          precos.ppix
+        );
+
+        return {
+          nome: `${orc.fornecedor} - Sistema ${index + 1}`,
+          distribuidora: orc.fornecedor,
+          pcusto: pcusto,
+          modulos: modulos,
+          pot_modulo: pot_modulo,
+          marca_modulo: marca_modulo,
+          inversores: inversores,
+          pot_inv: pot_inv,
+          marca_inversor: marca_inversor,
+          pdespesa_total: pdespesa,
+          total_final: totalFinal,
+          pdespesa_fixo: configSistema.pdespesaFixo,
+          pdespesa_variavel_percent: configSistema.pdespesaVariavel,
+          potTotal: potTotal,
+          // Todos os dados financeiros calculados
+          ppix: precos.ppix,
+          pavista: precos.pavista,
+          priscado: precos.priscado,
+          p12x: precos.p12x,
+          p12x_total: precos.p12x_total,
+          p18x_parcela: precos.p18x_parcela,
+          p18x_total: precos.p18x_total,
+          // Todos os dados de performance
+          geracaoMensal: performance.geracaoMensal,
+          cobertura: performance.cobertura,
+          economiaMensal: performance.economiaMensal,
+          paybackMeses: performance.paybackMeses,
+          tirAnual: performance.tirAnual
+        };
+      });
+
+      // 🔧 CHAMAR API (mesmo formato do Gerador Rápido)
       const response = await fetch('/api/gerar-proposta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cliente: dadosCliente,
-          sistemas: sistemas,
+          cliente: {
+            nome: cliente.nome,
+            cidade: cliente.cidade || 'Anápolis/GO',
+            consumo_mensal: cliente.consumoMensal || 600,
+            tipo_imovel: 'Residencial',
+            hsp: configSistema.hsp,
+            tarifa: configSistema.tarifa
+          },
+          orcamentos: orcamentosProcessados,
+          config: configSistema
         })
       });
 
       if (response.ok) {
         const result = await response.json();
         alert('✅ Proposta gerada com sucesso!');
-        
+
         // Abrir a proposta em nova aba
         window.open(`/proposta/${result.slug}`, '_blank');
       } else {
         const errorData = await response.json();
-        alert(`❌ Erro: ${errorData.error || 'Erro ao gerar proposta'}`);
+        alert(`❌ Erro: ${errorData.error || errorData.message || 'Erro ao gerar proposta'}`);
       }
     } catch (error) {
       console.error('Erro ao gerar propostas:', error);
