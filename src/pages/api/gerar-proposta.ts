@@ -529,6 +529,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await fs.writeFile(templateResultadosArquivoPath, templateResultadosHtml, 'utf8');
 
       console.log('✅ Template de Resultados Financeiros gerado:', templateResultadosArquivo);
+
+      // 🚀 PERSISTÊNCIA VERCEL: Copiar HTMLs para pasta pública (deploy automático)
+      if (!isServerless) {
+        const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
+        await fs.mkdir(publicPropostasDir, { recursive: true });
+
+        // Copiar template padrão
+        const publicArquivoPath = path.join(publicPropostasDir, arquivo);
+        await fs.copyFile(arquivoPath, publicArquivoPath);
+        console.log('✅ Template Padrão copiado para public/:', arquivo);
+
+        // Copiar template de resultados
+        const publicResultadosPath = path.join(publicPropostasDir, templateResultadosArquivo);
+        await fs.copyFile(templateResultadosArquivoPath, publicResultadosPath);
+        console.log('✅ Template Resultados copiado para public/:', templateResultadosArquivo);
+      }
     } catch (templateError) {
       console.log('❌ Erro ao gerar templates:', templateError);
       // Fallback: gerar HTML simples se template der erro
