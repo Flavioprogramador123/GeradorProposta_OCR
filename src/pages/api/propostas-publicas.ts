@@ -10,43 +10,70 @@ interface PropostaInfo {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // 🔧 MÉTODO DELETE: Apagar proposta
+  if (req.method === 'DELETE') {
+    const { filename } = req.body;
+
+    if (!filename) {
+      return res.status(400).json({ message: 'Nome do arquivo não fornecido' });
+    }
+
+    try {
+      const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
+      const filePath = path.join(publicPropostasDir, filename);
+
+      await fs.unlink(filePath);
+      console.log(`✅ Proposta deletada: ${filename}`);
+
+      return res.status(200).json({ message: 'Proposta deletada com sucesso' });
+    } catch (error) {
+      console.error('Erro ao deletar proposta:', error);
+      return res.status(500).json({ message: 'Erro ao deletar proposta' });
+    }
+  }
+
+  // 🔧 MÉTODO GET: Listar propostas
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
-    // Detectar ambiente serverless
-    const isServerless = process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production';
-    
-    // Definir diretório base baseado no ambiente
-    const baseDir = isServerless ? '/tmp' : process.cwd();
-    const propostasDir = path.join(baseDir, 'pastanetilify/orçamento/clientes');
-    
+    // 🚀 VERCEL: Ler da pasta public/ (migração completa)
+    const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
+
     let propostas: PropostaInfo[] = [];
 
-    if (!isServerless) {
-      // No ambiente local, tentar ler arquivos
-      try {
-        await fs.access(propostasDir);
-        const files = await fs.readdir(propostasDir);
-        
-        propostas = files
-          .filter(file => file.endsWith('.html'))
-          .map(file => {
-            const name = file.replace('.html', '');
-            const displayName = formatDisplayName(name);
-            return {
-              file,
-              name,
-              displayName,
-              url: `orçamento/clientes/${file}`
-            };
+    try {
+      await fs.access(publicPropostasDir);
+      const files = await fs.readdir(publicPropostasDir);
+
+      // 🔧 LER METADADOS DOS ARQUIVOS para ordenar por data de modificação
+      const filesWithStats = await Promise.all(
+        files
+          .filter(file => file.endsWith('.html') && !file.includes('resultados'))
+          .map(async (file) => {
+            const filePath = path.join(publicPropostasDir, file);
+            const stats = await fs.stat(filePath);
+            return { file, mtime: stats.mtime };
           })
-          .sort((a, b) => a.displayName.localeCompare(b.displayName));
-          
-      } catch (error) {
-        console.log('Diretório de propostas não encontrado, usando dados de fallback');
-      }
+      );
+
+      // 🔧 ORDENAR POR DATA: Mais recentes primeiro
+      propostas = filesWithStats
+        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
+        .map(({ file }) => {
+          const name = file.replace('.html', '');
+          const displayName = formatDisplayName(name);
+          return {
+            file,
+            name,
+            displayName,
+            url: `propostas/orçamento/clientes/${file}`
+          };
+        });
+
+    } catch (error) {
+      console.log('⚠️ Diretório public/propostas não encontrado, usando fallback');
     }
 
     // Se não encontrou propostas ou está em ambiente serverless, usar dados de fallback
