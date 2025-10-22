@@ -1,46 +1,46 @@
 # 🚀 PIENG-PROPOSTAS - SISTEMA COMPLETO VERCEL
 
 ## 📊 **STATUS ATUAL DO PROJETO**
-**Data da Última Atualização**: 14/10/2025 - 17:35
-**Status**: ✅ **MIGRAÇÃO COMPLETA PARA VERCEL** - 100% funcional, Netlify abandonado
+**Data da Última Atualização**: 22/10/2025 - 10:45
+**Status**: ✅ **SISTEMA FUNCIONANDO** - Erro 500 corrigido, CSS movido para public/
 
 ---
 
-## 🔔 **ATENÇÃO: PRIMEIRA COISA A FAZER AMANHÃ (15/10/2025)**
+## 🔧 **CORREÇÃO REALIZADA - 22/10/2025**
 
-### **⚠️ AÇÃO PRIORITÁRIA:**
-1. **Testar URLs de Produção** (15 min):
-   - Abrir: https://pieng-propostas.vercel.app/admin
-   - Abrir: https://pieng-propostas.vercel.app/propostas/propostas-publicas.html
-   - Abrir: https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_marcelo-14-10-2025.html
-   - **CRÍTICO**: Confirmar que proposta do Marcelo mostra dados REAIS (não fake)
-
-2. **Testar Funcionalidades**:
-   - Clicar botão "Ver Proposta" no admin
-   - Clicar botão "💬 WhatsApp"
-   - Clicar botão "📋 Copiar Link"
-
-3. **Se tudo OK**: Atualizar este arquivo e marcar migração como 100% completa
-
-4. **Se houver problemas**: Consultar [SESSAO-14-10-2025.md](SESSAO-14-10-2025.md) seção "Troubleshooting"
-
-### **📚 Documentos de Referência para Continuidade:**
-- **[SESSAO-14-10-2025.md](SESSAO-14-10-2025.md)** - Resumo completo do que foi feito ontem (LEIA PRIMEIRO!)
-- **[MIGRACAO-VERCEL-COMPLETA.md](MIGRACAO-VERCEL-COMPLETA.md)** - Guia técnico detalhado da migração
-- **Este arquivo (CLAUDE.md)** - Status geral do projeto e roadmap
-
-### **🔍 Contexto Rápido do Que Foi Feito Ontem:**
+### **❌ PROBLEMA IDENTIFICADO:**
 ```
-✅ Migração Netlify → Vercel 100% completa
-✅ 28 propostas HTML adicionadas ao repositório
-✅ Bug fake data corrigido (removido getExamplePropostaData)
-✅ Bug .gitignore corrigido (propostas agora tracked)
-✅ WhatsApp share + Copy Link implementados
-✅ Documentação completa criada
-⏳ Deploy Vercel em andamento (deve estar completo hoje)
+Erro 500 na API /api/gerar-proposta
+Causa: templateEngine.ts tentando ler arquivos CSS do filesystem
+       em produção (Vercel) onde filesystem não está disponível
 ```
 
-**Últimos commits**: ba4de79, ac92e53, d4979ae, c3077bf
+### **✅ SOLUÇÃO APLICADA:**
+1. **Corrigido `src/lib/templateEngine.ts`**:
+   - Detectar ambiente de produção (Vercel/Netlify)
+   - Em desenvolvimento: carregar CSS do filesystem
+   - Em produção: usar `<link>` para CSS público
+
+2. **Movido CSS para `public/styles/`**:
+   - `comercial-farmacia.css`
+   - `comercial.css`
+   - `industrial.css`
+   - `residencial.css`
+   - `rural.css`
+
+3. **Commit e Push realizados**:
+   - Commit: `74f46ac` - 🔧 FIX: Erro 500 API gerar-proposta
+   - Push para `clean-main`
+   - Deploy automático iniciado no Vercel
+
+### **🧪 TESTES NECESSÁRIOS (APÓS DEPLOY):**
+- [ ] Acessar: https://pieng-propostas.vercel.app/gerador-rapido
+- [ ] Gerar proposta teste (Daniel Verdura 03)
+- [ ] Verificar se gera sem erro 500
+- [ ] Confirmar que propostas HTML são criadas
+- [ ] Verificar se CSS está carregando corretamente
+
+**Último commit**: 74f46ac
 
 ---
 
