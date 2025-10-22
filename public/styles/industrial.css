@@ -1,0 +1,290 @@
+/**
+ * 🏭 CSS CUSTOMIZADO - INDUSTRIAL PREMIUM
+ * Tema: Cinza corporativo + Azul tecnológico
+ */
+
+.variant-industrial {
+  --variant-primary: #34495e;
+  --variant-secondary: #3498db;
+  --variant-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  --variant-accent: #7f8c8d;
+  --variant-bg-light: #ECF0F1;
+}
+
+/* Hero Section */
+.variant-industrial .hero-section {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(30, 60, 114, 0.4);
+}
+
+.variant-industrial .hero-section h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.variant-industrial .hero-section h1::before {
+  content: '🏭 ';
+  font-size: 3rem;
+}
+
+/* Demanda Contratada */
+.variant-industrial .demand-section {
+  background: white;
+  border: 3px solid var(--variant-primary);
+  border-radius: 16px;
+  padding: 40px;
+  margin: 35px 0;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.variant-industrial .demand-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.variant-industrial .demand-item {
+  text-align: center;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-industrial .demand-item.current {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+}
+
+.variant-industrial .demand-item.new {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+}
+
+.variant-industrial .demand-item.savings {
+  background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+  color: white;
+}
+
+.variant-industrial .demand-value {
+  font-size: 2.8rem;
+  font-weight: 900;
+  margin: 15px 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.variant-industrial .demand-label {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  margin-top: 10px;
+}
+
+/* Créditos de Energia */
+.variant-industrial .energy-credits-section {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  padding: 40px;
+  border-radius: 16px;
+  margin: 35px 0;
+  text-align: center;
+}
+
+.variant-industrial .credits-value {
+  font-size: 4rem;
+  font-weight: 900;
+  margin: 25px 0;
+  text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+}
+
+.variant-industrial .credits-info {
+  background: rgba(255,255,255,0.15);
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  backdrop-filter: blur(10px);
+}
+
+/* Análise ROI Detalhada */
+.variant-industrial .roi-detailed-section {
+  background: var(--variant-bg-light);
+  padding: 40px;
+  border-radius: 16px;
+  margin: 35px 0;
+}
+
+.variant-industrial .roi-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 25px;
+}
+
+.variant-industrial .roi-metric {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  border-left: 4px solid var(--variant-secondary);
+}
+
+.variant-industrial .roi-metric-label {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.variant-industrial .roi-metric-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--variant-primary);
+}
+
+/* Certificação Ambiental */
+.variant-industrial .certification-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 40px;
+  border-radius: 16px;
+  margin: 35px 0;
+  text-align: center;
+}
+
+.variant-industrial .certification-badge {
+  font-size: 6rem;
+  margin: 20px 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.variant-industrial .certification-text {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 15px 0;
+}
+
+/* Bandeiras Tarifárias */
+.variant-industrial .tariff-flags-section {
+  background: white;
+  border: 2px solid #f39c12;
+  border-radius: 16px;
+  padding: 30px;
+  margin: 30px 0;
+}
+
+.variant-industrial .tariff-comparison {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.variant-industrial .tariff-item {
+  text-align: center;
+  padding: 20px;
+}
+
+.variant-industrial .tariff-flag {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.variant-industrial .tariff-savings {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #27ae60;
+}
+
+/* Cards de Sistema */
+.variant-industrial .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-industrial .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(52, 73, 94, 0.2);
+  transform: translateY(-5px);
+}
+
+.variant-industrial .pieng-badge {
+  background: var(--variant-secondary);
+  color: white;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+/* Gráficos */
+.variant-industrial .chart-container {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  margin: 30px 0;
+  border-top: 4px solid var(--variant-secondary);
+}
+
+/* CTA */
+.variant-industrial .cta-button {
+  background: var(--variant-primary);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 20px 45px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(52, 73, 94, 0.4);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.variant-industrial .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(52, 73, 94, 0.5);
+  background: var(--variant-secondary);
+}
+
+/* Tabelas */
+.variant-industrial th {
+  background: var(--variant-primary);
+  color: white;
+  padding: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.variant-industrial td {
+  padding: 15px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.variant-industrial tr:hover {
+  background: var(--variant-bg-light);
+}
+
+.variant-industrial table {
+  border-collapse: collapse;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}

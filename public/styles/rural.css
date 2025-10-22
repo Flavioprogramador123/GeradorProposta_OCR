@@ -1,0 +1,172 @@
+/**
+ * 🌾 CSS CUSTOMIZADO - RURAL AGRO
+ * Tema: Verde natural + Amarelo safra
+ */
+
+.variant-rural {
+  --variant-primary: #27ae60;
+  --variant-secondary: #f39c12;
+  --variant-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+  --variant-accent: #8BC34A;
+  --variant-bg-light: #F1F8E9;
+}
+
+/* Hero Section */
+.variant-rural .hero-section {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(86, 171, 47, 0.3);
+}
+
+.variant-rural .hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.variant-rural .hero-section h1::before {
+  content: '🌾 ';
+  font-size: 2.8rem;
+}
+
+/* Seção de Irrigação */
+.variant-rural .irrigation-section {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  padding: 35px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-rural .irrigation-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-top: 25px;
+}
+
+.variant-rural .irrigation-item {
+  background: rgba(255,255,255,0.15);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.variant-rural .irrigation-item h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.variant-rural .irrigation-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 10px 0;
+}
+
+/* Economia por Safra */
+.variant-rural .safra-section {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  padding: 35px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+.variant-rural .safra-value {
+  font-size: 3.5rem;
+  font-weight: 900;
+  margin: 20px 0;
+  text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+}
+
+.variant-rural .safra-payback {
+  font-size: 1.5rem;
+  background: rgba(255,255,255,0.2);
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+/* Cards de Sistema */
+.variant-rural .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.variant-rural .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(39, 174, 96, 0.2);
+  transform: translateY(-5px);
+}
+
+.variant-rural .pieng-badge {
+  background: var(--variant-secondary);
+  color: white;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+/* Benefícios */
+.variant-rural .benefits-section {
+  background: var(--variant-bg-light);
+  padding: 40px 30px;
+  border-radius: 16px;
+  margin: 30px 0;
+}
+
+.variant-rural .benefit-item::before {
+  content: '✓ ';
+  color: var(--variant-primary);
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 1.3rem;
+}
+
+/* Gráficos */
+.variant-rural .chart-container {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  margin: 25px 0;
+}
+
+/* CTA */
+.variant-rural .cta-button {
+  background: var(--variant-primary);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+  transition: all 0.3s ease;
+}
+
+.variant-rural .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(39, 174, 96, 0.5);
+}
+
+/* Tabelas */
+.variant-rural th {
+  background: var(--variant-primary);
+  color: white;
+}
+
+.variant-rural tr:hover {
+  background: var(--variant-bg-light);
+}

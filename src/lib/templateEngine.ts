@@ -511,18 +511,27 @@ export class TemplateEnginePadrao {
     );
 
     // 2. Injetar CSS personalizado no head
-    const variantCssPath = path.join(
-      process.cwd(),
-      'src/styles',
-      config.cssFile
-    );
-
-    try {
-      const variantCss = fs.readFileSync(variantCssPath, 'utf-8');
-      const cssInjection = `<style id="variant-styles">${variantCss}</style>`;
-      html = html.replace('</head>', `${cssInjection}\n</head>`);
-    } catch (error) {
-      console.warn(`⚠️ CSS de variante não encontrado: ${config.cssFile}`);
+    // 🔧 CORREÇÃO: Não usar fs.readFileSync em produção (Vercel/Netlify)
+    const isProduction = process.env.VERCEL || process.env.NETLIFY || process.env.NODE_ENV === 'production';
+    
+    if (!isProduction) {
+      // Apenas em desenvolvimento: carregar CSS do filesystem
+      try {
+        const variantCssPath = path.join(
+          process.cwd(),
+          'src/styles',
+          config.cssFile
+        );
+        const variantCss = fs.readFileSync(variantCssPath, 'utf-8');
+        const cssInjection = `<style id="variant-styles">${variantCss}</style>`;
+        html = html.replace('</head>', `${cssInjection}\n</head>`);
+      } catch (error) {
+        console.warn(`⚠️ CSS de variante não encontrado: ${config.cssFile}`);
+      }
+    } else {
+      // Em produção: usar link para CSS público ou inline CSS mínimo
+      const cssLink = `<link rel="stylesheet" href="/styles/${config.cssFile}">`;
+      html = html.replace('</head>', `${cssLink}\n</head>`);
     }
 
     // 3. Injetar variáveis CSS customizadas
