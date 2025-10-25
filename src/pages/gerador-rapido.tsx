@@ -633,7 +633,8 @@ consolidado_orcamentos_distribuidores:
         config: config
       });
 
-      const response = await fetch('/api/gerar-proposta', {
+      // 🚀 NOVA API SUPABASE - Salva no banco ao invés de arquivos
+      const response = await fetch('/api/gerar-proposta-supabase', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
