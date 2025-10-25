@@ -195,12 +195,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error) {
-    console.error('❌ Erro ao gerar proposta:', error);
+    console.error('❌ ERRO COMPLETO:', error);
+    console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('❌ Tipo de erro:', typeof error);
+    console.error('❌ Nome do erro:', error instanceof Error ? error.name : 'N/A');
 
     return res.status(500).json({
       message: 'Erro interno do servidor',
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
+      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack : undefined,
+      // SEMPRE mostrar stack em produção para debug
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
   }
 }
