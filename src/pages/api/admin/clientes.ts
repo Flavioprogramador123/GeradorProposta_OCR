@@ -145,7 +145,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Ordenar por última modificação (mais recente primeiro)
     clientes.sort((a, b) => {
-      return new Date(b.ultimaModificacao).getTime() - new Date(a.ultimaModificacao).getTime();
+      try {
+        const dateA = new Date(a.ultimaModificacao).getTime();
+        const dateB = new Date(b.ultimaModificacao).getTime();
+
+        // Se data inválida, mover para o final
+        if (isNaN(dateA)) return 1;
+        if (isNaN(dateB)) return -1;
+
+        return dateB - dateA;
+      } catch (error) {
+        console.error('Erro ao ordenar clientes:', error);
+        return 0;
+      }
     });
 
     const stats = {
@@ -159,7 +171,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ clientes, stats });
 
   } catch (error) {
-    console.error('Erro ao listar clientes:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    console.error('❌ ERRO CRÍTICO ao listar clientes:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+
+    res.status(500).json({
+      message: 'Erro interno do servidor ao listar clientes',
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      details: process.env.NODE_ENV === 'development' ? error : undefined
+    });
   }
 }
