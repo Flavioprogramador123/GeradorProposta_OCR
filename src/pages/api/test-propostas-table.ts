@@ -77,9 +77,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro no teste:', error);
-    return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: error instanceof Error ? error.stack : undefined,
+    return res.status(200).json({
+      catch_error: true,
+      error_message: error instanceof Error ? error.message : 'Erro desconhecido',
+      error_name: error instanceof Error ? error.name : typeof error,
+      error_stack: error instanceof Error ? error.stack : undefined,
+      error_string: String(error),
     });
   }
 }
