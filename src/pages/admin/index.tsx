@@ -266,9 +266,14 @@ export default function AdminIndex() {
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                  🏢 Área Administrativa
-                </h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-gray-800">
+                    🏢 Área Administrativa
+                  </h1>
+                  <span className="px-2 py-1 text-xs font-mono bg-blue-100 text-blue-700 rounded border border-blue-200">
+                    v2.1.0
+                  </span>
+                </div>
                 <p className="text-gray-600">
                   Gerencie clientes, configurações e propostas do sistema PIENG Solar
                 </p>
