@@ -1,521 +1,381 @@
-# 🚀 PIENG-PROPOSTAS - SISTEMA COMPLETO VERCEL
+# CLAUDE.md
 
-## 📊 **STATUS ATUAL DO PROJETO**
-**Data da Última Atualização**: 22/10/2025 - 10:45
-**Status**: ✅ **SISTEMA FUNCIONANDO** - Erro 500 corrigido, CSS movido para public/
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
----
+## Project Overview
 
-## 🔧 **CORREÇÃO REALIZADA - 22/10/2025**
+PIENG-PROPOSTAS is a solar proposal generation system with AI-powered data extraction. Built with Next.js 13.5.11, it provides a complete admin interface for managing clients, processing quotes, and generating professional solar installation proposals.
 
-### **❌ PROBLEMA IDENTIFICADO:**
-```
-Erro 500 na API /api/gerar-proposta
-Causa: templateEngine.ts tentando ler arquivos CSS do filesystem
-       em produção (Vercel) onde filesystem não está disponível
-```
-
-### **✅ SOLUÇÃO APLICADA:**
-1. **Corrigido `src/lib/templateEngine.ts`**:
-   - Detectar ambiente de produção (Vercel/Netlify)
-   - Em desenvolvimento: carregar CSS do filesystem
-   - Em produção: usar `<link>` para CSS público
-
-2. **Movido CSS para `public/styles/`**:
-   - `comercial-farmacia.css`
-   - `comercial.css`
-   - `industrial.css`
-   - `residencial.css`
-   - `rural.css`
-
-3. **Commit e Push realizados**:
-   - Commit: `74f46ac` - 🔧 FIX: Erro 500 API gerar-proposta
-   - Push para `clean-main`
-   - Deploy automático iniciado no Vercel
-
-### **🧪 TESTES NECESSÁRIOS (APÓS DEPLOY):**
-- [ ] Acessar: https://pieng-propostas.vercel.app/gerador-rapido
-- [ ] Gerar proposta teste (Daniel Verdura 03)
-- [ ] Verificar se gera sem erro 500
-- [ ] Confirmar que propostas HTML são criadas
-- [ ] Verificar se CSS está carregando corretamente
-
-**Último commit**: 74f46ac
+**Production URL**: https://pieng-propostas.vercel.app
+**Main Branch**: `clean-main`
+**Deploy**: Auto-deploy on push to `clean-main`
 
 ---
 
-## 🎯 **MIGRAÇÃO NETLIFY → VERCEL CONCLUÍDA**
+## Development Commands
 
-### **✅ O QUE FOI REALIZADO:**
-
-#### **1. MIGRAÇÃO COMPLETA DE ESTRUTURA**
-```
-ANTES (Netlify):
-pastanetilify/
-├── index.html
-├── propostas-publicas.html
-└── orçamento/clientes/*.html
-
-DEPOIS (Vercel):
-public/propostas/
-├── index.html
-├── propostas-publicas.html
-└── orçamento/clientes/*.html (28 propostas)
-```
-
-#### **2. ATUALIZAÇÕES DE CÓDIGO**
-- **src/pages/admin/index.tsx**: Todas URLs Netlify → Vercel
-- **src/pages/proposta/[slug].tsx**: Removido fake data completamente
-- **src/pages/api/admin/clientes.ts**: Bug ReferenceError corrigido
-- **.gitignore**: Permitir `public/propostas/**/*.html`
-
-#### **3. PROPOSTAS HTML ADICIONADAS**
-28 arquivos HTML de propostas REAIS:
-- ✅ proposta_marcelo-14-10-2025.html
-- ✅ proposta_resultados_marcelo-14-10-2025.html
-- ✅ proposta_daniel-verdura-*.html (múltiplas versões)
-- ✅ proposta_dorvalina-ioneide-*.html
-- ✅ E mais 23 propostas de clientes
-
-#### **4. FUNCIONALIDADES IMPLEMENTADAS**
-- **WhatsApp Share**: Botão para enviar link via WhatsApp
-- **Copy Link**: Botão para copiar link da proposta
-- **Propostas Públicas**: Página listando todas as propostas
-- **Admin Dashboard**: Card com ações para cada cliente
-
----
-
-## 🌐 **URLs DO SISTEMA**
-
-### **🔴 PRODUÇÃO (Vercel):**
-- **Admin Dashboard**: https://pieng-propostas.vercel.app/admin
-- **Lista Pública**: https://pieng-propostas.vercel.app/propostas/propostas-publicas.html
-- **Proposta Específica**: https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_[slug].html
-
-### **💻 LOCAL (Desenvolvimento):**
-- **Frontend**: http://localhost:3000
-- **Admin**: http://localhost:3000/admin
-- **Propostas**: http://localhost:3000/propostas/
-
-### **❌ NETLIFY (ABANDONADO):**
-- ~~https://pieng-propostas-solares.netlify.app~~ (não usar mais)
-
----
-
-## 📁 **ESTRUTURA DO PROJETO**
-
-```
-c:\Projetos\Prompt_ORC_pieng/
-├── 📄 src/
-│   ├── pages/
-│   │   ├── admin/
-│   │   │   └── index.tsx          # Admin dashboard (URLs Vercel)
-│   │   ├── proposta/
-│   │   │   └── [slug].tsx         # Proposta dinâmica (SEM fake data)
-│   │   └── api/
-│   │       └── admin/
-│   │           └── clientes.ts    # API clientes (bug corrigido)
-│   └── data/
-│       └── clientes/              # Dados JSON dos clientes
-│
-├── 📂 public/
-│   └── propostas/                 # ✅ MIGRADO DO NETLIFY
-│       ├── index.html
-│       ├── propostas-publicas.html
-│       └── orçamento/clientes/
-│           └── *.html (28 files)  # Propostas REAIS
-│
-├── 📜 package.json                # Next.js 13.5.11
-├── 📜 vercel.json                 # Config Vercel
-├── 📜 .gitignore                  # Atualizado para permitir propostas
-└── 📚 MIGRACAO-VERCEL-COMPLETA.md # Documentação completa
-```
-
----
-
-## 🚀 **COMO EXECUTAR**
-
-### **1. Desenvolvimento Local:**
 ```bash
-cd c:\Projetos\Prompt_ORC_pieng
-npm install
-npm run dev
-```
-✅ Acesse: http://localhost:3000/admin
+# Development
+npm run dev              # Start dev server on localhost:3000
+npm run build            # Production build
+npm start                # Run production build locally
+npm run lint             # Run ESLint
 
-### **2. Deploy para Vercel:**
+# Type checking
+npx tsc --noEmit         # Check TypeScript errors without building
+
+# Vercel deployment
+git push origin clean-main           # Triggers auto-deploy
+npx vercel --prod                    # Manual deploy
+npx vercel logs                      # View deployment logs
+```
+
+---
+
+## Architecture Overview
+
+### Core Data Flow
+
+```
+1. Client Creation → src/data/clientes/[slug]/
+2. Quote Upload → AI Extraction → src/pages/api/admin/extract-data.ts
+3. Quote Processing → Python Calculator → Financial Analysis
+4. Proposal Generation → Template Engine → HTML/JSON output
+5. Public Access → /proposta/[slug] or /propostas/orçamento/clientes/
+```
+
+### Key Architectural Concepts
+
+#### 1. **Dual Storage System**
+- **Dynamic data**: `src/data/clientes/[slug]/proposta.json` - Used by Next.js SSG
+- **Static HTML**: `public/propostas/orçamento/clientes/proposta_[slug].html` - Direct access
+- Both must be kept in sync when generating proposals
+
+#### 2. **Template Engine (`src/lib/templateEngine.ts`)**
+- Generates HTML from `proposta.json` data
+- **CRITICAL**: Detects production environment (Vercel/Netlify)
+  - Development: Loads CSS from filesystem
+  - Production: Uses `<link>` tags to `public/styles/*.css`
+- Two template types:
+  - `generateTemplateHtmlPadrao()`: Standard comparison view
+  - `generateTemplateHtmlResultados()`: Results-focused view
+- Variant system for different property types (residential, commercial, etc.)
+
+#### 3. **AI Data Extraction**
+The system recognizes multiple solar distributors automatically:
+- **BelEnergy/PIENG**: Web quotes with WEB-XXXXXXX codes
+- **SOOLLAR**: N-Plus modules, SAJ inverters
+- **Canadian Solar**: HiKu6 modules, Growatt inverters
+- **WEG**: WEG equipment
+- Patterns defined in `src/pages/api/admin/extract-data.ts`
+
+#### 4. **Financial Calculator (`src/lib/python-calculator.ts`)**
+- Interfaces with Python backend for complex financial calculations
+- Calculates: TIR (IRR), VPL (NPV), Payback, ROI
+- Validates extracted data consistency
+
+#### 5. **Configuration System**
+- Central config: `src/data/sistema/configuracoes.json`
+- API endpoint: `/api/admin/config`
+- Controls: pricing margins, discount rates, performance factors
+- Editable through `/admin/configuracoes`
+
+---
+
+## Critical File Locations
+
+### Pages & Routes
+```
+/admin                          → src/pages/admin/index.tsx
+/admin/novo-cliente             → src/pages/admin/novo-cliente.tsx
+/admin/orcamentos/[clienteId]   → src/pages/admin/orcamentos/[clienteId].tsx
+/admin/configuracoes            → src/pages/admin/configuracoes.tsx
+/proposta/[slug]                → src/pages/proposta/[slug].tsx (SSG)
+/gerador-rapido                 → src/pages/gerador-rapido.tsx (Quick generator)
+```
+
+### APIs
+```
+/api/admin/clientes             → List all clients
+/api/admin/clientes/[id]        → CRUD operations for client
+/api/admin/extract-data         → AI extraction from PDFs/images
+/api/admin/config               → System configuration
+/api/gerar-proposta             → Generate proposal HTML + JSON
+/api/orcamentos/[cliente]/processar-modular → Process quotes
+```
+
+### Core Libraries
+```
+src/lib/templateEngine.ts           → HTML generation engine
+src/lib/python-calculator.ts        → Financial calculations
+src/lib/calculadorPrecosUnificado.ts → Unified pricing calculator
+src/lib/types.ts                    → TypeScript interfaces
+src/lib/variantConfig.ts            → Property type variants
+src/lib/google-drive.ts             → Cloud storage integration
+```
+
+---
+
+## Important Development Notes
+
+### Working with Proposals
+
+When generating proposals:
+1. **Always update both** `proposta.json` and HTML files
+2. HTML goes to: `public/propostas/orçamento/clientes/proposta_[slug].html`
+3. JSON goes to: `src/data/clientes/[slug]/proposta.json`
+4. Use `templateEngine.ts` functions - don't manually write HTML
+5. CSS files must be in `public/styles/` for production
+
+### Production vs Development
+
+```typescript
+// Template engine automatically detects environment
+const isProduction = process.env.VERCEL || process.env.NETLIFY;
+
+if (isProduction) {
+  // Use <link> tags to public CSS
+  html += `<link rel="stylesheet" href="/styles/${variant}.css">`;
+} else {
+  // Inline CSS from filesystem
+  const cssPath = path.join(process.cwd(), 'src/styles', `${variant}.css`);
+  const css = fs.readFileSync(cssPath, 'utf8');
+  html += `<style>${css}</style>`;
+}
+```
+
+### Client Data Structure
+
+Each client has a folder: `src/data/clientes/[slug]/`
+```
+[slug]/
+├── proposta.json          # Complete proposal data (used by SSG)
+├── cliente.json           # Basic client info
+├── orcamento1.json        # Quote 1 (up to 5 quotes)
+├── orcamento2.json        # Quote 2
+└── uploads/               # Original PDFs/images
+```
+
+### Quote Processing Flow
+
+1. User uploads PDF/image → `/admin/orcamentos/[clienteId]/upload`
+2. File sent to `/api/admin/extract-data`
+3. AI extracts: modules, inverters, prices, distributor
+4. User reviews/edits → `/admin/orcamentos/[clienteId]/manual`
+5. Save to `orcamento[N].json`
+6. Generate proposal → Calls `/api/gerar-proposta`
+7. Python calculator validates and enriches data
+8. Template engine creates HTML + updates JSON
+9. Files written to both locations (data + public)
+
+---
+
+## Environment Variables
+
+Required for full functionality:
 ```bash
+# Google Drive Integration (optional)
+GOOGLE_DRIVE_CLIENT_ID=
+GOOGLE_DRIVE_CLIENT_SECRET=
+GOOGLE_DRIVE_REFRESH_TOKEN=
+
+# AI Providers (for extraction)
+GOOGLE_AI_API_KEY=          # Gemini AI
+OPENAI_API_KEY=             # GPT-4 fallback
+
+# Vercel (auto-configured in production)
+VERCEL=1
+VERCEL_URL=
+```
+
+---
+
+## Common Tasks
+
+### Adding a New Client
+1. Navigate to `/admin/novo-cliente`
+2. Fill form with: name, city, consumption, property type
+3. System creates slug: `[name-city-date]`
+4. Creates folder: `src/data/clientes/[slug]/`
+
+### Processing a Quote
+1. Go to `/admin/orcamentos/[clienteId]/upload`
+2. Upload PDF/image
+3. AI extracts data automatically
+4. Review extracted data, make corrections if needed
+5. Save (creates `orcamento[N].json`)
+6. Repeat for up to 5 quotes per client
+
+### Generating Proposal
+1. From client's quotes page, click "Gerar Proposta"
+2. System processes all quotes for that client
+3. Runs financial analysis (payback, TIR, ROI)
+4. Generates comparison between quotes
+5. Creates HTML (`public/propostas/...`) and JSON (`src/data/clientes/...`)
+6. Proposal available at `/proposta/[slug]`
+
+### Quick Proposal (No Client Record)
+1. Use `/gerador-rapido`
+2. Enter client data + paste quote data (or YAML)
+3. Get instant proposal without creating client record
+4. Useful for quick estimates
+
+---
+
+## TypeScript Interfaces
+
+Key types in `src/lib/types.ts`:
+
+```typescript
+interface PropostaData {
+  cliente: ClienteInfo;
+  sistemas: SistemaData[];        // Up to 5 quotes/systems
+  analise: AnaliseEstrategica;    // Financial comparison
+  empresa: ConfiguracoesEmpresa;
+  dataGeracao: string;
+  dataValidade: string;
+}
+
+interface SistemaData {
+  titulo: string;
+  potencia: string;
+  especificacoes: string[];
+  precoPixDecimal: number;
+  preco12x: string;
+  preco18x: string;
+  geracao: string;
+  cobertura: string;              // % of consumption covered
+  payback: string;
+  tir: string;                    // Internal rate of return
+  isRecommended?: boolean;
+}
+```
+
+---
+
+## Git Workflow
+
+```bash
+# Main development branch
+git checkout clean-main
+
+# Make changes
 git add .
-git commit -m "sua mensagem"
-git push origin clean-main
-```
-✅ Deploy automático ativado no push
+git commit -m "✨ Description"
 
-### **3. Build de Produção:**
-```bash
-npm run build
-npm start
+# Deploy to production
+git push origin clean-main      # Triggers Vercel auto-deploy
+
+# Check deployment
+# Visit: https://pieng-propostas.vercel.app/admin
 ```
+
+### Commit Message Conventions
+Use emoji prefixes:
+- ✨ New feature
+- 🔧 Bug fix
+- 📝 Documentation
+- 🚀 Deployment
+- ⚡ Performance
+- 🎨 UI/styling
 
 ---
 
-## 🔧 **TECNOLOGIAS USADAS**
+## Troubleshooting
 
-- **Framework**: Next.js 13.5.11 (App Router)
-- **Linguagem**: TypeScript 5.x
-- **Styling**: Tailwind CSS
-- **Deploy**: Vercel (produção)
-- **CI/CD**: GitHub Actions
-- **Database**: Supabase PostgreSQL
-- **Storage**: Google Cloud Storage
-- **APIs**:
-  - Google Drive API
-  - Google Maps API
-  - Gemini AI
-  - OpenAI GPT-4
+### Error 500 in Production
+- **Likely cause**: Template engine trying to read files from filesystem
+- **Solution**: Ensure CSS files are in `public/styles/` and template engine uses `<link>` tags in production
 
----
+### Proposal Shows 404
+- Check if `proposta.json` exists in `src/data/clientes/[slug]/`
+- Verify slug matches URL format
+- Run `npm run build` locally to test SSG
 
-## ✅ **FUNCIONALIDADES ATIVAS**
+### AI Extraction Fails
+- Check if GOOGLE_AI_API_KEY or OPENAI_API_KEY is set
+- Verify PDF/image is readable (not scanned poorly)
+- Check distributor patterns in `extract-data.ts`
 
-### **Admin Dashboard (/admin):**
-- ✅ Lista de todos os clientes
-- ✅ Botão "Ver Proposta" (abre URL Vercel)
-- ✅ Botão "💬 WhatsApp" (compartilha via WhatsApp)
-- ✅ Botão "📋 Copiar Link" (copia URL)
-- ✅ Card "Propostas Públicas" com gradiente
-- ✅ Stats: Total clientes, propostas geradas, aguardando
+### Client Not Listed in Admin
+- Verify `cliente.json` exists in `src/data/clientes/[slug]/`
+- Check API `/api/admin/clientes` response
+- Ensure folder name matches slug pattern
 
-### **Propostas Públicas:**
-- ✅ Lista completa de 28 propostas
-- ✅ Links diretos para cada proposta
-- ✅ Atualização em tempo real
-- ✅ Design responsivo
-
-### **Proposta Individual ([slug]):**
-- ✅ SSG (Static Site Generation)
-- ✅ Sem fake data (404 se não encontrar)
-- ✅ Revalidação a cada 60s
-- ✅ Performance otimizada
+### Python Calculator Errors
+- Check if Python backend is accessible
+- Verify data format matches expected schema
+- Review `src/lib/python-calculator.ts` error logs
 
 ---
 
-## 🐛 **PROBLEMAS CORRIGIDOS**
+## Performance Considerations
 
-### **❌ ERRO 1: Fake Data na Vercel**
-```
-URL: https://pieng-propostas.vercel.app/proposta/marcelo-14-10-2025
-Problema: Mostrava dados fake de getExamplePropostaData()
-```
-**✅ SOLUÇÃO**: Removido `getExamplePropostaData()` completamente, agora retorna 404 se não encontrar proposta.json
-
-### **❌ ERRO 2: API clientes.ts - ReferenceError**
-```
-Erro: ReferenceError: propostasGeradas is not defined
-```
-**✅ SOLUÇÃO**: Adicionado `finalClientesDir` para rastrear diretório correto usado no loop.
-
-### **❌ ERRO 3: Propostas HTML não commitadas**
-```
-Problema: .gitignore bloqueava proposta_*.html globalmente
-```
-**✅ SOLUÇÃO**: Adicionado `!public/propostas/**/*.html` no .gitignore para permitir exceção.
-
-### **❌ ERRO 4: Netlify 404 em propostas-publicas**
-```
-URL: https://pieng-propostas-solares.netlify.app/propostas-publicas
-Status: 404
-```
-**✅ SOLUÇÃO**: Migração completa para Vercel, Netlify abandonado.
+- Proposals use SSG (Static Site Generation) with 60s revalidation
+- Cache headers configured in `vercel.json`
+- Large client list may slow down `/admin` - consider pagination
+- Image optimization: Use Next.js `<Image>` component
+- CSS is inlined in development but linked in production for faster loads
 
 ---
 
-## 📈 **MÉTRICAS DO SISTEMA**
+## Testing Checklist
 
-### **💰 Economia Alcançada:**
-- **Sistema unificado**: Vercel only (antes: Vercel + Netlify)
-- **Deploy único**: 1 plataforma vs 2
-- **Manutenção**: 50% menos complexidade
+Before deploying major changes:
 
-### **📊 Performance:**
-- **Build time**: ~2-3 min
-- **Response time**: < 200ms
-- **Uptime**: 99.9% (Vercel SLA)
-
-### **📁 Arquivos:**
-- **Total propostas**: 28 HTML files
-- **Total clientes**: 15+ clientes
-- **Tamanho repo**: ~20MB
+- [ ] Test proposal generation locally: `npm run dev` → `/gerador-rapido`
+- [ ] Verify production build: `npm run build && npm start`
+- [ ] Check TypeScript: `npx tsc --noEmit`
+- [ ] Test admin CRUD: Create/edit/delete client
+- [ ] Verify AI extraction with sample PDF
+- [ ] Check proposal URLs work in both formats:
+  - `/proposta/[slug]` (SSG route)
+  - `/propostas/orçamento/clientes/proposta_[slug].html` (static)
+- [ ] Confirm CSS loads in production build
+- [ ] Test WhatsApp share and copy link buttons
 
 ---
 
-## 🎯 **PRÓXIMOS PASSOS (AMANHÃ - 15/10/2025)**
+## Additional Documentation
 
-### **🔥 PRIORIDADE CRÍTICA - FAZER PRIMEIRO (15 MIN):**
-
-#### **1. ✅ Validar Deploy Vercel em Produção**
-**Status**: Deploy foi realizado em 14/10/2025 às 17:35, deve estar completo
-
-**Ações**:
-```bash
-# 1. Abrir e testar as seguintes URLs:
-
-# Admin Dashboard
-https://pieng-propostas.vercel.app/admin
-✓ Verifica se mostra todos os clientes
-✓ Conta quantos clientes aparecem
-
-# Lista de Propostas Públicas
-https://pieng-propostas.vercel.app/propostas/propostas-publicas.html
-✓ Verifica se mostra 28 propostas
-✓ Testa 2-3 links de propostas
-
-# Proposta Específica (REAL - NÃO FAKE)
-https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_marcelo-14-10-2025.html
-✓ CRÍTICO: Confirma que mostra dados REAIS (não fake)
-✓ Verifica layout completo
-```
-
-#### **2. 🧪 Testar Funcionalidades do Admin**
-- [ ] **Botão "Ver Proposta"**: Clica e confirma que abre URL Vercel correta
-- [ ] **Botão "💬 WhatsApp"**: Clica e verifica mensagem formatada
-- [ ] **Botão "📋 Copiar Link"**: Clica e confirma que copia URL correto
-- [ ] **Card "Propostas Públicas"**: Clica e verifica que abre lista
-- [ ] **Stats do Admin**: Confirma números corretos (total clientes, propostas geradas)
-
-#### **3. 📝 Atualizar Status no CLAUDE.md**
-Após validação dos testes acima:
-- [ ] Marcar todos os itens como ✅ concluídos
-- [ ] Atualizar seção "STATUS ATUAL DO PROJETO" com data 15/10/2025
-- [ ] Mudar status para: `✅ **SISTEMA 100% FUNCIONAL EM PRODUÇÃO**`
-- [ ] Commitar: `git add CLAUDE.md && git commit -m "Validação produção completa: 15/10/2025" && git push`
+- **MIGRACAO-VERCEL-COMPLETA.md**: Details of Netlify → Vercel migration
+- **README.md**: User-facing overview and features
+- **VERSION.md**: Complete version history and changelog
+- **template_variables.json**: Available template variables reference
 
 ---
 
-### **⚡ PRIORIDADE MÉDIA (SE TUDO ACIMA OK):**
+## Recent Updates & Changelog
 
-#### **4. 🔐 Configurar GitHub Secrets (10 MIN - Opcional)**
-Para CI/CD automático com GitHub Actions:
-```bash
-# Adicionar em: https://github.com/Flavioprogramador123/PIENG-PROPOSTAS-SOLARES/settings/secrets/actions
+### **v2.1.0** - 25/10/2025 ✅ **CURRENT**
 
-VERCEL_TOKEN=yyS5oRio8a7vfiMnu3uzeBPy
-VERCEL_ORG_ID=team_KDl4jKQK6VuFv9eGRTeHsPjV
-VERCEL_PROJECT_ID=prj_DW2ZGnSzAOA4aA8r9BIAYpOK14Md
-```
+**🔧 Bug Fixes:**
+- Fixed error 500 in `/api/admin/clientes` (date sorting crash)
+- Added safe date validation with NaN checks
+- Improved error handling with detailed logging
 
-#### **5. 🔄 Integração Google Drive (15 MIN - Token Expirado)**
-- [ ] Renovar token OAuth2 do Google Drive
-- [ ] Atualizar GOOGLE_DRIVE_REFRESH_TOKEN no .env
-- [ ] Testar persistência de propostas na nuvem
-- [ ] Validar upload automático
+**✨ Improvements:**
+- Added version badge in admin header (`v2.1.0`)
+- Created VERSION.md with complete version history
+- Implemented Semantic Versioning (SemVer) convention
+- Updated README.md with version badges
+- Enhanced documentation for continuity
 
-#### **6. ⚡ Otimizações (Se Houver Tempo)**
-- [ ] Implementar cache Redis (opcional)
-- [ ] Otimizar imagens (next/image)
-- [ ] Adicionar loading states nos botões
-- [ ] Melhorar SEO (meta tags)
-- [ ] Adicionar toast notifications ao copiar link
+**📦 Commits:**
+- `541170b` - Version control system
+- `51b1d72` - API clientes fix
+- `e14f2f8` - CSS inline hybrid
+- `0981ba2` - Force redeploy CSS fix
 
----
-
-### **🔧 PRIORIDADE BAIXA (Backlog Futuro):**
-
-#### **7. Melhorias de UX**
-- [ ] Modo escuro (dark mode)
-- [ ] Filtros na lista de clientes
-- [ ] Busca de propostas
-- [ ] Paginação da lista
-- [ ] Ordenação por data/nome
-- [ ] Export CSV/PDF da lista
-
-#### **8. Novas Funcionalidades**
-- [ ] Sistema de notificações
-- [ ] Dashboard analytics
-- [ ] Histórico de alterações
-- [ ] Versionamento de propostas
-- [ ] Sistema de comentários
+**🎯 Impact:**
+- System stability improved
+- Better tracking of deployments
+- Easier to identify which version is running
+- Complete changelog for chat continuity
 
 ---
 
-## 📚 **DOCUMENTAÇÃO**
-
-### **Arquivos de Referência:**
-- **MIGRACAO-VERCEL-COMPLETA.md**: Guia completo da migração
-- **ARQUITETURA-PROPOSTAS.md**: Arquitetura do sistema (desatualizado, precisa update)
-- **README.md**: Instruções básicas
-
-### **Commits Importantes:**
-```bash
-# Último commit (CRÍTICO):
-c3077bf - ✅ Adicionar propostas HTML ao Vercel (CRITICAL)
-          - 28 propostas HTML adicionadas
-          - .gitignore corrigido
-          - Migração completa
-
-3cc2fcc - Deploy automatico: 14/10/2025 17:28
-          - Documentação da migração
-
-bdaf1bf - 🚀 MIGRAÇÃO COMPLETA: Netlify → Vercel (SOMENTE VERCEL AGORA)
-          - URLs atualizadas
-          - Netlify removido
-```
-
----
-
-## 🛠️ **COMANDOS ÚTEIS**
-
-### **Desenvolvimento:**
-```bash
-# Iniciar dev server
-npm run dev
-
-# Build de produção
-npm run build
-
-# Testar build local
-npm start
-
-# Verificar erros TypeScript
-npx tsc --noEmit
-
-# Lint
-npm run lint
-```
-
-### **Git:**
-```bash
-# Status
-git status
-
-# Commit e push
-git add .
-git commit -m "mensagem"
-git push origin clean-main
-
-# Ver últimos commits
-git log --oneline -10
-```
-
-### **Deploy:**
-```bash
-# Deploy manual Vercel (se necessário)
-npx vercel --prod
-
-# Ver logs Vercel
-npx vercel logs
-```
-
----
-
-## 📞 **TROUBLESHOOTING**
-
-### **🚨 Problema: Proposta não carrega (404)**
-**Possíveis causas:**
-1. Arquivo HTML não existe em `public/propostas/orçamento/clientes/`
-2. Nome do arquivo não corresponde ao slug
-3. Deploy Vercel ainda em andamento
-
-**Solução:**
-```bash
-# Verificar se arquivo existe
-dir "public\propostas\orçamento\clientes\proposta_*.html"
-
-# Verificar git tracking
-git ls-files "public/propostas/orçamento/clientes/"
-
-# Re-deploy
-git push origin clean-main
-```
-
-### **🚨 Problema: Admin não mostra clientes**
-**Possíveis causas:**
-1. API `/api/admin/clientes` retornando erro
-2. Arquivos em `src/data/clientes/` não encontrados
-
-**Solução:**
-```bash
-# Testar API localmente
-curl http://localhost:3000/api/admin/clientes
-
-# Verificar data folder
-dir src\data\clientes
-```
-
-### **🚨 Problema: Dev server não inicia**
-**Possíveis causas:**
-1. Múltiplos processos node.exe rodando
-2. Porta 3000 ocupada
-
-**Solução:**
-```bash
-# Verificar porta 3000
-netstat -ano | findstr :3000
-
-# Matar processos node
-taskkill /F /IM node.exe
-
-# Limpar cache e reiniciar
-rm -rf .next && npm run dev
-```
-
----
-
-## 🎊 **RESUMO EXECUTIVO**
-
-### **✅ STATUS: MIGRAÇÃO 100% COMPLETA**
-
-**O sistema PIENG-PROPOSTAS está totalmente migrado para Vercel!**
-
-#### **O que está funcionando:**
-- ✅ Frontend em Next.js 13.5.11
-- ✅ 28 propostas HTML servidas pelo Vercel
-- ✅ Admin dashboard com botões de compartilhamento
-- ✅ WhatsApp share integration
-- ✅ Copy link functionality
-- ✅ Página de propostas públicas
-- ✅ Deploy automático via git push
-- ✅ Sistema 100% no Vercel (Netlify abandonado)
-
-#### **Aguardando:**
-- ⏳ Deploy Vercel completar (~2-3 min)
-- ⏳ Testes de produção
-- ⏳ Validação de URLs finais
-
-#### **Opcional:**
-- 🔧 Configurar GitHub Secrets para CI/CD
-- 🔧 Renovar token Google Drive
-- 🔧 Otimizações de performance
-
-### **💰 ROI:**
-- **Complexidade**: -50% (1 plataforma vs 2)
-- **Manutenção**: Simplificada
-- **Performance**: Otimizada (Vercel edge network)
-- **Custo**: $0 (Vercel free tier)
-
----
-
-## 🔗 **LINKS RÁPIDOS**
-
-### **Produção:**
-- 🌐 **Admin**: https://pieng-propostas.vercel.app/admin
-- 📄 **Lista**: https://pieng-propostas.vercel.app/propostas/propostas-publicas.html
-- 🔗 **GitHub**: https://github.com/Flavioprogramador123/PIENG-PROPOSTAS-SOLARES
-
-### **Local:**
-- 💻 **Dev**: http://localhost:3000
-- 🔧 **Admin**: http://localhost:3000/admin
-
-### **Documentação:**
-- 📚 **Migração**: ./MIGRACAO-VERCEL-COMPLETA.md
-- 📚 **Este arquivo**: ./CLAUDE.md
-
----
-
-**🎯 MIGRAÇÃO CONCLUÍDA COM SUCESSO! SISTEMA 100% VERCEL!**
-
----
-
-*Última atualização: 14/10/2025 - 17:35*
-*Autor: Claude Code + Flavio*
-*Status: ✅ PRODUÇÃO*
+**Last Updated**: 2025-10-25 ✅ **v2.1.0**
+**System Status**: ✅ Fully operational on Vercel
+**Current Issues**: None reported
+**Next Version**: v2.2.0 (Supabase Storage + Backup automation)
