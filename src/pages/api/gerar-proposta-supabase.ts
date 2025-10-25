@@ -1,5 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { supabase, upsertProposta, createCliente, getAllConfiguracoes } from '@/lib/supabase';
+
+// Verificar variáveis de ambiente primeiro
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 /**
  * API para gerar propostas usando Supabase
@@ -11,6 +14,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Debug: Verificar variáveis de ambiente
+    console.log('🔧 Verificando variáveis de ambiente:', {
+      SUPABASE_URL: SUPABASE_URL ? 'Configurada' : 'FALTANDO',
+      SUPABASE_KEY: SUPABASE_KEY ? 'Configurada' : 'FALTANDO',
+    });
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      return res.status(500).json({
+        error: 'Variáveis de ambiente do Supabase não configuradas',
+        details: {
+          SUPABASE_URL: SUPABASE_URL ? 'OK' : 'MISSING',
+          SUPABASE_KEY: SUPABASE_KEY ? 'OK' : 'MISSING',
+        },
+        hint: 'Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel',
+      });
+    }
+
     const { cliente, orcamentos, config } = req.body;
 
     console.log('📥 Dados recebidos na API Supabase:', {
@@ -78,6 +98,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // SALVAR NO SUPABASE
     // ==========================
 
+    // Importar Supabase dinamicamente
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    console.log('✅ Cliente Supabase criado');
+
     // 1. Criar/buscar cliente
     const { data: clienteExistente, error: clienteError } = await supabase
       .from('clientes')
@@ -86,48 +112,72 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('cidade', cliente.cidade)
       .maybeSingle();
 
+    if (clienteError) {
+      console.error('❌ Erro ao buscar cliente:', clienteError);
+      throw new Error(`Erro Supabase: ${clienteError.message}`);
+    }
+
     let clienteId: string;
 
     if (clienteExistente) {
       clienteId = clienteExistente.id;
       console.log('✅ Cliente existente encontrado:', clienteId);
     } else {
-      const novoCliente = await createCliente({
-        nome: cliente.nome,
-        cidade: cliente.cidade,
-        estado: cliente.cidade.includes('GO') ? 'GO' : 'SP',
-        tipo_imovel: cliente.tipo_imovel || 'residencial',
-        consumo_mensal: cliente.consumo_mensal,
-        hsp_local: config.hsp || 5.21,
-        pdespesa: config.pdespesaFixo || 0,
-      });
+      const { data: novoCliente, error: createError } = await supabase
+        .from('clientes')
+        .insert({
+          nome: cliente.nome,
+          cidade: cliente.cidade,
+          estado: cliente.cidade.includes('GO') ? 'GO' : 'SP',
+          tipo_imovel: cliente.tipo_imovel || 'residencial',
+          consumo_mensal: cliente.consumo_mensal,
+          hsp_local: config.hsp || 5.21,
+          pdespesa: config.pdespesaFixo || 0,
+        })
+        .select()
+        .single();
+
+      if (createError || !novoCliente) {
+        console.error('❌ Erro ao criar cliente:', createError);
+        throw new Error(`Erro ao criar cliente: ${createError?.message}`);
+      }
+
       clienteId = novoCliente.id;
       console.log('✅ Novo cliente criado:', clienteId);
     }
 
     // 2. Salvar proposta
-    const proposta = await upsertProposta({
-      cliente_id: clienteId,
-      slug: slug,
-      titulo: `Proposta Solar - ${cliente.nome}`,
-      template_usado: 'pieng_basic',
-      sistema_kwp: sistemas[0]?.potTotal || 0,
-      geracao_mensal: sistemas[0]?.geracaoMensal || 0,
-      geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
-      valor_total: sistemas[0]?.ppix || 0,
-      valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
-      payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
-      tir: sistemas[0]?.tirAnual || 0,
-      dados_completos: {
-        cliente,
-        sistemas,
-        orcamentos,
-        config,
-        dataGeracao: dataAtual,
-      },
-      html_gerado: htmlContent,
-      status: 'ativa',
-    });
+    const { data: proposta, error: propostaError } = await supabase
+      .from('propostas')
+      .upsert({
+        cliente_id: clienteId,
+        slug: slug,
+        titulo: `Proposta Solar - ${cliente.nome}`,
+        template_usado: 'pieng_basic',
+        sistema_kwp: sistemas[0]?.potTotal || 0,
+        geracao_mensal: sistemas[0]?.geracaoMensal || 0,
+        geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
+        valor_total: sistemas[0]?.ppix || 0,
+        valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
+        payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
+        tir: sistemas[0]?.tirAnual || 0,
+        dados_completos: {
+          cliente,
+          sistemas,
+          orcamentos,
+          config,
+          dataGeracao: dataAtual,
+        },
+        html_gerado: htmlContent,
+        status: 'ativa',
+      })
+      .select()
+      .single();
+
+    if (propostaError || !proposta) {
+      console.error('❌ Erro ao salvar proposta:', propostaError);
+      throw new Error(`Erro ao salvar proposta: ${propostaError?.message}`);
+    }
 
     console.log('✅ Proposta salva no Supabase:', proposta.id);
 
