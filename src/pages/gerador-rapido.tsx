@@ -250,10 +250,10 @@ export default function GeradorRapido() {
     setResultados(resultados);
   };
 
-  // Carregar exemplo YAML com dados corretos do Daniel Verdura 03
+  // Carregar exemplo YAML com dados corretos do Cliente Padrão
   const carregarExemploYAML = () => {
     const exemploYAML = `cliente:
-  nome: "Daniel Verdura 03"
+  nome: "Cliente Padrão"
   cidade: "Anápolis/GO"
   consumo_mensal: 800
   tipo_imovel: "Residencial"
