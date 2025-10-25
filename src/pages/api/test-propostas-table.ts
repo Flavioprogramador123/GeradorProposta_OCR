@@ -22,12 +22,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(5);
 
     if (propostasError) {
-      return res.status(500).json({
+      return res.status(200).json({
+        tabela_existe: false,
         error: 'Erro ao consultar tabela propostas',
-        details: propostasError,
-        message: propostasError.message,
-        hint: propostasError.hint,
-        code: propostasError.code,
+        details: {
+          message: propostasError.message,
+          hint: propostasError.hint,
+          code: propostasError.code,
+          details: propostasError.details,
+        },
       });
     }
 
@@ -45,12 +48,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (insertError) {
-      return res.status(500).json({
+      return res.status(200).json({
+        select_ok: true,
+        insert_ok: false,
         error: 'Erro ao inserir na tabela propostas',
-        details: insertError,
-        message: insertError.message,
-        hint: insertError.hint,
-        code: insertError.code,
+        details: {
+          message: insertError.message,
+          hint: insertError.hint,
+          code: insertError.code,
+          details: insertError.details,
+        },
       });
     }
 
