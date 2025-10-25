@@ -188,7 +188,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       arquivo: `proposta_${slug}.html`,
       propostaId: proposta.id,
       clienteId: clienteId,
-      url: `/proposta/${slug}`,
+      url: `/proposta-supabase/${slug}`,  // ✅ CORRIGIDO: usar rota do Supabase
       htmlContent: htmlContent, // Retornar HTML inline
       sistemas: sistemas.length,
       message: '✅ Proposta gerada e salva no Supabase com sucesso!',
