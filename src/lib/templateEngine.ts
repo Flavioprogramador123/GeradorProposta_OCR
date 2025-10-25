@@ -511,27 +511,39 @@ export class TemplateEnginePadrao {
     );
 
     // 2. Injetar CSS personalizado no head
-    // 🔧 CORREÇÃO: Não usar fs.readFileSync em produção (Vercel/Netlify)
+    // 🔧 ESTRATÉGIA HÍBRIDA: Tentar inline primeiro, fallback para <link>
     const isProduction = process.env.VERCEL || process.env.NETLIFY || process.env.NODE_ENV === 'production';
-    
-    if (!isProduction) {
-      // Apenas em desenvolvimento: carregar CSS do filesystem
-      try {
-        const variantCssPath = path.join(
-          process.cwd(),
-          'src/styles',
-          config.cssFile
-        );
-        const variantCss = fs.readFileSync(variantCssPath, 'utf-8');
-        const cssInjection = `<style id="variant-styles">${variantCss}</style>`;
-        html = html.replace('</head>', `${cssInjection}\n</head>`);
-      } catch (error) {
-        console.warn(`⚠️ CSS de variante não encontrado: ${config.cssFile}`);
+
+    let cssInjected = false;
+
+    // TENTATIVA 1: Injetar CSS inline (funciona em dev e produção)
+    try {
+      // Mapear arquivos CSS de variantes
+      const cssPathsToTry = [
+        path.join(process.cwd(), 'public/styles', config.cssFile),
+        path.join(process.cwd(), 'src/styles/variants', config.cssFile),
+        path.join(process.cwd(), 'src/styles', config.cssFile)
+      ];
+
+      for (const cssPath of cssPathsToTry) {
+        if (fs.existsSync(cssPath)) {
+          const variantCss = fs.readFileSync(cssPath, 'utf-8');
+          const cssInjection = `<style id="variant-styles-inline">${variantCss}</style>`;
+          html = html.replace('</head>', `${cssInjection}\n</head>`);
+          cssInjected = true;
+          console.log(`✅ CSS inline injetado: ${cssPath}`);
+          break;
+        }
       }
-    } else {
-      // Em produção: usar link para CSS público ou inline CSS mínimo
+    } catch (error) {
+      console.warn(`⚠️ Erro ao injetar CSS inline: ${error instanceof Error ? error.message : 'unknown'}`);
+    }
+
+    // FALLBACK: Se inline falhar, usar <link> (apenas em produção)
+    if (!cssInjected && isProduction) {
       const cssLink = `<link rel="stylesheet" href="/styles/${config.cssFile}">`;
       html = html.replace('</head>', `${cssLink}\n</head>`);
+      console.log(`⚠️ Fallback: CSS via <link> tag: /styles/${config.cssFile}`);
     }
 
     // 3. Injetar variáveis CSS customizadas
