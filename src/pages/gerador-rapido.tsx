@@ -374,8 +374,8 @@ consolidado_orcamentos_distribuidores:
         distribuidoraAtual = 'BELENERGY';
       }
 
-      // Detectar início de orçamento
-      if (linha.includes('arquivo_origem:') || linha.includes('orcamento_id:')) {
+      // Detectar início de novo bloco de orçamento (- orcamento:)
+      if (linha.includes('- orcamento:') || linha === 'orcamento:') {
         if (orcamentoAtual) {
           // Calcular Pdespesa antes de adicionar
           const pdespesaVariavelValor = orcamentoAtual.pcusto * (config.pdespesaVariavel / 100);
@@ -385,12 +385,11 @@ consolidado_orcamentos_distribuidores:
           orcamentos.push(orcamentoAtual);
         }
 
-        const nome = linha.includes('arquivo_origem:') ?
-                     linha.split('\"')[1] || `Orçamento ${orcamentos.length + 1}` :
-                     linha.split('\"')[1] || `WEB-${orcamentos.length + 1}`;
+        // Criar novo orçamento com nome padrão
+        const nomeTemporario = `Orçamento ${orcamentos.length + 1}`;
 
         orcamentoAtual = {
-          nome: nome,
+          nome: nomeTemporario,
           distribuidora: distribuidoraAtual,
           pcusto: 0,
           modulos: 0,
@@ -408,6 +407,15 @@ consolidado_orcamentos_distribuidores:
         dentroInversores = false;
         contadorModulos = 0;
         contadorInversores = 0;
+      }
+
+      // Capturar nome do orçamento (orcamento_id ou arquivo_origem)
+      else if ((linha.includes('orcamento_id:') || linha.includes('arquivo_origem:')) && dentroOrcamento && orcamentoAtual) {
+        const nome = linha.split('\"')[1] || linha.split(':')[1].trim().replace(/\"/g, '');
+        if (nome && orcamentoAtual.nome.startsWith('Orçamento')) {
+          // Só atualiza o nome se ainda for o nome padrão
+          orcamentoAtual.nome = nome;
+        }
       }
 
       // Detectar preço de custo
@@ -1066,6 +1074,7 @@ consolidado_orcamentos_distribuidores:
                                   setOrcamentos(novosOrc);
                                 }}
                                 className="w-full px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent"
+                                placeholder="Nome do orçamento"
                               />
                             </td>
 
