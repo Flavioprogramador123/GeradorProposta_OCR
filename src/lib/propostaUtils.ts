@@ -2,7 +2,10 @@ import { SistemaData, SystemComparisonData } from './types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export const formatCurrency = (value: number): string => {
+export const formatCurrency = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'R$ 0,00';
+  }
   return value.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL'

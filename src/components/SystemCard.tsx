@@ -37,7 +37,10 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   isRecommended = false,
   badge
 }) => {
-  const formatPix = (value: number) => {
+  const formatPix = (value: number | null | undefined) => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return 'R$ 0,00';
+    }
     return value.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL'

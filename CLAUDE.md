@@ -347,7 +347,44 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### **v2.1.0** - 25/10/2025 ✅ **CURRENT**
+### **v2.2.0** - 26/10/2025 ✅ **CURRENT**
+
+**🔧 Critical Fixes:**
+- Fixed error 404 in SSG routes (dynamic `getStaticPaths`)
+- `src/pages/proposta/[slug].tsx` now reads all clients automatically
+- Changed fallback from `true` to `'blocking'` for better UX
+
+**🏗️ Architectural Decisions:**
+- **Storage Strategy**: Hybrid Local + Google Drive (decided 26/10/2025)
+  - Primary: File-based system (`src/data/clientes/`)
+  - Backup: Google Drive (already integrated in `src/lib/google-drive.ts`)
+  - Deploy: Vercel auto-deploy from `clean-main` branch
+  - Supabase: Not prioritized (RLS complexity vs simple file storage)
+
+**📋 Technical Context:**
+- Google Drive API: ✅ Configured and ready (credentials in .env)
+- AI APIs available: Gemini, OpenAI, OpenRouter
+- Dropbox: Auto-syncs local files to cloud
+- Vercel Token: Configured for deployments
+
+**🎯 Strategy:**
+1. Keep file-based system (simple, fast, reliable)
+2. Use Google Drive for backup + public URLs (optional)
+3. Focus on Vercel deployment stability
+4. No database migration needed (data not confidential)
+
+**📦 Key Files Modified:**
+- `src/pages/proposta/[slug].tsx` - Dynamic SSG paths
+- `CLAUDE.md` - Updated with architectural decisions
+
+**🔜 Next Steps:**
+- Test complete system on Vercel
+- Validate all routes working
+- Optional: Activate Google Drive auto-upload
+
+---
+
+### **v2.1.0** - 25/10/2025
 
 **🔧 Bug Fixes:**
 - Fixed error 500 in `/api/admin/clientes` (date sorting crash)
@@ -361,21 +398,9 @@ Before deploying major changes:
 - Updated README.md with version badges
 - Enhanced documentation for continuity
 
-**📦 Commits:**
-- `541170b` - Version control system
-- `51b1d72` - API clientes fix
-- `e14f2f8` - CSS inline hybrid
-- `0981ba2` - Force redeploy CSS fix
-
-**🎯 Impact:**
-- System stability improved
-- Better tracking of deployments
-- Easier to identify which version is running
-- Complete changelog for chat continuity
-
 ---
 
-**Last Updated**: 2025-10-25 ✅ **v2.1.0**
-**System Status**: ✅ Fully operational on Vercel
-**Current Issues**: None reported
-**Next Version**: v2.2.0 (Supabase Storage + Backup automation)
+**Last Updated**: 2025-10-26 ✅ **v2.2.0**
+**System Status**: ✅ Testing Vercel deployment
+**Current Issues**: None - 404 fix applied
+**Next Version**: v2.3.0 (Google Drive auto-upload integration)
