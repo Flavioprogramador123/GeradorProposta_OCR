@@ -633,8 +633,8 @@ consolidado_orcamentos_distribuidores:
         config: config
       });
 
-      // 🚀 NOVA API SUPABASE - Salva no banco ao invés de arquivos
-      const response = await fetch('/api/gerar-proposta-supabase', {
+      // API ORIGINAL - Sistema de arquivos
+      const response = await fetch('/api/gerar-proposta', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -688,8 +688,8 @@ consolidado_orcamentos_distribuidores:
 
       if (response.ok) {
         const data = await response.json();
-        if (confirm(`✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta-supabase/${data.slug}\n\nDeseja abrir a proposta agora?`)) {
-          window.open(`/proposta-supabase/${data.slug}`, '_blank');
+        if (confirm(`✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n\nDeseja abrir a proposta agora?`)) {
+          window.open(`/proposta/${data.slug}`, '_blank');
         }
       } else {
         throw new Error('Erro ao gerar proposta');
