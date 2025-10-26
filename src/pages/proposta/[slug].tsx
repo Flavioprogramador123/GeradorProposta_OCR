@@ -120,25 +120,40 @@ export default function PropostaPage({ proposta }: PropostaPageProps) {
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // Em produção, você carregaria os slugs da base de dados
-  const paths = [
-    { params: { slug: 'exemplo' } },
-    { params: { slug: 'arisio-anapolis-2024-09-05' } },
-    { params: { slug: 'eduardo-farmacia-anapolis-2024-09-05' } },
-    { params: { slug: 'bin-pirinopolis' } },
-    { params: { slug: 'binpiri' } }, // Adicionado slug do sistema admin
-    { params: { slug: 'eduardo' } }, // Para consistência com admin
-    { params: { slug: 'teste01' } },
-    { params: { slug: 'teste02' } },
-    { params: { slug: 'pedropaulo' } },
-    { params: { slug: 'danie009-29-09-2025' } }, // Adicionado slug do cliente atual
-    { params: { slug: 'cliente-padrao-30-09-2025' } } // Adicionado slug do cliente padrão
-  ];
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
 
-  return {
-    paths,
-    fallback: true // Permitir carga dinâmica de novos clientes
-  };
+    // Ler todos os clientes da pasta
+    const clientesDir = path.join(process.cwd(), 'src/data/clientes');
+    const slugs = fs.readdirSync(clientesDir);
+
+    // Filtrar apenas clientes com proposta.json
+    const paths = slugs
+      .filter(slug => {
+        try {
+          const propostaPath = path.join(clientesDir, slug, 'proposta.json');
+          return fs.existsSync(propostaPath);
+        } catch {
+          return false;
+        }
+      })
+      .map(slug => ({ params: { slug } }));
+
+    console.log(`✅ ${paths.length} propostas encontradas para SSG`);
+
+    return {
+      paths,
+      fallback: 'blocking' // Gera páginas sob demanda se não existir
+    };
+  } catch (error) {
+    console.error('❌ Erro ao carregar slugs:', error);
+    // Fallback: retornar paths vazios e deixar fallback gerar sob demanda
+    return {
+      paths: [],
+      fallback: 'blocking'
+    };
+  }
 };
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
