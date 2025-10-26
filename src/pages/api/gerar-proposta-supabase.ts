@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { generateTemplateHtmlPadrao } from '@/lib/templateEngine';
 
 // Verificar variáveis de ambiente primeiro
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -91,8 +92,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Ordenar por PIX
     sistemas.sort((a: any, b: any) => a.ppix - b.ppix);
 
-    // Gerar HTML simplificado
-    const htmlContent = gerarHTML(cliente, sistemas, dataAtual, slug);
+    // Preparar dados para o template engine
+    const propostaData = {
+      cliente: {
+        nome: cliente.nome,
+        cidade: cliente.cidade,
+        consumoMensal: cliente.consumo_mensal,
+        tipo: cliente.tipo_imovel || 'Residencial',
+        hsp: config.hsp || 5.21
+      },
+      sistemas: sistemas,
+      empresa: {
+        contato: '(62) 98463-3175',
+        email: 'contato@pieng.com.br',
+        site: 'www.pieng.com.br'
+      },
+      dataGeracao: dataAtual,
+      dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
+    };
+
+    // Gerar HTML usando template engine correto
+    const htmlContent = await generateTemplateHtmlPadrao(propostaData);
 
     // ==========================
     // SALVAR NO SUPABASE
@@ -209,85 +229,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
   }
-}
-
-// Função auxiliar para gerar HTML
-function gerarHTML(cliente: any, sistemas: any[], dataAtual: string, slug: string): string {
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIENG | Proposta Solar - ${cliente.nome}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
-        .header h1 { color: #3366CC; font-size: 28px; margin-bottom: 10px; }
-        .client-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .systems-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .system-card { border: 1px solid #ddd; border-radius: 10px; padding: 20px; background: white; }
-        .system-card h3 { color: #3366CC; margin-bottom: 15px; }
-        .price-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .price-new { font-size: 24px; font-weight: bold; color: #3366CC; margin-bottom: 10px; }
-        .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .metric { text-align: center; }
-        .metric-value { font-size: 18px; font-weight: bold; color: #3366CC; }
-        .metric-label { font-size: 12px; color: #666; }
-        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>⚡ PIENG Soluções Energéticas</h1>
-            <p>Proposta Solar Personalizada - Gerado com Supabase</p>
-        </div>
-
-        <div class="client-info">
-            <strong>Cliente:</strong> ${cliente.nome} |
-            <strong>Cidade:</strong> ${cliente.cidade} |
-            <strong>Consumo:</strong> ${cliente.consumo_mensal} kWh/mês
-        </div>
-
-        <div class="systems-grid">
-            ${sistemas.map((sistema: any, index: number) => `
-                <div class="system-card">
-                    <h3>OPÇÃO ${index + 1} ${index === 0 ? '⭐ RECOMENDADO' : ''}</h3>
-                    <div class="price-section">
-                        <div class="price-new">PIX: R$ ${sistema.ppix.toFixed(2)}</div>
-                        <p><strong>12x:</strong> R$ ${sistema.p12x.toFixed(2)}/mês</p>
-                        <p><strong>18x:</strong> R$ ${sistema.p18x_parcela.toFixed(2)}/mês</p>
-                    </div>
-                    <div class="metrics">
-                        <div class="metric">
-                            <div class="metric-value">${sistema.potTotal.toFixed(2)} kWp</div>
-                            <div class="metric-label">Potência</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${sistema.geracaoMensal.toFixed(0)} kWh</div>
-                            <div class="metric-label">Geração/Mês</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${sistema.paybackMeses.toFixed(1)} meses</div>
-                            <div class="metric-label">Payback</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${sistema.tirAnual.toFixed(1)}%</div>
-                            <div class="metric-label">TIR Anual</div>
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-
-        <div class="footer">
-            <p>PIENG Soluções Energéticas - ${dataAtual}</p>
-            <p>Proposta ID: ${slug}</p>
-            <p>Gerado com Supabase - Sistema v2.2.0</p>
-        </div>
-    </div>
-</body>
-</html>`;
 }
