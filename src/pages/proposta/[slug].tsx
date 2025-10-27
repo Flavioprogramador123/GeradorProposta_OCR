@@ -178,7 +178,27 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     };
   } catch (error) {
     console.error('❌ Proposta não encontrada para:', slug);
-    console.log('💡 Use: https://pieng-propostas-solares.netlify.app/orçamento/clientes/proposta_' + slug + '.html');
+    console.log('💡 Tentando carregar da API...');
+
+    // FALLBACK: Tentar carregar da API Supabase ou arquivo público
+    try {
+      const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000';
+
+      const response = await fetch(`${baseUrl}/api/propostas/${slug}`);
+
+      if (response.ok) {
+        const proposta = await response.json();
+        console.log('✅ Proposta carregada da API:', slug);
+        return {
+          props: { proposta },
+          revalidate: 60
+        };
+      }
+    } catch (apiError) {
+      console.error('❌ Erro ao carregar da API:', apiError);
+    }
 
     // Retornar 404 se não encontrar dados reais
     return {
