@@ -10,7 +10,7 @@ interface PropostaInfo {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // 🔧 MÉTODO DELETE: Apagar proposta
+  // 🔧 MÉTODO DELETE trabalhos Apagar proposta
   if (req.method === 'DELETE') {
     const { filename } = req.body;
 
@@ -38,16 +38,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // 🚀 VERCEL: Ler da pasta public/ (migração completa)
-    const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
-
     let propostas: PropostaInfo[] = [];
+    
+    // 🚀 PRIORIDADE 1: Buscar do Supabase (PRODUÇÃO)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        console.log('🔍 Buscando propostas no Supabase...');
+        const { data: propostasSupabase, error } = await supabase
+          .from('propostas')
+          .select('slug, titulo, created_at, clientes(nome)')
+          .eq('status', 'ativa')
+          .order('created_at', { ascending: false });
+
+        if (!error && propostasSupabase && propostasSupabase.length > 0) {
+          console.log(`✅ ${propostasSupabase.length} propostas encontradas no Supabase`);
+          
+          propostas = propostasSupabase.map((proposta: any) => {
+            const clienteNome = proposta.clientes?.nome || proposta.titulo?.replace('Proposta Solar - ', '') || 'Cliente';
+            const slug = proposta.slug;
+            const fileName = `proposta_${slug}.html`;
+            const dataFormatada = new Date(proposta.created_at).toLocaleDateString('pt-BR').replace(/\//g, '-');
+            const displayName = `${formatDisplayName(clienteNome)} ${dataFormatada}`;
+            
+            return {
+              file: fileName,
+              name: slug,
+              displayName: displayName,
+              url: `proposta/${slug}` // URL da rota Next.js (busca do Supabase)
+            };
+          });
+        }
+      } catch (supabaseError) {
+        console.error('⚠️ Erro ao buscar do Supabase, usando fallback filesystem:', supabaseError);
+      }
+    }
+
+    // 🗂️ PRIORIDADE 2: Fallback para arquivos HTML (COMPATIBILIDADE)
     try {
+      const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
       await fs.access(publicPropostasDir);
       const files = await fs.readdir(publicPropostasDir);
 
-      // 🔧 LER METADADOS DOS ARQUIVOS para ordenar por data de modificação
       const filesWithStats = await Promise.all(
         files
           .filter(file => file.endsWith('.html') && !file.includes('resultados'))
@@ -58,11 +95,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
       );
 
-      // 🔧 ORDENAR POR DATA: Mais recentes primeiro
-      propostas = filesWithStats
+      const propostasFilesystem = filesWithStats
         .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
         .map(({ file }) => {
-          const name = file.replace('.html', '');
+          const name = file.replace('.html', '').replace('proposta_', '');
           const displayName = formatDisplayName(name);
           return {
             file,
@@ -72,11 +108,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           };
         });
 
+      // Combinar propostas do Supabase + filesystem (evitar duplicatas)
+      if (propostas.length > 0) {
+        const slugsSupabase = new Set(propostas.map(p => p.name));
+        propostasFilesystem.forEach(p => {
+          if (!slugsSupabase.has(p.name)) {
+            propostas.push(p);
+          }
+        });
+      } else {
+        propostas = propostasFilesystem;
+      }
     } catch (error) {
-      console.log('⚠️ Diretório public/propostas não encontrado, usando fallback');
+      console.log('⚠️ Diretório public/propostas não encontrado');
     }
 
-    // Se não encontrou propostas ou está em ambiente serverless, usar dados de fallback
+    // Se não encontrou propostas, usar dados de fallback
     if (propostas.length === 0) {
       propostas = [
         {
@@ -84,30 +131,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           name: 'marcelo-14-10-2025',
           displayName: 'Marcelo',
           url: 'orçamento/clientes/proposta_marcelo-14-10-2025.html'
-        },
-        {
-          file: 'proposta_daniel-verdura-29-09-2025.html',
-          name: 'daniel-verdura-29-09-2025',
-          displayName: 'Daniel Verdura',
-          url: 'orçamento/clientes/proposta_daniel-verdura-29-09-2025.html'
-        },
-        {
-          file: 'proposta_cliente-padrao-14-10-2025.html',
-          name: 'cliente-padrao-14-10-2025',
-          displayName: 'Cliente Padrão',
-          url: 'orçamento/clientes/proposta_cliente-padrao-14-10-2025.html'
-        },
-        {
-          file: 'proposta_betania-01-10-2025.html',
-          name: 'betania-01-10-2025',
-          displayName: 'Betania',
-          url: 'orçamento/clientes/proposta_betania-01-10-2025.html'
-        },
-        {
-          file: 'proposta_dorvalina-ioneide-06-10-2025.html',
-          name: 'dorvalina-ioneide-06-10-2025',
-          displayName: 'Dorvalina Ioneide',
-          url: 'orçamento/clientes/proposta_dorvalina-ioneide-06-10-2025.html'
         }
       ];
     }
