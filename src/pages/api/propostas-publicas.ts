@@ -10,7 +10,7 @@ interface PropostaInfo {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // 🔧 MÉTODO DELETE trabalhos Apagar proposta
+  // 🔧 MÉTODO DELETE: Apagar proposta
   if (req.method === 'DELETE') {
     const { filename } = req.body;
 

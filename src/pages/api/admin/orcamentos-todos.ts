@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { supabase } from '@/lib/supabase';
 
 interface PropostaData {
   cliente: {
@@ -44,6 +45,97 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const todosOrcamentos: OrcamentoItem[] = [];
+    
+    let total = 0;
+    let pendentes = 0;
+    let aprovados = 0;
+    let rejeitados = 0;
+
+    // 🚀 PRIORIDADE 1: Buscar do Supabase (PRODUÇÃO)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      try {
+        console.log('🔍 Buscando propostas no Supabase...');
+        
+        // Buscar todas as propostas do Supabase
+        const { data: propostas, error } = await supabase
+          .from('propostas')
+          .select('*, clientes(nome)')
+          .eq('status', 'ativa')
+          .order('created_at', { ascending: false });
+
+        if (!error && propostas && propostas.length > 0) {
+          console.log(`✅ ${propostas.length} propostas encontradas no Supabase`);
+          
+          // Converter propostas em orçamentos
+          propostas.forEach((proposta: any) => {
+            const dados = proposta.dados_completos;
+            
+            if (dados && dados.sistemas && Array.isArray(dados.sistemas)) {
+              dados.sistemas.forEach((sistema: any, index: number) => {
+                // Extrair potência
+                const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
+                const potencia = potenciaMatch ? parseFloat(potenciaMatch[1]) : sistema.potTotal || 0;
+                
+                // Calcular módulos e inversores
+                const modulos = Math.round(potencia * 1000 / 605);
+                const inversores = Math.ceil(potencia / 15);
+                
+                // Status baseado na data
+                const dataCriacao = new Date(proposta.created_at);
+                const diasDesdeCriacao = (Date.now() - dataCriacao.getTime()) / (1000 * 60 * 60 * 24);
+                
+                let status: 'pendente' | 'aprovado' | 'rejeitado' = 'pendente';
+                if (diasDesdeCriacao > 30) {
+                  status = 'aprovado';
+                }
+                
+                const orcamento: OrcamentoItem = {
+                  id: `${proposta.slug}-sistema-${index + 1}`,
+                  cliente: proposta.clientes?.nome || dados.cliente?.nome || 'Cliente',
+                  clientePasta: proposta.slug,
+                  potencia,
+                  modulos,
+                  inversores,
+                  valorTotal: sistema.ppix || sistema.valorTotal || 0,
+                  status,
+                  data: proposta.created_at,
+                  geracaoMensal: sistema.geracaoMensal,
+                  paybackMeses: sistema.paybackMeses,
+                  cobertura: sistema.cobertura || sistema.coberturaPercent
+                };
+                
+                todosOrcamentos.push(orcamento);
+                total++;
+                
+                if (status === 'pendente') pendentes++;
+                else if (status === 'aprovado') aprovados++;
+                else if (status === 'rejeitado') rejeitados++;
+              });
+            }
+          });
+          
+          const stats = {
+            total,
+            pendentes,
+            aprovados,
+            rejeitados
+          };
+
+          console.log(`✅ Orçamentos processados: ${total} (${pendentes} pendentes, ${aprovados} aprovados)`);
+          return res.status(200).json({ orcamentos: todosOrcamentos, stats, source: 'supabase' });
+        }
+      } catch (supabaseError) {
+        console.error('⚠️ Erro ao buscar do Supabase, usando fallback filesystem:', supabaseError);
+        // Continuar para fallback filesystem
+      }
+    }
+
+    // 🗂️ PRIORIDADE 2: Fallback para Filesystem (DESENVOLVIMENTO)
+    console.log('🔍 Buscando orçamentos no filesystem (fallback)...');
     const clientesDir = path.join(process.cwd(), 'src/data/clientes');
     
     // Verificar se o diretório existe
@@ -52,17 +144,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch {
       return res.status(200).json({ 
         orcamentos: [], 
-        stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 }
+        stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
+        source: 'filesystem-empty'
       });
     }
 
     const pastas = await fs.readdir(clientesDir);
-    const todosOrcamentos: OrcamentoItem[] = [];
-    
-    let total = 0;
-    let pendentes = 0;
-    let aprovados = 0;
-    let rejeitados = 0;
 
     for (const pasta of pastas) {
       const clientePath = path.join(clientesDir, pasta);
@@ -142,7 +229,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rejeitados
     };
 
-    res.status(200).json({ orcamentos: todosOrcamentos, stats });
+    console.log(`✅ Orçamentos processados (filesystem): ${total}`);
+    res.status(200).json({ orcamentos: todosOrcamentos, stats, source: 'filesystem' });
 
   } catch (error) {
     console.error('Erro ao listar orçamentos:', error);

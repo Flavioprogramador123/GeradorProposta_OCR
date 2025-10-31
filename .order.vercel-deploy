@@ -1,0 +1,93 @@
+# 🚀 DEPLOY NO VERCEL - PRÓXIMOS PASSOS
+
+## ✅ Variáveis Importadas
+
+Você já importou as variáveis de ambiente no Vercel. Agora:
+
+---
+
+## 1️⃣ Fazer Redeploy
+
+As variáveis só são aplicadas em novos deploys. Você precisa fazer um redeploy:
+
+1. Acesse: https://vercel.com/dashboard
+2. Selecione o projeto: **pieng-propostas**
+3. Vá na aba **Deployments**
+4. Clique nos **"..."** do último deployment
+5. Clique em **"Redeploy"**
+6. Aguarde 2-3 minutos para completar
+
+---
+
+## 2️⃣ Verificar Configuração
+
+Após o redeploy, teste se as variáveis estão configuradas:
+
+**URL de teste:**
+```
+https://pieng-propostas.vercel.app/api/test-supabase
+```
+
+**Resposta esperada:**
+```json
+{
+  "success": true,
+  "message": "Supabase configurado corretamente"
+}
+```
+
+Se retornar `success: true`, está tudo certo! ✅
+
+---
+
+## 3️⃣ Testar Funcionalidades
+
+Agora você pode testar se tudo está funcionando:
+
+### ✅ Criar Cliente
+```
+https://pieng-propostas.vercel.app/admin/novo-cliente
+```
+- Crie um cliente novo
+- Verifique se aparece na lista do Admin
+
+### ✅ Gerar Proposta
+```
+https://pieng-propostas.vercel.app/gerador-rapido
+```
+- Gere uma proposta
+- Deve mostrar mensagem: "✅ Proposta gerada, salva no banco de dados"
+- Deve exibir ID do banco e URL pública
+
+### ✅ Ver Proposta Pública
+```
+https://pieng-propostas.vercel.app/proposta/[slug]
+```
+- Use o slug retornado ao gerar a proposta
+- Deve carregar do Supabase
+
+---
+
+## ✅ Checklist Final
+
+- [ ] Variáveis importadas no Vercel
+- [ ] Redeploy feito
+- [ ] Teste `/api/test-supabase` retornou sucesso
+- [ ] Criar cliente funcionando
+- [ ] Gerar proposta funcionando
+- [ ] Proposta pública acessível
+
+---
+
+## 🎉 Pronto!
+
+Se todos os testes passarem, seu sistema está funcionando em produção com:
+- ✅ Persistência no Supabase
+- ✅ Clientes sincronizados
+- ✅ Propostas públicas disponíveis
+- ✅ Lista de clientes atualizada
+
+---
+
+**🚀 Sistema em produção!**
+
