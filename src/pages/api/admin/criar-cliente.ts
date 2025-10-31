@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { findOrCreateCliente } from '@/lib/supabase';
 
 interface NovoClienteData {
   nome: string;
@@ -131,6 +132,34 @@ HSP: ${data.hspLocal}
       );
     }
 
+    // 🚀 SALVAR NO SUPABASE (PRODUÇÃO E DESENVOLVIMENTO)
+    let clienteSupabase = null;
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (supabaseUrl && supabaseKey) {
+        clienteSupabase = await findOrCreateCliente({
+          nome: data.nome,
+          cidade: `${data.cidade}/${data.estado}`,
+          estado: data.estado,
+          tipo_imovel: data.tipoImovel.toLowerCase(),
+          hsp_local: data.hspLocal,
+          consumo_mensal: 0,
+          email: undefined,
+          telefone: undefined,
+          pdespesa: undefined,
+        });
+
+        console.log('✅ Cliente salvo no Supabase:', clienteSupabase.id);
+      } else {
+        console.log('⚠️ Variáveis Supabase não configuradas, pulando salvamento');
+      }
+    } catch (supabaseError) {
+      console.error('⚠️ Erro ao salvar no Supabase (não crítico):', supabaseError);
+      // Não parser erro - salvamento no Supabase é opcional se filesystem funcionar
+    }
+
     // Resposta com dados do cliente
     res.status(200).json({ 
       message: 'Cliente criado com sucesso!',
@@ -138,6 +167,10 @@ HSP: ${data.hspLocal}
       slug,
       clientFolder: `src/data/clientes/${folderName}/`,
       cliente: propostaData.cliente,
+      clienteSupabase: clienteSupabase ? {
+        id: clienteSupabase.id,
+        created_at: clienteSupabase.created_at
+      } : null,
       isServerless,
       files: !isServerless ? {
         dadosusuario: dadosUsuarioContent,
