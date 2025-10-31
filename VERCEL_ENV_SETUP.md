@@ -1,60 +1,106 @@
-# 🔐 Configurar Variáveis de Ambiente no Vercel
+# 🔐 Como Configurar Variáveis de Ambiente no Vercel
 
-## 📍 Acesse o Dashboard
-
-1. Vá para: https://vercel.com/flavioprogramador123s-projects/pieng-propostas-solares/settings/environment-variables
-
-2. Adicione as seguintes variáveis (clique em "Add New"):
+## ⚠️ IMPORTANTE: NUNCA exponha suas chaves de API em arquivos públicos!
 
 ---
 
-## ✅ Variáveis para Adicionar
+## 📋 Passo a Passo
 
-### 1. NEXT_PUBLIC_SUPABASE_URL
+### 1. Acessar o Vercel Dashboard
+
+1. Acesse: https://vercel.com/dashboard
+2. Selecione seu projeto: **pieng-propostas**
+3. Vá em: **Settings** → **Environment Variables**
+
+### 2. Adicionar Variáveis (uma por vez)
+
+Clique em **"Add New"** para cada variável:
+
+#### Variável 1: NEXT_PUBLIC_SUPABASE_URL
+
 ```
 Nome: NEXT_PUBLIC_SUPABASE_URL
-Valor: https://ityeiqyjyhkmypjmnyhb.supabase.co
+Valor: [Cole aqui a URL do seu projeto Supabase]
 Ambientes: ✅ Production, ✅ Preview, ✅ Development
 ```
 
-### 2. NEXT_PUBLIC_SUPABASE_ANON_KEY
+**Onde encontrar:**
+- Acesse: https://supabase.com/dashboard
+- Selecione seu projeto
+- Vá em: **Settings** → **API**
+- Copie a **Project URL**
+
+#### Variável 2: NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 ```
 Nome: NEXT_PUBLIC_SUPABASE_ANON_KEY
-Valor: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0eWVpcXlqeWhrbXlwam1ueWhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NzcwNDYsImV4cCI6MjA3NjM1MzA0Nn0.Qbyj0fmIuaf1X5Riyy35FLtDYqxT8DY8sB3rDOUKrL8
+Valor: [Cole aqui a chave anon do Supabase]
 Ambientes: ✅ Production, ✅ Preview, ✅ Development
 ```
 
-### 3. SUPABASE_SERVICE_ROLE_KEY (Opcional - para operações admin)
+**Onde encontrar:**
+- No mesmo lugar (Settings → API)
+- Copie a chave **anon public**
+
+### 3. Salvar e Fazer Redeploy
+
+1. Clique em **Save** em cada variável
+2. Vá para a aba **Deployments**
+3. Clique nos **"..."** do último deployment
+4. Clique em **"Redeploy"**
+5. Aguarde 2-3 minutos
+
+---
+
+## ✅ Verificar se Funcionou
+
+Após o redeploy, teste:
+
 ```
-Nome: SUPABASE_SERVICE_ROLE_KEY
-Valor: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0eWVpcXlqeWhrbXlwam1ueWhiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc3NzA0NiwiZXhwIjoyMDc2MzUzMDQ2fQ.NjGu9mvWX7mwnXvHoJObDWxOplscR4e2UcR8mVu44io
-Ambientes: ✅ Production apenas (⚠️ SEGREDO!)
+https://pieng-propostas.vercel.app/api/test-supabase
+```
+
+Deve retornar:
+```json
+{
+  "success": true,
+  "message": "Supabase configurado corretamente"
+}
 ```
 
 ---
 
-## 💾 Salvar
+## 📝 Variáveis Opcionais (adicionar depois, se necessário)
 
-Clique em **"Save"** em cada variável.
+Se precisar de funcionalidades adicionais:
 
----
-
-## ✅ Resultado Esperado
-
-Após adicionar, você deve ver 3 variáveis:
-- ✅ NEXT_PUBLIC_SUPABASE_URL
-- ✅ NEXT_PUBLIC_SUPABASE_ANON_KEY
-- ✅ SUPABASE_SERVICE_ROLE_KEY
+- `GEMINI_API_KEY` - Para integração com IA
+- `OPENAI_API_KEY` - Para integração com OpenAI
+- `GOOGLE_MAPS_API_KEY` - Para geolocalização
+- `GOOGLE_DRIVE_CLIENT_ID` - Para Google Drive
 
 ---
 
-## 🚀 Próximo Passo
+## ⚠️ Segurança
 
-Após salvar, faça um **redeploy** para aplicar as mudanças:
-- Vá em: https://vercel.com/flavioprogramador123s-projects/pieng-propostas-solares
-- Clique nos "..." do último deploy
-- Clique em **"Redeploy"**
+- ✅ As variáveis `NEXT_PUBLIC_*` são expostas no frontend, mas a chave `anon` do Supabase é segura
+- ✅ A chave `anon` só permite operações dentro das políticas RLS (Row Level Security)
+- ❌ **NUNCA** exponha a chave `service_role` no frontend
+- ❌ **NUNCA** commite arquivos `.env` com chaves reais no Git
 
 ---
 
-**⏱️ Tempo estimado**: 2 minutos
+## ✅ Checklist
+
+- [ ] Acessei o Dashboard do Supabase
+- [ ] Copiei a Project URL
+- [ ] Copiei a chave anon public
+- [ ] Adicionei `NEXT_PUBLIC_SUPABASE_URL` no Vercel
+- [ ] Adicionei `NEXT_PUBLIC_SUPABASE_ANON_KEY` no Vercel
+- [ ] Marquei todos os ambientes (Production, Preview, Development)
+- [ ] Fiz o Redeploy
+- [ ] Testei em `/api/test-supabase` e funcionou
+
+---
+
+**🔒 Segurança em primeiro lugar!**
