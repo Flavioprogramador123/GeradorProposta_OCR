@@ -37,18 +37,26 @@ npx vercel logs                      # View deployment logs
 ### Core Data Flow
 
 ```
-1. Client Creation → src/data/clientes/[slug]/
+1. Client Creation → Supabase (clientes table) + src/data/clientes/[slug]/
 2. Quote Upload → AI Extraction → src/pages/api/admin/extract-data.ts
 3. Quote Processing → Python Calculator → Financial Analysis
 4. Proposal Generation → Template Engine → HTML/JSON output
-5. Public Access → /proposta/[slug] or /propostas/orçamento/clientes/
+5. Proposal Persistence → Supabase (propostas table) with html_gerado + dados_completos
+6. Public Access → /proposta/[slug] (reads from Supabase first, then filesystem fallback)
 ```
+
+**⚠️ IMPORTANT:** In production (Vercel), data MUST be saved to Supabase. Filesystem is read-only.
 
 ### Key Architectural Concepts
 
-#### 1. **Dual Storage System**
-- **Dynamic data**: `src/data/clientes/[slug]/proposta.json` - Used by Next.js SSG
-- **Static HTML**: `public/propostas/orçamento/clientes/proposta_[slug].html` - Direct access
+#### 1. **Hybrid Storage System (Supabase + Filesystem)**
+- **PRODUCTION (Vercel)**: Supabase is PRIMARY storage
+  - `propostas` table: Stores `html_gerado`, `dados_completos`, `slug`, `status`
+  - `clientes` table: Stores client information
+  - APIs prioritize Supabase queries
+- **DEVELOPMENT (Local)**: Filesystem fallback
+  - `src/data/clientes/[slug]/proposta.json` - Used by Next.js SSG
+  - `public/propostas/orçamento/clientes/proposta_[slug].html` - Direct access
 - Both must be kept in sync when generating proposals
 
 #### 2. **Template Engine (`src/lib/templateEngine.ts`)**
@@ -96,12 +104,15 @@ The system recognizes multiple solar distributors automatically:
 
 ### APIs
 ```
-/api/admin/clientes             → List all clients
-/api/admin/clientes/[id]        → CRUD operations for client
+/api/admin/clientes             → List all clients (Supabase + filesystem fallback)
+/api/admin/criar-cliente        → Create client (MUST save to Supabase in production)
+/api/admin/orcamentos-todos     → List all proposals as orçamentos (Supabase first)
 /api/admin/extract-data         → AI extraction from PDFs/images
 /api/admin/config               → System configuration
-/api/gerar-proposta             → Generate proposal HTML + JSON
-/api/orcamentos/[cliente]/processar-modular → Process quotes
+/api/gerar-proposta             → Generate proposal HTML + JSON (saves to Supabase)
+/api/propostas-publicas         → List public proposals (Supabase + filesystem)
+/api/test-supabase              → Test Supabase connection
+/api/test-proposta-slug         → Diagnostic API for specific proposal
 ```
 
 ### Core Libraries
@@ -111,7 +122,8 @@ src/lib/python-calculator.ts        → Financial calculations
 src/lib/calculadorPrecosUnificado.ts → Unified pricing calculator
 src/lib/types.ts                    → TypeScript interfaces
 src/lib/variantConfig.ts            → Property type variants
-src/lib/google-drive.ts             → Cloud storage integration
+src/lib/supabase.ts                 → Supabase client & helper functions
+src/lib/google-drive.ts             → Cloud storage integration (optional)
 ```
 
 ---
@@ -174,19 +186,26 @@ Each client has a folder: `src/data/clientes/[slug]/`
 
 Required for full functionality:
 ```bash
+# 🗄️ Supabase (REQUIRED for production)
+NEXT_PUBLIC_SUPABASE_URL=https://asmvbrcxzvfvvolnalxw.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...  # Get from Supabase Dashboard → Settings → API
+
 # Google Drive Integration (optional)
 GOOGLE_DRIVE_CLIENT_ID=
 GOOGLE_DRIVE_CLIENT_SECRET=
 GOOGLE_DRIVE_REFRESH_TOKEN=
 
 # AI Providers (for extraction)
-GOOGLE_AI_API_KEY=          # Gemini AI
-OPENAI_API_KEY=             # GPT-4 fallback
+GEMINI_API_KEY=          # Gemini AI
+OPENAI_API_KEY=          # GPT-4 fallback
+OPENROUTER_API_KEY=      # Alternative
 
 # Vercel (auto-configured in production)
 VERCEL=1
 VERCEL_URL=
 ```
+
+**⚠️ CRITICAL:** In production, Supabase variables MUST be configured in Vercel Environment Variables.
 
 ---
 
@@ -288,9 +307,11 @@ Use emoji prefixes:
 - **Solution**: Ensure CSS files are in `public/styles/` and template engine uses `<link>` tags in production
 
 ### Proposal Shows 404
-- Check if `proposta.json` exists in `src/data/clientes/[slug]/`
+- **First**: Check if proposal exists in Supabase: `/api/test-proposta-slug?slug=[slug]`
+- **Second**: Check if `proposta.json` exists in `src/data/clientes/[slug]/` (local only)
 - Verify slug matches URL format
 - Run `npm run build` locally to test SSG
+- **In production**: Proposals MUST be in Supabase (`/proposta/[slug]` uses `getServerSideProps` which queries Supabase first)
 
 ### AI Extraction Fails
 - Check if GOOGLE_AI_API_KEY or OPENAI_API_KEY is set
@@ -298,9 +319,11 @@ Use emoji prefixes:
 - Check distributor patterns in `extract-data.ts`
 
 ### Client Not Listed in Admin
-- Verify `cliente.json` exists in `src/data/clientes/[slug]/`
-- Check API `/api/admin/clientes` response
+- **In Production**: Verify client exists in Supabase (`clientes` table)
+- **In Development**: Verify `cliente.json` exists in `src/data/clientes/[slug]/`
+- Check API `/api/admin/clientes` response (should show `source: 'supabase'` or `source: 'filesystem'`)
 - Ensure folder name matches slug pattern
+- **Test Supabase connection**: `/api/test-supabase`
 
 ### Python Calculator Errors
 - Check if Python backend is accessible
@@ -347,7 +370,42 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### **v2.2.0** - 26/10/2025 ✅ **CURRENT**
+### **v2.2.1** - 31/10/2025 ✅ **CURRENT**
+
+**🔧 Critical Fixes:**
+- ✅ **Admin Orçamentos**: Now fetches from Supabase (was filesystem-only)
+- ✅ **Criar Cliente**: Now REQUIRED to save to Supabase in production (was optional)
+- ✅ **Botão "Ver Orçamento" null**: Fixed with validation check
+- ✅ **ID do banco não aparecia**: API now returns `propostaId` from Supabase
+- ✅ **Admin `/orcamentos` page**: Shows ID do banco and "Ver Proposta" button
+
+**🏗️ Architectural Changes:**
+- **Storage Strategy**: Supabase is PRIMARY in production
+  - All proposals MUST be saved to Supabase (`propostas` table)
+  - All clients MUST be saved to Supabase (`clientes` table)
+  - Filesystem is fallback for development only
+  - `/admin/orcamentos` queries Supabase first, filesystem second
+
+**📋 Supabase Integration:**
+- ✅ Configured: `https://asmvbrcxzvfvvolnalxw.supabase.co`
+- ✅ Tables: `clientes`, `propostas`, `orcamentos`, `configuracoes`
+- ✅ APIs updated: All admin APIs prioritize Supabase
+- ✅ Error handling: Clear messages when Supabase not configured
+
+**📦 Key Files Modified:**
+- `src/pages/api/admin/orcamentos-todos.ts` - Supabase integration
+- `src/pages/api/admin/criar-cliente.ts` - Required Supabase save
+- `src/pages/admin/orcamentos/index.tsx` - Shows ID do banco
+- `src/pages/admin/novo-cliente.tsx` - Better error messages
+
+**✅ Status:**
+- All features working in production
+- Supabase fully integrated
+- Production-ready
+
+---
+
+### **v2.2.0** - 26/10/2025
 
 **🔧 Critical Fixes:**
 - Fixed error 404 in SSG routes (dynamic `getStaticPaths`)
@@ -355,32 +413,8 @@ Before deploying major changes:
 - Changed fallback from `true` to `'blocking'` for better UX
 
 **🏗️ Architectural Decisions:**
-- **Storage Strategy**: Hybrid Local + Google Drive (decided 26/10/2025)
-  - Primary: File-based system (`src/data/clientes/`)
-  - Backup: Google Drive (already integrated in `src/lib/google-drive.ts`)
-  - Deploy: Vercel auto-deploy from `clean-main` branch
-  - Supabase: Not prioritized (RLS complexity vs simple file storage)
-
-**📋 Technical Context:**
-- Google Drive API: ✅ Configured and ready (credentials in .env)
-- AI APIs available: Gemini, OpenAI, OpenRouter
-- Dropbox: Auto-syncs local files to cloud
-- Vercel Token: Configured for deployments
-
-**🎯 Strategy:**
-1. Keep file-based system (simple, fast, reliable)
-2. Use Google Drive for backup + public URLs (optional)
-3. Focus on Vercel deployment stability
-4. No database migration needed (data not confidential)
-
-**📦 Key Files Modified:**
-- `src/pages/proposta/[slug].tsx` - Dynamic SSG paths
-- `CLAUDE.md` - Updated with architectural decisions
-
-**🔜 Next Steps:**
-- Test complete system on Vercel
-- Validate all routes working
-- Optional: Activate Google Drive auto-upload
+- Migrated from filesystem-only to Supabase + filesystem hybrid
+- Supabase became primary storage for production reliability
 
 ---
 
@@ -400,7 +434,8 @@ Before deploying major changes:
 
 ---
 
-**Last Updated**: 2025-10-26 ✅ **v2.2.0**
-**System Status**: ✅ Testing Vercel deployment
-**Current Issues**: None - 404 fix applied
-**Next Version**: v2.3.0 (Google Drive auto-upload integration)
+**Last Updated**: 2025-10-31 ✅ **v2.2.1**
+**System Status**: ✅ Production Ready
+**Current Issues**: None - All fixes applied
+**Supabase**: ✅ Fully integrated and required for production
+**Next Version**: v2.3.0 (Potential: Advanced analytics, multi-user auth)

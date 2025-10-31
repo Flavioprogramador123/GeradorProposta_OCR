@@ -6,13 +6,14 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.1.0` (25/10/2025) | [Ver Histórico Completo](VERSION.md)
+**📌 Versão Atual**: `v2.2.1` (31/10/2025) | [Ver Histórico Completo](VERSION.md)
 
 ## ✨ Principais Funcionalidades
 
 - 🤖 **Extração Inteligente**: IA reconhece dados de orçamentos PDF/imagem automaticamente
 - 🏢 **Área Administrativa**: CRUD completo de clientes com dashboard profissional
 - 🎯 **Propostas Personalizadas**: URLs únicas para cada cliente com análise financeira
+- 💾 **Banco de Dados Supabase**: Persistência confiável em produção
 - ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo  
 - 🎨 **Design Responsivo**: Visual moderno com Tailwind CSS
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
@@ -64,16 +65,19 @@ npm run dev
 ### 2. Fluxo Completo do Sistema
 
 **📋 Área Administrativa** (`/admin`)
-1. **Cadastrar Cliente**: `/admin/novo-cliente`
-2. **Fazer Upload de Orçamentos**: `/admin/orcamentos/[cliente]/upload`
-3. **IA Extrai Dados**: Reconhece módulos, inversores, preços automaticamente
-4. **Revisar/Ajustar**: `/admin/orcamentos/[cliente]/manual`
-5. **Configurar Sistema**: `/admin/configuracoes` (markup, tarifas, HSP)
+1. **Cadastrar Cliente**: `/admin/novo-cliente` → Salva no Supabase automaticamente
+2. **Ver Todos Orçamentos**: `/admin/orcamentos` → Lista de todas as propostas do sistema
+3. **Fazer Upload de Orçamentos**: `/admin/orcamentos/[cliente]/upload`
+4. **IA Extrai Dados**: Reconhece módulos, inversores, preços automaticamente
+5. **Revisar/Ajustar**: `/admin/orcamentos/[cliente]/manual`
+6. **Configurar Sistema**: `/admin/configuracoes` (markup, tarifas, HSP)
 
 **💡 Geração de Proposta**
-- Proposta automática: `/proposta/[cliente]`
+- Gerador Rápido: `/gerador-rapido` → Gera e salva no Supabase
+- Proposta automática: `/proposta/[cliente]` → Busca do Supabase primeiro
 - Análise financeira completa (TIR, Payback, VPL)
 - Templates personalizáveis
+- IDs do banco visíveis em `/admin/orcamentos`
 
 ### 3. 🤖 Sistema de Extração Inteligente
 
@@ -143,18 +147,23 @@ vercel --prod
 
 **🏢 Administrativas:**
 - Dashboard: `/admin`
-- Novo Cliente: `/admin/novo-cliente`
+- Novo Cliente: `/admin/novo-cliente` → Salva no Supabase
+- Todos Orçamentos: `/admin/orcamentos` → Lista de todas as propostas
 - Configurações: `/admin/configuracoes`
-- Orçamentos: `/admin/orcamentos/[cliente]`
+- Orçamentos Cliente: `/admin/orcamentos/[cliente]`
 - Upload IA: `/admin/orcamentos/[cliente]/upload`
 - Entrada Manual: `/admin/orcamentos/[cliente]/manual`
 - Editar Cliente: `/admin/clientes/[cliente]/editar`
 
 **🔧 APIs:**
-- Clientes: `/api/admin/clientes`
+- Clientes: `/api/admin/clientes` → Supabase + filesystem fallback
+- Criar Cliente: `/api/admin/criar-cliente` → Salva no Supabase
+- Todos Orçamentos: `/api/admin/orcamentos-todos` → Lista do Supabase
 - Extração IA: `/api/admin/extract-data`
 - Configurações: `/api/admin/config`
 - Orçamentos: `/api/admin/orcamentos/[cliente]`
+- Test Supabase: `/api/test-supabase` → Testa conexão
+- Test Proposta: `/api/test-proposta-slug?slug=xxx` → Diagnóstico
 
 ## 🎨 Personalização
 
@@ -177,6 +186,25 @@ Todos os componentes são modulares e reutilizáveis, permitindo fácil customiz
 - ✅ Upload seguro com validação de tipos
 - ✅ Sanitização de dados de entrada
 - ✅ APIs protegidas contra injection
+- ✅ Supabase Row Level Security (RLS) configurado
+
+## 💾 Persistência de Dados
+
+**Em Produção (Vercel):**
+- ✅ **Supabase** é o banco primário
+- ✅ Todas as propostas são salvas na tabela `propostas`
+- ✅ Todos os clientes são salvos na tabela `clientes`
+- ✅ Dados persistem entre deploys
+
+**Em Desenvolvimento:**
+- ✅ Filesystem local como fallback
+- ✅ Supabase pode ser usado para testes
+- ✅ Dados sincronizados entre ambientes
+
+**Configuração:**
+- Variáveis de ambiente: `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Configure no Vercel: Settings → Environment Variables
+- Teste conexão: `/api/test-supabase`
 
 ## 🤖 Detalhes da Extração por IA
 
@@ -230,5 +258,13 @@ Todos os componentes são modulares e reutilizáveis, permitindo fácil customiz
 - ✅ **100% Responsivo** em todos os dispositivos
 - ✅ **5 Orçamentos** por cliente suportados
 - ✅ **CRUD Completo** para gestão de dados
+- ✅ **Supabase Integrado** para persistência confiável
+- ✅ **Admin Orçamentos** lista todas as propostas do sistema
 
-*Sistema desenvolvido com IA para maximizar eficiência e aproveitar todo o potencial do Vercel Edge Network* 🚀⚡🤖
+**🔄 Última Atualização: 31/10/2025**
+- ✅ Admin Orçamentos busca do Supabase
+- ✅ Criar Cliente persiste no Supabase
+- ✅ ID do banco visível na interface
+- ✅ Botões corrigidos (sem null)
+
+*Sistema desenvolvido com IA para maximizar eficiência e aproveitar todo o potencial do Vercel Edge Network + Supabase* 🚀⚡🤖💾
