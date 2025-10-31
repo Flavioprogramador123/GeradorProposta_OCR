@@ -530,8 +530,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ Template de Resultados Financeiros gerado:', templateResultadosArquivo);
 
-      // 🚀 PERSISTÊNCIA VERCEL: Copiar HTMLs para pasta pública (deploy automático)
-      if (!isServerless) {
+      // 🚀 PERSISTÊNCIA VERCEL: Copiar HTMLs para pasta pública (sempre que possível)
+      try {
         const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
         await fs.mkdir(publicPropostasDir, { recursive: true });
 
@@ -544,6 +544,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const publicResultadosPath = path.join(publicPropostasDir, templateResultadosArquivo);
         await fs.copyFile(templateResultadosArquivoPath, publicResultadosPath);
         console.log('✅ Template Resultados copiado para public/:', templateResultadosArquivo);
+      } catch (publicError) {
+        console.log('⚠️ Não foi possível copiar para public/ (normal em serverless):', publicError instanceof Error ? publicError.message : 'Erro desconhecido');
       }
     } catch (templateError) {
       console.log('❌ Erro ao gerar templates:', templateError);
@@ -666,6 +668,75 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await fs.writeFile(jsonPath, JSON.stringify(propostaData, null, 2), 'utf8');
     }
 
+    // 🚀 SALVAR NO SUPABASE (PRODUÇÃO E DESENVOLVIMENTO)
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Buscar ou criar cliente
+        const { data: clienteExistente } = await supabase
+          .from('clientes')
+          .select('id')
+          .eq('nome', cliente.nome)
+          .eq('cidade', cliente.cidade)
+          .maybeSingle();
+
+        let clienteId: string;
+        if (clienteExistente) {
+          clienteId = clienteExistente.id;
+        } else {
+          const { data: novoCliente } = await supabase
+            .from('clientes')
+            .insert({
+              nome: cliente.nome,
+              cidade: cliente.cidade,
+              estado: cliente.cidade.includes('GO') ? 'GO' : 'SP',
+              tipo_imovel: cliente.tipo_imovel || 'residencial',
+              consumo_mensal: cliente.consumo_mensal,
+              hsp_local: config.hsp || 5.21,
+            })
+            .select()
+            .single();
+          clienteId = novoCliente?.id || '';
+        }
+
+        if (clienteId) {
+          // Salvar proposta no Supabase
+          const htmlGenerated = await fs.readFile(arquivoPath, 'utf8').catch(() => '');
+          
+          await supabase
+            .from('propostas')
+            .upsert({
+              cliente_id: clienteId,
+              slug: slug,
+              titulo: `Proposta Solar - ${cliente.nome}`,
+              template_usado: 'pieng_basic',
+              sistema_kwp: sistemas[0]?.potTotal || 0,
+              geracao_mensal: sistemas[0]?.geracaoMensal || 0,
+              geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
+              valor_total: sistemas[0]?.ppix || 0,
+              valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
+              payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
+              tir: sistemas[0]?.tirAnual || 0,
+              dados_completos: propostaData,
+              html_gerado: htmlGenerated,
+              status: 'ativa',
+            }, { onConflict: 'slug' });
+
+          console.log('✅ Proposta salva no Supabase:', slug);
+        }
+      } else {
+        console.log('⚠️ Variáveis Supabase não configuradas, pulando salvamento');
+      }
+    } catch (supabaseError) {
+      console.error('⚠️ Erro ao salvar no Supabase (não crítico):', supabaseError);
+      // Não parser erro - salvamento no Supabase é opcional se filesystem funcionar
+    }
+
     // 🔧 CORREÇÃO NETLIFY: Se em produção, retornar também o HTML inline
     const response: any = {
       message: 'Proposta gerada com sucesso!',
@@ -689,16 +760,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     };
 
-    // 🔧 CORREÇÃO NETLIFY: Ler o HTML gerado e retornar inline se em produção
-    if (isServerless) {
-      try {
-        const htmlContent = await fs.readFile(arquivoPath, 'utf8');
-        response.htmlContent = htmlContent;
-        response.downloadReady = true;
-      } catch (readError) {
-        console.log('⚠️ Aviso: Não foi possível ler HTML, mas arquivo foi salvo em:', arquivoPath);
-        response.downloadReady = false;
-      }
+    // 🔧 SEMPRE retornar HTML na resposta para renderização no frontend
+    try {
+      const htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
+      response.htmlContent = htmlGenerated;
+      response.downloadReady = true;
+      response.url = `/proposta/${slug}`; // URL da página Next.js
+      response.htmlUrl = `/propostas/orçamento/clientes/${arquivo}`; // URL direta do HTML se existir em public/
+    } catch (readError) {
+      console.log('⚠️ Aviso: Não foi possível ler HTML gerado:', readError instanceof Error ? readError.message : 'Erro desconhecido');
+      response.downloadReady = false;
     }
 
     res.status(200).json(response);

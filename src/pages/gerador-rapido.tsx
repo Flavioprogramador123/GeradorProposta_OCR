@@ -688,8 +688,20 @@ consolidado_orcamentos_distribuidores:
 
       if (response.ok) {
         const data = await response.json();
-        if (confirm(`✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n\nDeseja abrir a proposta agora?`)) {
-          window.open(`/proposta/${data.slug}`, '_blank');
+        
+        // Se temos HTML inline, abrir diretamente em nova janela
+        if (data.htmlContent) {
+          const newWindow = window.open('', '_blank');
+          if (newWindow) {
+            newWindow.document.write(data.htmlContent);
+            newWindow.document.close();
+          }
+          alert(`✅ Proposta gerada e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link permanente: /proposta/${data.slug}`);
+        } else {
+          // Fallback: tentar abrir via rota Next.js
+          if (confirm(`✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n\nDeseja abrir a proposta agora?`)) {
+            window.open(`/proposta/${data.slug}`, '_blank');
+          }
         }
       } else {
         throw new Error('Erro ao gerar proposta');

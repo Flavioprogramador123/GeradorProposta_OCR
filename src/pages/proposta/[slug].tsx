@@ -1,6 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
-import { GetStaticPaths, GetStaticProps } from 'next';
+import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
 import { UrgencyBanner } from '@/components/UrgencyBanner';
 import { SystemCard } from '@/components/SystemCard';
@@ -12,16 +12,48 @@ import { InsightsSection } from '@/components/InsightsSection';
 import { Footer } from '@/components/Footer';
 import { PropostaData } from '@/lib/types';
 import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/lib/propostaUtils';
-
-// ❌ DADOS FAKE REMOVIDOS
-// Esta página agora só mostra dados reais de proposta.json
-// Se não encontrar dados reais, retorna 404
+import { getPropostaBySlug } from '@/lib/supabase';
 
 interface PropostaPageProps {
-  proposta: PropostaData;
+  proposta?: PropostaData;
+  htmlContent?: string;
+  slug?: string;
+  useHtmlDirect?: boolean;
 }
 
-export default function PropostaPage({ proposta }: PropostaPageProps) {
+export default function PropostaPage({ proposta, htmlContent, useHtmlDirect }: PropostaPageProps) {
+  // Se temos HTML direto, renderizar diretamente
+  if (useHtmlDirect && htmlContent) {
+    return (
+      <>
+        <Head>
+          <title>PIENG | Proposta Solar</title>
+        </Head>
+        <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      </>
+    );
+  }
+
+  // Se não temos proposta, mostrar erro
+  if (!proposta) {
+    return (
+      <>
+        <Head>
+          <title>PIENG | Proposta não encontrada</title>
+        </Head>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Proposta não encontrada</h1>
+            <p className="text-gray-600 mb-4">A proposta solicitada não foi encontrada no sistema.</p>
+            <a href="/gerador-rapido" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Gerar Nova Proposta
+            </a>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   // Verificação defensiva para evitar erro se dados forem undefined
   const sistemas = proposta?.sistemas || [];
   const cliente = proposta?.cliente || { nome: 'Cliente', cidade: 'Cidade', consumoKwh: 0, tipo: 'Residencial', hspLocal: 5.21 };
@@ -119,91 +151,82 @@ export default function PropostaPage({ proposta }: PropostaPageProps) {
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    const fs = await import('fs');
-    const path = await import('path');
-
-    // Ler todos os clientes da pasta
-    const clientesDir = path.join(process.cwd(), 'src/data/clientes');
-    const slugs = fs.readdirSync(clientesDir);
-
-    // Filtrar apenas clientes com proposta.json
-    const paths = slugs
-      .filter(slug => {
-        try {
-          const propostaPath = path.join(clientesDir, slug, 'proposta.json');
-          return fs.existsSync(propostaPath);
-        } catch {
-          return false;
-        }
-      })
-      .map(slug => ({ params: { slug } }));
-
-    console.log(`✅ ${paths.length} propostas encontradas para SSG`);
-
-    return {
-      paths,
-      fallback: 'blocking' // Gera páginas sob demanda se não existir
-    };
-  } catch (error) {
-    console.error('❌ Erro ao carregar slugs:', error);
-    // Fallback: retornar paths vazios e deixar fallback gerar sob demanda
-    return {
-      paths: [],
-      fallback: 'blocking'
-    };
-  }
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+// Usar getServerSideProps para funcionar em produção (Vercel serverless)
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const slug = params?.slug as string;
 
   try {
-    const fs = await import('fs');
-    const path = await import('path');
+    // TENTAR 1: Buscar do Supabase (produção)
+    console.log('🔍 Buscando proposta no Supabase:', slug);
+    const propostaSupabase = await getPropostaBySlug(slug);
 
-    const propostaPath = path.join(process.cwd(), 'src/data/clientes', slug, 'proposta.json');
-    const propostaData = await fs.promises.readFile(propostaPath, 'utf8');
-    const proposta: PropostaData = JSON.parse(propostaData);
+    if (propostaSupabase && propostaSupabase.dados_completos) {
+      console.log('✅ Proposta encontrada no Supabase:', slug);
+      return {
+        props: {
+          proposta: propostaSupabase.dados_completos as PropostaData,
+        },
+      };
+    }
 
-    console.log('✅ Dados REAIS carregados para:', slug);
-    console.log('📊 Sistemas encontrados:', proposta.sistemas?.length || 0);
+    // TENTAR 2: Buscar da API (fallback)
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-    return {
-      props: {
-        proposta
-      },
-      revalidate: 60 // Revalidar a cada 60 segundos
-    };
-  } catch (error) {
-    console.error('❌ Proposta não encontrada para:', slug);
-    console.log('💡 Tentando carregar da API...');
-
-    // FALLBACK: Tentar carregar da API Supabase ou arquivo público
     try {
-      const baseUrl = process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000';
-
       const response = await fetch(`${baseUrl}/api/propostas/${slug}`);
-
       if (response.ok) {
         const proposta = await response.json();
         console.log('✅ Proposta carregada da API:', slug);
         return {
           props: { proposta },
-          revalidate: 60
         };
       }
     } catch (apiError) {
-      console.error('❌ Erro ao carregar da API:', apiError);
+      console.log('⚠️ API não disponível, tentando filesystem...');
     }
 
-    // Retornar 404 se não encontrar dados reais
+    // TENTAR 3: Buscar do filesystem (apenas em desenvolvimento/local)
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const propostaPath = path.join(process.cwd(), 'src/data/clientes', slug, 'proposta.json');
+    
+    if (fs.existsSync(propostaPath)) {
+      const propostaData = await fs.promises.readFile(propostaPath, 'utf8');
+      const proposta: PropostaData = JSON.parse(propostaData);
+      
+      console.log('✅ Proposta carregada do filesystem:', slug);
+      return {
+        props: { proposta },
+      };
+    }
+
+    // TENTAR 4: Buscar HTML direto de /public/propostas (fallback)
+    const htmlPath = path.join(process.cwd(), 'public', 'propostas', 'orçamento', 'clientes', `proposta_${slug}.html`);
+    
+    if (fs.existsSync(htmlPath)) {
+      const htmlContent = await fs.promises.readFile(htmlPath, 'utf8');
+      return {
+        props: {
+          htmlContent,
+          slug,
+          useHtmlDirect: true
+        },
+      };
+    }
+
+    // Não encontrado - retornar 404
+    console.error('❌ Proposta não encontrada para:', slug);
     return {
       notFound: true,
-      revalidate: 60
+    };
+
+  } catch (error) {
+    console.error('❌ Erro ao carregar proposta:', error);
+    return {
+      notFound: true,
     };
   }
 };
