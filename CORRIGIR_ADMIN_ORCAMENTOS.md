@@ -209,21 +209,28 @@ Deve listar os orçamentos extraídos das propostas salvas! ✅
 
 ---
 
-## 🚀 Próximos Passos
+## ✅ Status Final
 
-Após corrigir:
+**Data:** 31/10/2025  
+**Status:** ✅ **CORRIGIDO E TESTADO**  
+**Arquivo:** `src/pages/api/admin/orcamentos-todos.ts`  
 
-1. ✅ Commitar e fazer push das alterações
-2. ✅ Aguardar deploy automático no Vercel
-3. ✅ Gerar proposta de teste
-4. ✅ Acessar `/admin/orcamentos` e verificar
-5. ✅ Testar filtros (Todos, Pendentes, Aprovados)
-6. ✅ Testar busca por nome do cliente
+### Correções Adicionais Aplicadas:
+
+1. ✅ **API agora retorna `propostaId` do Supabase**
+2. ✅ **Interface exibe ID do banco nos cards**
+3. ✅ **Botão "Ver Orçamento" com validação (não é mais null)**
+4. ✅ **Botão "🔗 Ver Proposta" adicionado**
+
+### Testes Realizados:
+
+- [x] Admin Orçamentos carrega corretamente
+- [x] ID do banco aparece nos cards
+- [x] Botões funcionam sem null
+- [x] Filtros funcionando
+- [x] Busca por nome funcionando
 
 ---
 
-**Data:** 31/10/2025  
-**Status:** ✅ Correção aplicada  
-**Arquivo:** `src/pages/api/admin/orcamentos-todos.ts`  
-**Ação:** Aguardando teste local e deploy
+**Deploy:** ✅ Completo e funcionando em produção
 
