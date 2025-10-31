@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { getClientesWithPropostas, getAllClientes } from '@/lib/supabase';
 
 interface ClienteInfo {
   nome: string;
@@ -9,6 +10,7 @@ interface ClienteInfo {
   status: string;
   ultimaModificacao: string;
   temProposta: boolean;
+  id?: string; // ID do Supabase
 }
 
 interface PropostaData {
@@ -35,7 +37,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Detectar ambiente serverless
+    // 🚀 PRIORIDADE 1: Buscar do Supabase (PRODUÇÃO)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      try {
+        console.log('🔍 Buscando clientes no Supabase...');
+        const clientesSupabase = await getClientesWithPropostas();
+        
+        if (clientesSupabase && clientesSupabase.length > 0) {
+          console.log(`✅ ${clientesSupabase.length} clientes encontrados no Supabase`);
+
+          // Converter formato Supabase para ClienteInfo
+          const clientes: ClienteInfo[] = clientesSupabase.map((cliente: any) => {
+            // Gerar pasta do nome (sanitizado)
+            const pasta = cliente.nome
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]/g, '')
+              .slice(0, 20);
+
+            // Determinar status baseado nas propostas
+            let status = 'aguardando_orcamentos';
+            if (cliente.temProposta) {
+              const ultimaProposta = cliente.propostas?.[0];
+              status = ultimaProposta?.status || 'proposta_gerada';
+            }
+
+            return {
+              nome: cliente.nome,
+              cidade: cliente.cidade,
+              pasta: pasta,
+              status: status,
+              ultimaModificacao: new Date(cliente.updated_at || cliente.created_at).toLocaleDateString('pt-BR'),
+              temProposta: cliente.temProposta || false,
+              id: cliente.id
+            };
+          });
+
+          // Contar estatísticas
+          const proposasGeradas = clientes.filter(c => c.temProposta).length;
+          const aguardandoOrcamentos = clientes.length - proposasGeradas;
+
+          const stats = {
+            totalClientes: clientes.length,
+            proposasGeradas,
+            aguardandoOrcamentos
+          };
+
+          console.log(`API Clientes (Supabase): ${clientes.length} clientes (${propostasGeradas} com propostas, ${aguardandoOrcamentos} aguardando)`);
+
+          return res.status(200).json({ clientes, stats, source: 'supabase' });
+        }
+      } catch (supabaseError) {
+        console.error('⚠️ Erro ao buscar do Supabase, usando fallback filesystem:', supabaseError);
+        // Continuar para fallback filesystem
+      }
+    }
+
+    // 🗂️ PRIORIDADE 2: Fallback para Filesystem (DESENVOLVIMENTO)
+    console.log('🔍 Buscando clientes no filesystem (fallback)...');
     const isServerless = process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production';
     
     // Definir diretório base baseado no ambiente

@@ -668,81 +668,112 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await fs.writeFile(jsonPath, JSON.stringify(propostaData, null, 2), 'utf8');
     }
 
-    // 🚀 SALVAR NO SUPABASE (PRODUÇÃO E DESENVOLVIMENTO)
+    // 🚀 OBRIGATÓRIO: SALVAR NO SUPABASE ANTES DE RETORNAR (PRODUÇÃO E DESENVOLVIMENTO)
+    let propostaSalvaNoSupabase = false;
+    let propostaSupabaseId: string | null = null;
+    
     try {
       const { createClient } = await import('@supabase/supabase-js');
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        // Buscar ou criar cliente
-        const { data: clienteExistente } = await supabase
-          .from('clientes')
-          .select('id')
-          .eq('nome', cliente.nome)
-          .eq('cidade', cliente.cidade)
-          .maybeSingle();
-
-        let clienteId: string;
-        if (clienteExistente) {
-          clienteId = clienteExistente.id;
-        } else {
-          const { data: novoCliente } = await supabase
-            .from('clientes')
-            .insert({
-              nome: cliente.nome,
-              cidade: cliente.cidade,
-              estado: cliente.cidade.includes('GO') ? 'GO' : 'SP',
-              tipo_imovel: cliente.tipo_imovel || 'residencial',
-              consumo_mensal: cliente.consumo_mensal,
-              hsp_local: config.hsp || 5.21,
-            })
-            .select()
-            .single();
-          clienteId = novoCliente?.id || '';
-        }
-
-        if (clienteId) {
-          // Salvar proposta no Supabase
-          const htmlGenerated = await fs.readFile(arquivoPath, 'utf8').catch(() => '');
-          
-          await supabase
-            .from('propostas')
-            .upsert({
-              cliente_id: clienteId,
-              slug: slug,
-              titulo: `Proposta Solar - ${cliente.nome}`,
-              template_usado: 'pieng_basic',
-              sistema_kwp: sistemas[0]?.potTotal || 0,
-              geracao_mensal: sistemas[0]?.geracaoMensal || 0,
-              geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
-              valor_total: sistemas[0]?.ppix || 0,
-              valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
-              payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
-              tir: sistemas[0]?.tirAnual || 0,
-              dados_completos: propostaData,
-              html_gerado: htmlGenerated,
-              status: 'ativa',
-            }, { onConflict: 'slug' });
-
-          console.log('✅ Proposta salva no Supabase:', slug);
-        }
-      } else {
-        console.log('⚠️ Variáveis Supabase não configuradas, pulando salvamento');
+      if (!supabaseUrl || !supabaseKey) {
+        console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
+        throw new Error('Variáveis Supabase não configuradas');
       }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      // Buscar ou criar cliente usando função helper
+      const { findOrCreateCliente } = await import('@/lib/supabase');
+      const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
+      
+      console.log('💾 Salvando cliente no Supabase...');
+      const clienteSupabase = await findOrCreateCliente({
+        nome: cliente.nome,
+        cidade: cliente.cidade,
+        estado: estadoCliente,
+        tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+        consumo_mensal: cliente.consumo_mensal || 0,
+        hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+        email: cliente.email,
+        telefone: cliente.telefone,
+        pdespesa: cliente.pdespesa,
+      });
+
+      if (!clienteSupabase || !clienteSupabase.id) {
+        throw new Error('Falha ao criar/buscar cliente no Supabase');
+      }
+
+      console.log('✅ Cliente salvo/buscado no Supabase:', clienteSupabase.id);
+
+      // Ler HTML gerado
+      const htmlGenerated = await fs.readFile(arquivoPath, 'utf8').catch(() => '');
+      
+      // Salvar proposta no Supabase (OBRIGATÓRIO)
+      console.log('💾 Salvando proposta no Supabase...');
+      const { data: propostaSalva, error: propostaError } = await supabase
+        .from('propostas')
+        .upsert({
+          cliente_id: clienteSupabase.id,
+          slug: slug,
+          titulo: `Proposta Solar - ${cliente.nome}`,
+          template_usado: 'pieng_basic',
+          sistema_kwp: sistemas[0]?.potTotal || 0,
+          geracao_mensal: sistemas[0]?.geracaoMensal || 0,
+          geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
+          valor_total: sistemas[0]?.ppix || 0,
+          valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
+          payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
+          tir: sistemas[0]?.tirAnual || 0,
+          dados_completos: propostaData,
+          html_gerado: htmlGenerated,
+          status: 'ativa',
+        }, { onConflict: 'slug' })
+        .select()
+        .single();
+
+      if (propostaError) {
+        console.error('❌ Erro ao salvar proposta no Supabase:', propostaError);
+        throw new Error(`Erro ao salvar proposta no Supabase: ${propostaError.message}`);
+      }
+
+      if (!propostaSalva) {
+        throw new Error('Proposta não foi salva no Supabase');
+      }
+
+      propostaSalvaNoSupabase = true;
+      propostaSupabaseId = propostaSalva.id;
+      console.log('✅ Proposta salva no Supabase com sucesso! ID:', propostaSalva.id, 'Slug:', slug);
+
     } catch (supabaseError) {
-      console.error('⚠️ Erro ao salvar no Supabase (não crítico):', supabaseError);
-      // Não parser erro - salvamento no Supabase é opcional se filesystem funcionar
+      console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
+      // Em produção, não permitir continuar sem salvar no Supabase
+      if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        throw new Error(`Falha ao persistir proposta no banco de dados: ${supabaseError instanceof Error ? supabaseError.message : 'Erro desconhecido'}`);
+      } else {
+        // Em desenvolvimento, avisar mas permitir continuar
+        console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
+      }
     }
 
     // 🔧 CORREÇÃO NETLIFY: Se em produção, retornar também o HTML inline
     const response: any = {
-      message: 'Proposta gerada com sucesso!',
+      message: propostaSalvaNoSupabase 
+        ? 'Proposta gerada e salva no banco de dados com sucesso!' 
+        : 'Proposta gerada com sucesso!',
       arquivo: arquivo,
       caminho: isServerless ? `/tmp/${slug}/${arquivo}` : arquivoPath,
       slug: slug,
+      // 🗄️ Status do salvamento no Supabase
+      supabase: {
+        salva: propostaSalvaNoSupabase,
+        propostaId: propostaSupabaseId,
+        url: propostaSalvaNoSupabase ? `/proposta/${slug}` : null,
+        message: propostaSalvaNoSupabase 
+          ? '✅ Proposta persistida no banco de dados e disponível publicamente' 
+          : '⚠️ Proposta não foi salva no banco de dados'
+      },
       // 🔧 NOVO: Dados secundários incorporados
       metadata: {
         configuracaoUsada: configSistema,

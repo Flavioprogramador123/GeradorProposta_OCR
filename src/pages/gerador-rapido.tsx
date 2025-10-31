@@ -689,6 +689,11 @@ consolidado_orcamentos_distribuidores:
       if (response.ok) {
         const data = await response.json();
         
+        // Verificar se foi salva no Supabase
+        if (!data.supabase?.salva) {
+          alert(`⚠️ ATENÇÃO: Proposta gerada mas NÃO foi salva no banco de dados!\n\n${data.supabase?.message || 'Erro desconhecido'}\n\nA proposta pode não estar disponível publicamente.`);
+        }
+
         // Se temos HTML inline, abrir diretamente em nova janela
         if (data.htmlContent) {
           const newWindow = window.open('', '_blank');
@@ -696,15 +701,25 @@ consolidado_orcamentos_distribuidores:
             newWindow.document.write(data.htmlContent);
             newWindow.document.close();
           }
-          alert(`✅ Proposta gerada e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link permanente: /proposta/${data.slug}`);
+          
+          const mensagemSucesso = data.supabase?.salva 
+            ? `✅ Proposta gerada, salva no banco de dados e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || `/proposta/${data.slug}`}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}`
+            : `✅ Proposta gerada e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n⚠️ Não foi salva no banco de dados`;
+          
+          alert(mensagemSucesso);
         } else {
           // Fallback: tentar abrir via rota Next.js
-          if (confirm(`✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n\nDeseja abrir a proposta agora?`)) {
+          const mensagemConfirmacao = data.supabase?.salva
+            ? `✅ Proposta gerada e salva no banco de dados!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || `/proposta/${data.slug}`}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n\nDeseja abrir a proposta agora?`
+            : `✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n⚠️ Não foi salva no banco de dados\n\nDeseja abrir a proposta agora?`;
+            
+          if (confirm(mensagemConfirmacao)) {
             window.open(`/proposta/${data.slug}`, '_blank');
           }
         }
       } else {
-        throw new Error('Erro ao gerar proposta');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Erro ao gerar proposta');
       }
     } catch (error) {
       alert(`❌ Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);

@@ -197,3 +197,115 @@ export async function getAllConfiguracoes() {
 
   return data as Configuracao[];
 }
+
+/**
+ * Buscar ou criar cliente (por nome e cidade)
+ * Retorna o cliente existente ou cria um novo
+ */
+export async function findOrCreateCliente(cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) {
+  // Tentar buscar cliente existente
+  const { data: clienteExistente } = await supabase
+    .from('clientes')
+    .select('*')
+    .eq('nome', cliente.nome)
+    .eq('cidade', cliente.cidade)
+    .maybeSingle();
+
+  if (clienteExistente) {
+    // Atualizar dados se necessário
+    const { data: updated } = await supabase
+      .from('clientes')
+      .update({
+        ...cliente,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', clienteExistente.id)
+      .select()
+      .single();
+
+    return updated as Cliente || clienteExistente as Cliente;
+  }
+
+  // Criar novo cliente
+  const { data: novoCliente, error } = await supabase
+    .from('clientes')
+    .insert(cliente)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erro ao criar cliente:', error);
+    throw error;
+  }
+
+  return novoCliente as Cliente;
+}
+
+/**
+ * Buscar cliente por ID
+ */
+export async function getClienteById(id: string) {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Erro ao buscar cliente:', error);
+    return null;
+  }
+
+  return data as Cliente;
+}
+
+/**
+ * Atualizar cliente
+ */
+export async function updateCliente(id: string, updates: Partial<Cliente>) {
+  const { data, error } = await supabase
+    .from('clientes')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erro ao atualizar cliente:', error);
+    throw error;
+  }
+
+  return data as Cliente;
+}
+
+/**
+ * Buscar clientes com propostas (para dashboard)
+ */
+export async function getClientesWithPropostas() {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select(`
+      *,
+      propostas (
+        id,
+        slug,
+        status,
+        created_at
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao buscar clientes com propostas:', error);
+    return [];
+  }
+
+  return data.map((cliente: any) => ({
+    ...cliente,
+    temProposta: cliente.propostas && cliente.propostas.length > 0,
+    propostasCount: cliente.propostas?.length || 0
+  }));
+}
