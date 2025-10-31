@@ -26,6 +26,7 @@ interface PropostaData {
 
 interface OrcamentoItem {
   id: string;
+  propostaId?: string; // ID do Supabase
   cliente: string;
   clientePasta: string;
   potencia: number;
@@ -95,6 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 
                 const orcamento: OrcamentoItem = {
                   id: `${proposta.slug}-sistema-${index + 1}`,
+                  propostaId: proposta.id, // ✅ ID do banco Supabase
                   cliente: proposta.clientes?.nome || dados.cliente?.nome || 'Cliente',
                   clientePasta: proposta.slug,
                   potencia,
@@ -188,6 +190,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             
             const orcamento: OrcamentoItem = {
               id: `${pasta}-sistema-${index + 1}`,
+              propostaId: undefined, // Filesystem não tem ID do Supabase
               cliente: proposta.cliente.nome,
               clientePasta: pasta,
               potencia,

@@ -132,32 +132,55 @@ HSP: ${data.hspLocal}
       );
     }
 
-    // 🚀 SALVAR NO SUPABASE (PRODUÇÃO E DESENVOLVIMENTO)
+    // 🚀 SALVAR NO SUPABASE (PRODUÇÃO E DESENVOLVIMENTO) - OBRIGATÓRIO
     let clienteSupabase = null;
+    let supabaseError = null;
+    
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      if (supabaseUrl && supabaseKey) {
-        clienteSupabase = await findOrCreateCliente({
-          nome: data.nome,
-          cidade: `${data.cidade}/${data.estado}`,
-          estado: data.estado,
-          tipo_imovel: data.tipoImovel.toLowerCase(),
-          hsp_local: data.hspLocal,
-          consumo_mensal: 0,
-          email: undefined,
-          telefone: undefined,
-          pdespesa: undefined,
+      if (!supabaseUrl || !supabaseKey) {
+        console.warn('⚠️ Variáveis Supabase não configuradas');
+        return res.status(500).json({ 
+          message: 'Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.',
+          error: 'SUPABASE_NOT_CONFIGURED'
         });
-
-        console.log('✅ Cliente salvo no Supabase:', clienteSupabase.id);
-      } else {
-        console.log('⚠️ Variáveis Supabase não configuradas, pulando salvamento');
       }
-    } catch (supabaseError) {
-      console.error('⚠️ Erro ao salvar no Supabase (não crítico):', supabaseError);
-      // Não parser erro - salvamento no Supabase é opcional se filesystem funcionar
+
+      console.log('💾 Salvando cliente no Supabase...');
+      clienteSupabase = await findOrCreateCliente({
+        nome: data.nome,
+        cidade: `${data.cidade}/${data.estado}`,
+        estado: data.estado,
+        tipo_imovel: data.tipoImovel.toLowerCase(),
+        hsp_local: data.hspLocal,
+        consumo_mensal: 0,
+        email: undefined,
+        telefone: undefined,
+        pdespesa: undefined,
+      });
+
+      if (!clienteSupabase || !clienteSupabase.id) {
+        throw new Error('Cliente não foi criado no Supabase');
+      }
+
+      console.log('✅ Cliente salvo no Supabase:', clienteSupabase.id);
+      
+    } catch (error) {
+      console.error('❌ ERRO ao salvar no Supabase:', error);
+      supabaseError = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      // Em produção, erro no Supabase é crítico
+      const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
+      
+      if (isProduction) {
+        return res.status(500).json({ 
+          message: 'Erro ao salvar cliente no banco de dados',
+          error: supabaseError,
+          details: error instanceof Error ? error.stack : undefined
+        });
+      }
     }
 
     // Resposta com dados do cliente
