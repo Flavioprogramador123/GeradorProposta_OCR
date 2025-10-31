@@ -38,10 +38,17 @@ export default function NovoCliente() {
       });
 
       if (response.ok) {
-        alert('Cliente criado com sucesso!');
+        const data = await response.json();
+        if (data.clienteSupabase?.id) {
+          alert(`✅ Cliente criado com sucesso!\n\nID no banco: ${data.clienteSupabase.id}\nNome: ${data.cliente.nome}`);
+        } else {
+          alert('Cliente criado localmente (sem Supabase)');
+        }
         router.push('/admin');
       } else {
-        alert('Erro ao criar cliente');
+        const error = await response.json();
+        alert(`❌ Erro ao criar cliente:\n\n${error.message || 'Erro desconhecido'}\n\n${error.error ? `Detalhes: ${error.error}` : ''}`);
+        console.error('Erro ao criar cliente:', error);
       }
     } catch (error) {
       alert('Erro ao criar cliente');

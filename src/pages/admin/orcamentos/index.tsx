@@ -13,6 +13,7 @@ interface Cliente {
 
 interface OrcamentoItem {
   id: string;
+  propostaId?: string; // ID do Supabase
   cliente: string;
   clientePasta: string;
   potencia: number;
@@ -252,20 +253,43 @@ export default function TodosOrcamentos() {
                         )}
                       </div>
                       <div className="mt-2 text-xs text-gray-500">
+                        {orc.propostaId ? (
+                          <>ID Banco: {orc.propostaId.slice(0, 8)}... • </>
+                        ) : null}
                         ID: {orc.id} • {new Date(orc.data).toLocaleDateString('pt-BR')}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Link href={`/admin/orcamentos/${orc.clientePasta}`} legacyBehavior>
-                        <a className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                          📋 Ver Orçamentos
-                        </a>
-                      </Link>
-                      <Link href={`/admin/orcamentos/${orc.clientePasta}/consultor`} legacyBehavior>
-                        <a className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
-                          🎛️ Consultor
-                        </a>
-                      </Link>
+                      {orc.clientePasta ? (
+                        <>
+                          <Link href={`/admin/orcamentos/${orc.clientePasta}`} legacyBehavior>
+                            <a className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                              📋 Ver Orçamentos
+                            </a>
+                          </Link>
+                          <Link href={`/admin/orcamentos/${orc.clientePasta}/consultor`} legacyBehavior>
+                            <a className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
+                              🎛️ Consultor
+                            </a>
+                          </Link>
+                          {orc.propostaId && (
+                            <Link href={`/proposta/${orc.clientePasta}`} legacyBehavior>
+                              <a className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2" target="_blank">
+                                🔗 Ver Proposta
+                              </a>
+                            </Link>
+                          )}
+                        </>
+                      ) : (
+                        <span className="px-4 py-2 bg-gray-400 text-white rounded-lg opacity-50 cursor-not-allowed">
+                          Sem pasta do cliente
+                        </span>
+                      )}
+                      {orc.propostaId && (
+                        <div className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">
+                          ID: {orc.propostaId.slice(0, 8)}...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
