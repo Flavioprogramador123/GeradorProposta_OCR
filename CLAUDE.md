@@ -434,8 +434,46 @@ Before deploying major changes:
 
 ---
 
-**Last Updated**: 2025-10-31 ✅ **v2.2.1**
+---
+
+### **v2.2.2** - 06/11/2025 ✅ **CURRENT**
+
+**🔧 Critical Fixes:**
+- ✅ Fallback de especificações corrigido (usava || agora !== undefined)
+- ✅ Texto de garantia atualizado (10 anos defeitos + 25 anos desempenho)
+- ✅ Link botão Propostas Públicas corrigido (/propostas-publicas)
+
+**✨ New Features:**
+- ✅ `/proposta/exemplo` - Redireciona automaticamente para proposta mais recente
+- ✅ `/propostas-publicas` - Página modernizada com filtros e busca
+- ✅ `/validar-ambiente` - Interface de validação de configuração
+- ✅ Filtro automático de propostas de teste
+- ✅ Botões: Copiar Link, WhatsApp, Apagar
+
+**🔒 Security & Organization:**
+- ✅ Branch `desenvolvimento` criado e protegido
+- ✅ `WORKFLOW_DESENVOLVIMENTO.md` - Guia completo de desenvolvimento
+- ✅ `SETUP_AMBIENTE_DEV.md` - Setup de ambiente DEV separado
+- ✅ 12 arquivos obsoletos movidos para `/obsoleto/`
+- ✅ API `/api/validar-ambiente` para detectar ambiente
+
+**📝 Documentation:**
+- ✅ `CHANGELOG_LIMPEZA.md` - Registro de arquivos movidos
+- ✅ `analise-rotas.md` - Mapeamento completo de rotas ativas/obsoletas
+- ✅ `.env.example` atualizado com Supabase obrigatório marcado
+
+**🎯 Key Improvements:**
+- Propostas públicas com busca e filtros por mês
+- Remove propostas de teste automaticamente
+- Botão WhatsApp para compartilhar propostas
+- Validação automática de ambiente (prod vs dev)
+- Workflow de desenvolvimento documentado e seguro
+
+---
+
+**Last Updated**: 2025-11-06 ✅ **v2.2.2**
 **System Status**: ✅ Production Ready
 **Current Issues**: None - All fixes applied
 **Supabase**: ✅ Fully integrated and required for production
+**Branch Strategy**: ✅ `clean-main` (prod) | `desenvolvimento` (dev)
 **Next Version**: v2.3.0 (Potential: Advanced analytics, multi-user auth)

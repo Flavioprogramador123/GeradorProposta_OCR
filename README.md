@@ -1,12 +1,13 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.1.0-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.2.2-blue.svg)](CLAUDE.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
+[![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.2.1` (31/10/2025) | [Ver Histórico Completo](VERSION.md)
+**📌 Versão Atual**: `v2.2.2` (06/11/2025) | [Ver Changelog Completo](CLAUDE.md)
 
 ## ✨ Principais Funcionalidades
 
@@ -14,11 +15,19 @@ Sistema completo de geração de propostas solares com administração web, extr
 - 🏢 **Área Administrativa**: CRUD completo de clientes com dashboard profissional
 - 🎯 **Propostas Personalizadas**: URLs únicas para cada cliente com análise financeira
 - 💾 **Banco de Dados Supabase**: Persistência confiável em produção
-- ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo  
+- ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo
 - 🎨 **Design Responsivo**: Visual moderno com Tailwind CSS
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
 - 📱 **Mobile First**: Totalmente responsivo para todos os dispositivos
 - 🌐 **CDN Global**: Deploy automático no Vercel Edge Network
+
+### 🆕 Novidades v2.2.2 (06/11/2025)
+
+- 🔍 **Propostas Públicas Modernizada**: Busca, filtros por mês, botões WhatsApp
+- ✨ **Rota /proposta/exemplo**: Sempre mostra proposta mais recente
+- 🛡️ **Ambiente Protegido**: Branch desenvolvimento separado, workflow documentado
+- 🧪 **Validação de Ambiente**: `/validar-ambiente` para verificar configuração
+- 📋 **Organização**: 12 arquivos obsoletos movidos, documentação completa
 
 ## 🏗️ Arquitetura
 
