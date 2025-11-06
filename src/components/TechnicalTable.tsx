@@ -141,7 +141,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
             <li>✓ Performance Ratio de 75% (padrão da indústria)</li>
             <li>✓ Valores consideram tarifa energética atual</li>
             <li>✓ Sistemas dimensionados conforme NBR 16690</li>
-            <li>✓ Garantia de 25 anos dos módulos fotovoltaicos</li>
+            <li>✓ Garantia limitada de 10 anos contra defeitos funcionais, e uma garantia de desempenho linear de 25 anos para a produção de energia</li>
           </ul>
         </div>
       </div>
