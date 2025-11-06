@@ -41,12 +41,21 @@ export default function TodosOrcamentos() {
 
   const loadData = async () => {
     try {
+      console.log('🔍 Carregando orçamentos...');
       // Carregar todos os orçamentos diretamente das propostas
       const orcamentosRes = await fetch('/api/admin/orcamentos-todos');
+      console.log('📡 Response status:', orcamentosRes.status);
+
       if (orcamentosRes.ok) {
         const orcamentosData = await orcamentosRes.json();
+        console.log('✅ Dados recebidos:', {
+          total: orcamentosData.orcamentos?.length || 0,
+          source: orcamentosData.source,
+          primeiroOrcamento: orcamentosData.orcamentos?.[0]
+        });
+
         setOrcamentos(orcamentosData.orcamentos || []);
-        
+
         // Extrair clientes únicos dos orçamentos
         const clientesUnicos = new Map();
         (orcamentosData.orcamentos || []).forEach((orc: OrcamentoItem) => {
@@ -61,12 +70,16 @@ export default function TodosOrcamentos() {
             });
           }
         });
-        
+
         setClientes(Array.from(clientesUnicos.values()));
+        console.log('✅ Orçamentos carregados com sucesso!', orcamentosData.orcamentos?.length || 0);
+      } else {
+        console.error('❌ Erro na resposta:', orcamentosRes.status);
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados:', error);
     } finally {
+      console.log('✅ Loading finalizado');
       setLoading(false);
     }
   };
