@@ -381,16 +381,13 @@ export default function AdminIndex() {
                 <p className="text-sm text-gray-600">Sincronizar com nuvem</p>
               </button>
 
-              <a
-                href="https://pieng-propostas.vercel.app/propostas/propostas-publicas.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center"
-              >
-                <div className="text-3xl mb-3">🌐</div>
-                <h3 className="font-semibold mb-1">Propostas Públicas</h3>
-                <p className="text-sm opacity-90">Ver todas propostas online</p>
-              </a>
+              <Link href="/propostas-publicas" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
+                  <div className="text-3xl mb-3">🌐</div>
+                  <h3 className="font-semibold mb-1">Propostas Públicas</h3>
+                  <p className="text-sm opacity-90">Ver todas propostas online</p>
+                </a>
+              </Link>
 
               <button
                 onClick={openEnviarPropostaModal}
