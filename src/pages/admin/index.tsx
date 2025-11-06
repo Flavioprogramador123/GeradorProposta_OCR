@@ -280,6 +280,11 @@ export default function AdminIndex() {
               </div>
               
               <div className="flex gap-3">
+                <Link href="/proposta/exemplo" legacyBehavior>
+                  <a className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium" target="_blank">
+                    ✨ Ver Exemplo
+                  </a>
+                </Link>
                 <Link href="/" legacyBehavior><a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                 🏠 Site
               </a></Link>
