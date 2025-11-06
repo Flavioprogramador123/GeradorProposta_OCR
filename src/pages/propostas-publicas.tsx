@@ -12,6 +12,8 @@ interface PropostaInfo {
 export default function PropostasPublicas() {
   const [propostas, setPropostas] = useState<PropostaInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState('');
+  const [filtroMes, setFiltroMes] = useState('todos');
 
   useEffect(() => {
     loadPropostas();
@@ -55,6 +57,61 @@ export default function PropostasPublicas() {
     }
   };
 
+  const handleCopyLink = (url: string, displayName: string) => {
+    const fullUrl = `https://pieng-propostas.vercel.app/${url}`;
+    navigator.clipboard.writeText(fullUrl);
+    alert(`✅ Link copiado!\n\n${displayName}\n${fullUrl}`);
+  };
+
+  const handleWhatsApp = (url: string, displayName: string) => {
+    const fullUrl = `https://pieng-propostas.vercel.app/${url}`;
+    const message = encodeURIComponent(`Olá! Segue o link da sua proposta solar:\n\n${fullUrl}\n\nPIENG Soluções Energéticas`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  // Filtrar propostas
+  const propostasFiltradas = propostas
+    .filter(p => {
+      // Filtro de busca
+      if (busca && !p.displayName.toLowerCase().includes(busca.toLowerCase()) &&
+          !p.name.toLowerCase().includes(busca.toLowerCase())) {
+        return false;
+      }
+
+      // Filtro por mês (baseado no nome do arquivo)
+      if (filtroMes !== 'todos') {
+        const match = p.name.match(/(\d{2})-(\d{2})-(\d{4})/);
+        if (match) {
+          const [, dia, mes, ano] = match;
+          const mesProposta = `${mes}-${ano}`;
+          if (mesProposta !== filtroMes) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    })
+    // Filtrar propostas de teste
+    .filter(p => {
+      const nomeLower = p.name.toLowerCase();
+      const isTest = nomeLower.includes('teste') ||
+                     nomeLower.includes('test') ||
+                     nomeLower.includes('cliente-padrao') ||
+                     nomeLower.includes('daniel');
+      return !isTest;
+    });
+
+  // Extrair meses únicos para o filtro
+  const mesesDisponiveis = Array.from(new Set(
+    propostas
+      .map(p => {
+        const match = p.name.match(/(\d{2})-(\d{2})-(\d{4})/);
+        return match ? `${match[2]}-${match[3]}` : null;
+      })
+      .filter(Boolean)
+  )).sort().reverse();
+
   return (
     <>
       <Head>
@@ -74,9 +131,52 @@ export default function PropostasPublicas() {
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
                 📋 Propostas Públicas
               </h1>
-              <p className="text-gray-600">
-                Gerencie todas as propostas disponíveis • {propostas.length} propostas ativas
+              <p className="text-gray-600 mb-6">
+                Gerencie todas as propostas disponíveis • {propostas.length} total • {propostasFiltradas.length} exibidas
               </p>
+
+              {/* Filtros */}
+              <div className="flex flex-col md:flex-row gap-4 mt-6">
+                {/* Busca */}
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="🔍 Buscar por nome ou data..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Filtro por Mês */}
+                <div className="md:w-64">
+                  <select
+                    value={filtroMes}
+                    onChange={(e) => setFiltroMes(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="todos">📅 Todos os meses</option>
+                    {mesesDisponiveis.map(mes => (
+                      <option key={mes} value={mes}>
+                        {mes?.split('-').reverse().join('/')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Botão Limpar Filtros */}
+                {(busca || filtroMes !== 'todos') && (
+                  <button
+                    onClick={() => {
+                      setBusca('');
+                      setFiltroMes('todos');
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    🔄 Limpar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -99,48 +199,76 @@ export default function PropostasPublicas() {
                 ⚡ Ir para Gerador Rápido
               </Link>
             </div>
+          ) : propostasFiltradas.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                Nenhuma proposta encontrada
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Tente ajustar os filtros de busca
+              </p>
+              <button
+                onClick={() => {
+                  setBusca('');
+                  setFiltroMes('todos');
+                }}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                🔄 Limpar Filtros
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
-              {propostas.map((proposta, index) => (
+              {propostasFiltradas.map((proposta, index) => (
                 <div
                   key={index}
-                  className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 flex items-center justify-between"
+                  className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6"
                 >
-                  <div className="flex items-center space-x-4 flex-1">
-                    <div className="bg-gradient-to-r from-blue-500 to-orange-500 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg">
-                      {index + 1}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* Info da Proposta */}
+                    <div className="flex items-center space-x-4 flex-1">
+                      <div className="bg-gradient-to-r from-blue-500 to-orange-500 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-800 text-lg truncate">{proposta.displayName}</h3>
+                        <p className="text-sm text-gray-500 truncate">{proposta.name}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800 text-lg">{proposta.displayName}</h3>
-                      <p className="text-sm text-gray-500">{proposta.file}</p>
-                    </div>
-                  </div>
 
-                  <div className="flex space-x-2">
-                    <a
-                      href={`/${proposta.url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                    >
-                      📄 Ver
-                    </a>
-                    <button
-                      onClick={() => {
-                        const url = `https://pieng-propostas.vercel.app/${proposta.url}`;
-                        navigator.clipboard.writeText(url);
-                        alert('✅ Link copiado!');
-                      }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
-                    >
-                      📋 Copiar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(proposta.file, proposta.displayName)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                    >
-                      🗑️ Apagar
-                    </button>
+                    {/* Ações */}
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={`/${proposta.url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                      >
+                        📄 Ver
+                      </a>
+                      <button
+                        onClick={() => handleCopyLink(proposta.url, proposta.displayName)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2"
+                        title="Copiar link para compartilhar"
+                      >
+                        📋 Copiar
+                      </button>
+                      <button
+                        onClick={() => handleWhatsApp(proposta.url, proposta.displayName)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2"
+                        title="Compartilhar no WhatsApp"
+                      >
+                        💬 WhatsApp
+                      </button>
+                      <button
+                        onClick={() => handleDelete(proposta.file, proposta.displayName)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center gap-2"
+                        title="Apagar proposta"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
