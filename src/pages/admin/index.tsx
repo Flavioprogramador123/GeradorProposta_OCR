@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import InstallPWA from '@/components/InstallPWA';
 
 interface ClienteInfo {
   nome: string;
@@ -290,6 +291,9 @@ export default function AdminIndex() {
               </a></Link>
               </div>
             </div>
+
+            {/* PWA Install Banner */}
+            <InstallPWA />
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

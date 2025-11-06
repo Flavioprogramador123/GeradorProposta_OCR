@@ -1,12 +1,22 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.1.0-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.3.0-blue.svg)](VERSION.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
+[![PWA](https://img.shields.io/badge/PWA-enabled-purple.svg)](PWA.md)
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.2.1` (31/10/2025) | [Ver Histórico Completo](VERSION.md)
+**📌 Versão Atual**: `v2.3.0` (06/11/2025) | [Ver Histórico Completo](VERSION.md)
+
+## 🆕 Novidades v2.3.0 - PWA (Progressive Web App)
+
+- 📱 **Instalável como App**: Android, iPhone, Windows, Mac
+- ⚡ **Acesso Offline**: Propostas em cache para visualização sem internet
+- 🚀 **Performance**: Carregamento instantâneo com Service Worker
+- 🎯 **Atalhos**: Admin, Nova Proposta, Propostas Públicas
+- 🔔 **Notificações** (futuro): Push notifications para novas propostas
+- 📖 [Documentação Completa do PWA](PWA.md)
 
 ## ✨ Principais Funcionalidades
 
@@ -17,8 +27,9 @@ Sistema completo de geração de propostas solares com administração web, extr
 - ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo  
 - 🎨 **Design Responsivo**: Visual moderno com Tailwind CSS
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
-- 📱 **Mobile First**: Totalmente responsivo para todos os dispositivos
+- 📱 **Progressive Web App**: Instalável como app nativo em qualquer dispositivo
 - 🌐 **CDN Global**: Deploy automático no Vercel Edge Network
+- 💾 **Modo Offline**: Funciona sem conexão após primeira visita
 
 ## 🏗️ Arquitetura
 

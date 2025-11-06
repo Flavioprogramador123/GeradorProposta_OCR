@@ -1,0 +1,62 @@
+{
+  "name": "PIENG Propostas Solares",
+  "short_name": "PIENG",
+  "description": "Sistema de geração de propostas solares com IA - PIENG Soluções Energéticas",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Admin",
+      "short_name": "Admin",
+      "description": "Acessar painel administrativo",
+      "url": "/admin",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nova Proposta",
+      "short_name": "Nova",
+      "description": "Criar nova proposta rápida",
+      "url": "/gerador-rapido",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Propostas Públicas",
+      "short_name": "Públicas",
+      "description": "Ver propostas públicas",
+      "url": "/propostas-publicas",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
