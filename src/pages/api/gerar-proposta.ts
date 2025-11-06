@@ -189,14 +189,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sistemas = orcamentos.map((orc: any, index: number) => {
       console.log(`🔍 Processando orçamento ${index + 1}:`, {
         nome: orc.nome,
+        modulos: orc.modulos,
+        pot_modulo: orc.pot_modulo,
+        marca_modulo: orc.marca_modulo,
+        inversores: orc.inversores,
+        pot_inv: orc.pot_inv,
+        marca_inversor: orc.marca_inversor,
         temPpix: !!orc.ppix,
         temPavista: !!orc.pavista,
         temGeracaoMensal: !!orc.geracaoMensal,
-        temPaybackMeses: !!orc.paybackMeses,
-        ppix: orc.ppix,
-        pavista: orc.pavista,
-        geracaoMensal: orc.geracaoMensal,
-        paybackMeses: orc.paybackMeses
+        temPaybackMeses: !!orc.paybackMeses
       });
 
       // Se os dados já vêm calculados do frontend, usar diretamente
@@ -204,34 +206,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log(`✅ Usando dados calculados do frontend para ${orc.nome}`);
 
         // Calcular valores que podem estar faltando
-        const potTotal = orc.potTotal || (orc.modulos * orc.pot_modulo) / 1000;
+        const potTotal = orc.potTotal !== undefined ? orc.potTotal : (orc.modulos * orc.pot_modulo) / 1000;
         const precos = calcularPrecos(orc.ppix);
 
+        // 🔧 FIX: Usar !== undefined ao invés de || para evitar fallback com valores válidos como 0
         return {
           nome: orc.nome,
           potTotal: potTotal,
-          pcusto: orc.pcusto || 0,
-          pdespesa: orc.pdespesa_total || orc.pdespesa || 0,
-          modulos: orc.modulos || Math.round(potTotal * 1000 / 580),
-          pot_modulo: orc.pot_modulo || 580,
-          marca_modulo: orc.marca_modulo || 'N/A',
-          inversores: orc.inversores || 1,
-          pot_inv: orc.pot_inv || Math.ceil(potTotal),
-          marca_inversor: orc.marca_inversor || 'N/A',
-          tipo_instalacao: orc.tipo_instalacao || 'Telhado Fibrocimento',
+          pcusto: orc.pcusto !== undefined ? orc.pcusto : 0,
+          pdespesa: orc.pdespesa_total !== undefined ? orc.pdespesa_total : (orc.pdespesa !== undefined ? orc.pdespesa : 0),
+          modulos: orc.modulos !== undefined ? orc.modulos : Math.round(potTotal * 1000 / 580),
+          pot_modulo: orc.pot_modulo !== undefined ? orc.pot_modulo : 580,
+          marca_modulo: orc.marca_modulo !== undefined ? orc.marca_modulo : 'N/A',
+          inversores: orc.inversores !== undefined ? orc.inversores : 1,
+          pot_inv: orc.pot_inv !== undefined ? orc.pot_inv : Math.ceil(potTotal),
+          marca_inversor: orc.marca_inversor !== undefined ? orc.marca_inversor : 'N/A',
+          tipo_instalacao: orc.tipo_instalacao !== undefined ? orc.tipo_instalacao : 'Telhado Fibrocimento',
           // Usar dados já calculados do frontend ou calculados agora
-          ppix: orc.ppix || 0,
-          pavista: orc.pavista || precos.pavista || 0,
-          priscado: orc.priscado || precos.priscado || 0,
-          p12x: orc.p12x || precos.p12x || 0,
-          p12x_total: orc.p12x_total || precos.p12x_total || 0,
-          p18x_parcela: orc.p18x_parcela || precos.p18x_parcela || 0,
-          p18x_total: orc.p18x_total || precos.p18x_total || 0,
-          geracaoMensal: orc.geracaoMensal || 0,
-          cobertura: orc.cobertura || (orc.geracaoMensal / config.consumoMensal) * 100 || 0,
-          economiaMensal: orc.economiaMensal || (orc.geracaoMensal * config.tarifa) || 0,
-          paybackMeses: orc.paybackMeses || 0,
-          tirAnual: orc.tirAnual || (orc.paybackMeses > 0 ? (12 / orc.paybackMeses) * 100 : 0)
+          ppix: orc.ppix !== undefined ? orc.ppix : 0,
+          pavista: orc.pavista !== undefined ? orc.pavista : (precos.pavista !== undefined ? precos.pavista : 0),
+          priscado: orc.priscado !== undefined ? orc.priscado : (precos.priscado !== undefined ? precos.priscado : 0),
+          p12x: orc.p12x !== undefined ? orc.p12x : (precos.p12x !== undefined ? precos.p12x : 0),
+          p12x_total: orc.p12x_total !== undefined ? orc.p12x_total : (precos.p12x_total !== undefined ? precos.p12x_total : 0),
+          p18x_parcela: orc.p18x_parcela !== undefined ? orc.p18x_parcela : (precos.p18x_parcela !== undefined ? precos.p18x_parcela : 0),
+          p18x_total: orc.p18x_total !== undefined ? orc.p18x_total : (precos.p18x_total !== undefined ? precos.p18x_total : 0),
+          geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
+          cobertura: orc.cobertura !== undefined ? orc.cobertura : ((orc.geracaoMensal / config.consumoMensal) * 100 || 0),
+          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * config.tarifa) || 0),
+          paybackMeses: orc.paybackMeses !== undefined ? orc.paybackMeses : 0,
+          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 ? (12 / orc.paybackMeses) * 100 : 0)
         };
       }
 
@@ -482,10 +485,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
           tir: `${(sistema.tirAnual || 0).toFixed(1)}%`,
 
-          // Especificações
+          // Especificações - 🔧 FIX: Usar !== undefined para evitar fallback incorreto
           especificacoes: [
-            `${sistema.modulos || Math.round(sistema.potTotal * 1000 / 580)} módulos ${sistema.marca_modulo || 'N/A'} ${sistema.pot_modulo || 580}W`,
-            `${sistema.inversores || 1} inversor${sistema.inversores > 1 ? 'es' : ''} ${sistema.marca_inversor || 'N/A'} ${sistema.pot_inv || Math.ceil(sistema.potTotal)}kW`,
+            `${sistema.modulos !== undefined ? sistema.modulos : Math.round(sistema.potTotal * 1000 / 580)} módulos ${sistema.marca_modulo !== undefined ? sistema.marca_modulo : 'N/A'} ${sistema.pot_modulo !== undefined ? sistema.pot_modulo : 580}W`,
+            `${sistema.inversores !== undefined ? sistema.inversores : 1} inversor${sistema.inversores > 1 ? 'es' : ''} ${sistema.marca_inversor !== undefined ? sistema.marca_inversor : 'N/A'} ${sistema.pot_inv !== undefined ? sistema.pot_inv : Math.ceil(sistema.potTotal)}kW`,
             'Estrutura de alumínio para telhado',
             'Cabeamento CC/CA completo',
             'String box DC/AC + proteções'
@@ -582,8 +585,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           titulo: `Sistema ${String(index + 1).padStart(2, '0')}`,
           potencia: `${sistema.potTotal.toFixed(2)} kWp`,
           especificacoes: [
-            `${sistema.modulos || Math.round(sistema.potTotal * 1000 / 580)} módulos ${sistema.marca_modulo || 'N/A'} ${sistema.pot_modulo || 580}W`,
-            `${sistema.inversores || 1} inversor${sistema.inversores > 1 ? 'es' : ''} ${sistema.marca_inversor || 'N/A'} ${sistema.pot_inv || Math.ceil(sistema.potTotal)}kW`,
+            `${sistema.modulos !== undefined ? sistema.modulos : Math.round(sistema.potTotal * 1000 / 580)} módulos ${sistema.marca_modulo !== undefined ? sistema.marca_modulo : 'N/A'} ${sistema.pot_modulo !== undefined ? sistema.pot_modulo : 580}W`,
+            `${sistema.inversores !== undefined ? sistema.inversores : 1} inversor${sistema.inversores > 1 ? 'es' : ''} ${sistema.marca_inversor !== undefined ? sistema.marca_inversor : 'N/A'} ${sistema.pot_inv !== undefined ? sistema.pot_inv : Math.ceil(sistema.potTotal)}kW`,
             'Estrutura de alumínio para telhado',
             'Cabeamento CC/CA completo',
             'String box DC/AC + proteções'
