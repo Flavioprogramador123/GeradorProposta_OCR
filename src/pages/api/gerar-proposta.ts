@@ -215,10 +215,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // 🔧 NOVO: Usar performanceRate das configurações do sistema
       const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
       const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
-      const cobertura = (geracaoMensal / consumoMensal) * 100;
-      const economiaMensal = geracaoMensal * tarifa;
-      const paybackMeses = investimentoPix / economiaMensal;
-      const tirAnual = (12 / paybackMeses) * 100;
+      const cobertura = consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0;
+      const economiaMensal = geracaoMensal * (tarifa || 0);
+      const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
+      const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
       
       return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
     };
