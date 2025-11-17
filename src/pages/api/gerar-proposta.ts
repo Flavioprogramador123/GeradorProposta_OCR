@@ -704,22 +704,72 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const supabase = createClient(supabaseUrl, supabaseKey);
       
-      // Buscar ou criar cliente usando função helper
-      const { findOrCreateCliente } = await import('@/lib/supabase');
+      // Buscar ou criar cliente diretamente (sem usar função helper que pode ter supabase null)
       const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
       
       console.log('💾 Salvando cliente no Supabase...');
-      const clienteSupabase = await findOrCreateCliente({
-        nome: cliente.nome,
-        cidade: cliente.cidade,
-        estado: estadoCliente,
-        tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
-        consumo_mensal: cliente.consumo_mensal || 0,
-        hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
-        email: cliente.email,
-        telefone: cliente.telefone,
-        pdespesa: cliente.pdespesa,
-      });
+      
+      // Tentar buscar cliente existente
+      const { data: clienteExistente } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('nome', cliente.nome)
+        .eq('cidade', cliente.cidade)
+        .maybeSingle();
+
+      let clienteSupabase;
+      
+      if (clienteExistente) {
+        // Atualizar dados se necessário
+        const { data: updated, error: updateError } = await supabase
+          .from('clientes')
+          .update({
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            estado: estadoCliente,
+            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+            consumo_mensal: cliente.consumo_mensal || 0,
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            email: cliente.email,
+            telefone: cliente.telefone,
+            pdespesa: cliente.pdespesa,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clienteExistente.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.warn('⚠️ Erro ao atualizar cliente, usando existente:', updateError);
+          clienteSupabase = clienteExistente;
+        } else {
+          clienteSupabase = updated;
+        }
+      } else {
+        // Criar novo cliente
+        const { data: novoCliente, error: createError } = await supabase
+          .from('clientes')
+          .insert({
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            estado: estadoCliente,
+            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+            consumo_mensal: cliente.consumo_mensal || 0,
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            email: cliente.email,
+            telefone: cliente.telefone,
+            pdespesa: cliente.pdespesa,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Erro ao criar cliente:', createError);
+          throw new Error(`Erro ao criar cliente no Supabase: ${createError.message}`);
+        }
+
+        clienteSupabase = novoCliente;
+      }
 
       if (!clienteSupabase || !clienteSupabase.id) {
         throw new Error('Falha ao criar/buscar cliente no Supabase');
