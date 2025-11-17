@@ -271,10 +271,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p18x_parcela: orc.p18x_parcela !== undefined ? orc.p18x_parcela : (precos.p18x_parcela !== undefined ? precos.p18x_parcela : 0),
           p18x_total: orc.p18x_total !== undefined ? orc.p18x_total : (precos.p18x_total !== undefined ? precos.p18x_total : 0),
           geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
-          cobertura: orc.cobertura !== undefined ? orc.cobertura : ((orc.geracaoMensal / config.consumoMensal) * 100 || 0),
-          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * config.tarifa) || 0),
+          cobertura: orc.cobertura !== undefined ? orc.cobertura : (config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0),
+          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
           paybackMeses: orc.paybackMeses !== undefined ? orc.paybackMeses : 0,
-          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 ? (12 / orc.paybackMeses) * 100 : 0)
+          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 && orc.paybackMeses !== Infinity ? (12 / orc.paybackMeses) * 100 : 0)
         };
       }
 
