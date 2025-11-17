@@ -301,7 +301,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...precos,
         ...performance
       };
-    });
+      });
+    } catch (processError) {
+      console.error('❌ ERRO ao processar orçamentos:', processError);
+      throw new Error(`Erro ao processar orçamentos: ${processError instanceof Error ? processError.message : String(processError)}`);
+    }
 
     // Debug: mostrar sistemas processados
     console.log('🔍 Sistemas processados:', {
