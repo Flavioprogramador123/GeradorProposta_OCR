@@ -37,6 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Inicializar variáveis de estatísticas
+    let proposasGeradas = 0;
+    let aguardandoOrcamentos = 0;
+    
     // 🚀 PRIORIDADE 1: Buscar do Supabase (PRODUÇÃO)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -78,8 +82,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           // Contar estatísticas
-          const proposasGeradas = clientes.filter(c => c.temProposta).length;
-          const aguardandoOrcamentos = clientes.length - proposasGeradas;
+          proposasGeradas = clientes.filter(c => c.temProposta).length;
+          aguardandoOrcamentos = clientes.length - proposasGeradas;
 
           const stats = {
             totalClientes: clientes.length,
@@ -129,8 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const clientes: ClienteInfo[] = [];
-    let proposasGeradas = 0;
-    let aguardandoOrcamentos = 0;
+    // proposasGeradas e aguardandoOrcamentos já inicializadas no início da função
 
     for (const pasta of pastas) {
       const clientePath = path.join(finalClientesDir, pasta);
