@@ -296,8 +296,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }))
     });
 
+    // Validar que sistemas foi gerado corretamente
+    if (!sistemas || sistemas.length === 0) {
+      console.error('❌ ERRO: Nenhum sistema foi gerado dos orçamentos');
+      return res.status(500).json({ 
+        message: 'Erro ao processar orçamentos. Nenhum sistema foi gerado.',
+        error: 'NO_SYSTEMS_GENERATED',
+        details: {
+          orcamentosRecebidos: orcamentos.length,
+          sistemasGerados: 0
+        }
+      });
+    }
+
     // Ordenar por PIX
-    sistemas.sort((a: any, b: any) => a.ppix - b.ppix);
+    sistemas.sort((a: any, b: any) => (a.ppix || 0) - (b.ppix || 0));
 
     // Gerar HTML da proposta
     const dataAtual = new Date().toLocaleDateString('pt-BR');
