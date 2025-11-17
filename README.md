@@ -1,13 +1,13 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.2.2-blue.svg)](CLAUDE.md)
+[![Versão](https://img.shields.io/badge/versão-v2.2.3-blue.svg)](CLAUDE.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.2.2` (06/11/2025) | [Ver Changelog Completo](CLAUDE.md)
+**📌 Versão Atual**: `v2.2.3` (17/11/2025) | [Ver Changelog Completo](CLAUDE.md)
 
 ## ✨ Principais Funcionalidades
 
@@ -20,6 +20,11 @@ Sistema completo de geração de propostas solares com administração web, extr
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
 - 📱 **Mobile First**: Totalmente responsivo para todos os dispositivos
 - 🌐 **CDN Global**: Deploy automático no Vercel Edge Network
+
+### 🆕 Novidades v2.2.3 (17/11/2025)
+- ✅ Correções de build e erros no Vercel
+- ✅ Melhorias no tratamento de erros Supabase
+- ✅ Debug aprimorado para diagnóstico
 
 ### 🆕 Novidades v2.2.2 (06/11/2025)
 

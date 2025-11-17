@@ -1,12 +1,58 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.1.0** (25/10/2025)
+## 🎯 **VERSÃO ATUAL: v2.2.3** (17/11/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.1.0** - 25/10/2025 ✅ **ATUAL**
+### **v2.2.3** - 17/11/2025 ✅ **ATUAL**
+**Status**: 🟢 Em Produção (Vercel)
+
+**🔧 Correções:**
+- ✅ Corrigido erro de build Vercel - Next.js 13.5.6 e SWC packages
+- ✅ Corrigido erro ReferenceError propostasGeradas - inicialização de variáveis
+- ✅ Corrigido link quebrado consultor-interface.html
+- ✅ Supabase client null-safe - não quebra build sem variáveis
+- ✅ Removida página obsoleta proposta-supabase/[slug]
+- ✅ Melhorado tratamento de erros Supabase nas APIs
+- ✅ Adicionado debug e fallback para variáveis Supabase no Vercel
+
+**✨ Melhorias:**
+- ✅ Logs de debug melhorados para diagnóstico de variáveis
+- ✅ Mensagens de erro mais informativas
+- ✅ Documentação atualizada (VERIFICAR_VARIAVEIS_VERCEL.md)
+
+**📦 Deploy:**
+- Commits: `1ebfa17`, `c356723`, `e4b0a08`, `a12f054`, `68d8118`, `53aad79`, `89aa467`
+- Branch: `clean-main`
+- URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.2.2** - 06/11/2025
+**Status**: 🟡 Substituído
+
+**🔧 Correções:**
+- ✅ Integração Supabase completa
+- ✅ Persistência de dados em produção
+
+---
+
+### **v2.2.1** - 31/10/2025
+**Status**: 🟡 Substituído
+
+**🔧 Correções:**
+- ✅ Melhorias no admin dashboard
+
+---
+
+### **v2.2.0** - 26/10/2025
+**Status**: 🟡 Substituído
+
+---
+
+### **v2.1.0** - 25/10/2025
 **Status**: 🟢 Em Produção (Vercel)
 
 **🔧 Correções:**
@@ -162,6 +208,6 @@ v2.1.0
 
 ---
 
-**Última atualização**: 25/10/2025 - 18:00
+**Última atualização**: 17/11/2025 - 15:30
 **Mantenedor**: Flavio + Claude Code
 **Repositório**: https://github.com/Flavioprogramador123/PIENG-PROPOSTAS-SOLARES
