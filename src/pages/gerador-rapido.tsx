@@ -759,7 +759,7 @@ consolidado_orcamentos_distribuidores:
                 <Link href="/admin" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                   🏠 Admin
                 </Link>
-                <Link href="/consultor-interface.html" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <Link href="/admin/orcamentos" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   🎯 Consultor
                 </Link>
               </div>
