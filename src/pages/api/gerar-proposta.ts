@@ -131,7 +131,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Validar dados
     if (!cliente || !orcamentos || !config) {
-      return res.status(400).json({ message: 'Dados incompletos' });
+      return res.status(400).json({ 
+        message: 'Dados incompletos',
+        details: {
+          temCliente: !!cliente,
+          temOrcamentos: !!orcamentos,
+          temConfig: !!config,
+          orcamentosCount: orcamentos?.length || 0
+        }
+      });
+    }
+
+    // Validar que orcamentos não está vazio
+    if (!Array.isArray(orcamentos) || orcamentos.length === 0) {
+      return res.status(400).json({ 
+        message: 'Nenhum orçamento fornecido. Adicione pelo menos um orçamento para gerar a proposta.',
+        details: {
+          orcamentosType: typeof orcamentos,
+          orcamentosLength: Array.isArray(orcamentos) ? orcamentos.length : 'N/A'
+        }
+      });
     }
 
     // 🔧 NOVO: Carregar configurações dinâmicas do sistema
