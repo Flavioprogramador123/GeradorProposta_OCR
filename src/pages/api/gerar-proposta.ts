@@ -777,11 +777,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ Cliente salvo/buscado no Supabase:', clienteSupabase.id);
 
-      // Ler HTML gerado
-      const htmlGenerated = await fs.readFile(arquivoPath, 'utf8').catch(() => '');
+      // Tentar ler HTML gerado do arquivo (se existir), senão usar htmlContent gerado anteriormente
+      let htmlGenerated = '';
+      try {
+        if (!isServerless && arquivoPath) {
+          htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
+        }
+      } catch (readError) {
+        console.log('⚠️ Não foi possível ler HTML do arquivo, usando htmlContent gerado');
+      }
+      
+      // Se não conseguiu ler do arquivo, usar o htmlContent gerado anteriormente
+      if (!htmlGenerated && htmlContent) {
+        htmlGenerated = htmlContent;
+      }
+      
+      // Verificar se sistemas existe e tem pelo menos um item
+      if (!sistemas || sistemas.length === 0) {
+        throw new Error('Nenhum sistema foi gerado. Verifique os dados dos orçamentos.');
+      }
       
       // Salvar proposta no Supabase (OBRIGATÓRIO)
       console.log('💾 Salvando proposta no Supabase...');
+      const sistemaPrincipal = sistemas[0];
       const { data: propostaSalva, error: propostaError } = await supabase
         .from('propostas')
         .upsert({
@@ -789,15 +807,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           slug: slug,
           titulo: `Proposta Solar - ${cliente.nome}`,
           template_usado: 'pieng_basic',
-          sistema_kwp: sistemas[0]?.potTotal || 0,
-          geracao_mensal: sistemas[0]?.geracaoMensal || 0,
-          geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
-          valor_total: sistemas[0]?.ppix || 0,
-          valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
-          payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
-          tir: sistemas[0]?.tirAnual || 0,
+          sistema_kwp: sistemaPrincipal?.potTotal || 0,
+          geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
+          geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
+          valor_total: sistemaPrincipal?.ppix || 0,
+          valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
+          payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
+          tir: sistemaPrincipal?.tirAnual || 0,
           dados_completos: propostaData,
-          html_gerado: htmlGenerated,
+          html_gerado: htmlGenerated || htmlContent,
           status: 'ativa',
         }, { onConflict: 'slug' })
         .select()
