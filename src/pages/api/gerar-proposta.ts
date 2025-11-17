@@ -677,12 +677,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     try {
       const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Tentar múltiplas formas de ler as variáveis (compatibilidade)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+      // Debug: Log das variáveis (sem expor valores sensíveis)
+      console.log('🔍 Verificando variáveis Supabase:');
+      console.log('  - NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ Configurada' : '❌ Não configurada');
+      console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseKey ? '✅ Configurada' : '❌ Não configurada');
+      console.log('  - VERCEL:', process.env.VERCEL ? '✅ Sim' : '❌ Não');
+      console.log('  - NODE_ENV:', process.env.NODE_ENV);
 
       if (!supabaseUrl || !supabaseKey) {
-        console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
-        throw new Error('Variáveis Supabase não configuradas');
+        console.error('❌ Variáveis Supabase não configuradas');
+        console.error('  Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+        
+        // Em produção, retornar erro mais informativo
+        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+          throw new Error('Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.');
+        } else {
+          // Em desenvolvimento, apenas avisar
+          console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
+          throw new Error('Variáveis Supabase não configuradas');
+        }
       }
 
       const supabase = createClient(supabaseUrl, supabaseKey);
@@ -751,9 +768,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (supabaseError) {
       console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
-      // Em produção, não permitir continuar sem salvar no Supabase
-      if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-        throw new Error(`Falha ao persistir proposta no banco de dados: ${supabaseError instanceof Error ? supabaseError.message : 'Erro desconhecido'}`);
+      console.error('  Tipo:', typeof supabaseError);
+      console.error('  Mensagem:', supabaseError instanceof Error ? supabaseError.message : String(supabaseError));
+      
+      // Em produção, retornar erro mais informativo
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
+        
+        // Se for erro de variáveis não configuradas, retornar erro específico
+        if (errorMessage.includes('Variáveis Supabase não configuradas')) {
+          throw new Error(`Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel. Detalhes: ${errorMessage}`);
+        }
+        
+        throw new Error(`Falha ao persistir proposta no banco de dados: ${errorMessage}`);
       } else {
         // Em desenvolvimento, avisar mas permitir continuar
         console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
@@ -811,15 +838,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('❌ ERRO COMPLETO ao gerar proposta:', error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('Tipo de erro:', typeof error);
+    console.error('Nome do erro:', error instanceof Error ? error.name : 'N/A');
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isSupabaseError = errorMessage.includes('Supabase') || errorMessage.includes('SUPABASE');
     
     res.status(500).json({ 
-      message: 'Erro interno do servidor',
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      message: isSupabaseError 
+        ? 'Erro ao conectar com banco de dados Supabase'
+        : 'Erro interno do servidor',
+      error: errorMessage,
+      errorType: isSupabaseError ? 'SUPABASE_ERROR' : 'INTERNAL_ERROR',
       stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
       details: {
         clienteRecebido: !!req.body?.cliente,
         sistemasRecebidos: req.body?.sistemas?.length || 0,
-        orcamentosRecebidos: req.body?.orcamentos?.length || 0
+        orcamentosRecebidos: req.body?.orcamentos?.length || 0,
+        isProduction: !!(process.env.VERCEL || process.env.NODE_ENV === 'production'),
+        debug: isSupabaseError ? {
+          hint: 'Verifique se NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão configuradas no Vercel'
+        } : undefined
       }
     });
   }
