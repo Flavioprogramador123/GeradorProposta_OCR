@@ -154,12 +154,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 🔧 NOVO: Carregar configurações dinâmicas do sistema
-    const configSistema = await carregarConfiguracoes();
-    console.log('📋 Configurações carregadas:', configSistema);
+    let configSistema;
+    try {
+      configSistema = await carregarConfiguracoes();
+      console.log('📋 Configurações carregadas:', configSistema);
+    } catch (configError) {
+      console.error('⚠️ Erro ao carregar configurações, usando padrão:', configError);
+      configSistema = {
+        descontoPix: 10.0,
+        fatorParcelado: 1.20,
+        fator12x: 0.88,
+        fator18x: 0.83,
+        performanceRate: 0.75,
+        jurosParcela12x: 2.5,
+        jurosParcela18x: 3.2
+      };
+    }
 
-    // 🔧 NOVO: Validar dados com Python Calculator
-    const validationResults = await validarDadosComPython(orcamentos, cliente);
-    console.log('🐍 Validação Python:', validationResults.length, 'resultados');
+    // 🔧 NOVO: Validar dados com Python Calculator (opcional, não deve quebrar se falhar)
+    let validationResults = [];
+    try {
+      validationResults = await validarDadosComPython(orcamentos, cliente);
+      console.log('🐍 Validação Python:', validationResults.length, 'resultados');
+    } catch (validationError) {
+      console.warn('⚠️ Validação Python não disponível, continuando sem validação:', validationError);
+    }
 
     // Calcular preços usando configurações dinâmicas do sistema
     const calcularPrecos = (totalFinal: number) => {
@@ -205,20 +224,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Processar orçamentos - USAR DADOS JÁ CALCULADOS DO FRONTEND
-    const sistemas = orcamentos.map((orc: any, index: number) => {
-      console.log(`🔍 Processando orçamento ${index + 1}:`, {
-        nome: orc.nome,
-        modulos: orc.modulos,
-        pot_modulo: orc.pot_modulo,
-        marca_modulo: orc.marca_modulo,
-        inversores: orc.inversores,
-        pot_inv: orc.pot_inv,
-        marca_inversor: orc.marca_inversor,
-        temPpix: !!orc.ppix,
-        temPavista: !!orc.pavista,
-        temGeracaoMensal: !!orc.geracaoMensal,
-        temPaybackMeses: !!orc.paybackMeses
-      });
+    let sistemas;
+    try {
+      sistemas = orcamentos.map((orc: any, index: number) => {
+        console.log(`🔍 Processando orçamento ${index + 1}:`, {
+          nome: orc.nome,
+          modulos: orc.modulos,
+          pot_modulo: orc.pot_modulo,
+          marca_modulo: orc.marca_modulo,
+          inversores: orc.inversores,
+          pot_inv: orc.pot_inv,
+          marca_inversor: orc.marca_inversor,
+          temPpix: !!orc.ppix,
+          temPavista: !!orc.pavista,
+          temGeracaoMensal: !!orc.geracaoMensal,
+          temPaybackMeses: !!orc.paybackMeses
+        });
 
       // Se os dados já vêm calculados do frontend, usar diretamente
       if (orc.ppix !== undefined && orc.pavista !== undefined && orc.geracaoMensal !== undefined && orc.paybackMeses !== undefined) {
