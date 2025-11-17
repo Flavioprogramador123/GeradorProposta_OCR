@@ -137,14 +137,29 @@ HSP: ${data.hspLocal}
     let supabaseError = null;
     
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Tentar múltiplas formas de ler as variáveis (compatibilidade)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+      // Debug: Log das variáveis (sem expor valores sensíveis)
+      console.log('🔍 Verificando variáveis Supabase:');
+      console.log('  - NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ Configurada' : '❌ Não configurada');
+      console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseKey ? '✅ Configurada' : '❌ Não configurada');
+      console.log('  - VERCEL:', process.env.VERCEL ? '✅ Sim' : '❌ Não');
+      console.log('  - NODE_ENV:', process.env.NODE_ENV);
 
       if (!supabaseUrl || !supabaseKey) {
-        console.warn('⚠️ Variáveis Supabase não configuradas');
+        console.error('❌ Variáveis Supabase não configuradas');
+        console.error('  Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+        
         return res.status(500).json({ 
           message: 'Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.',
-          error: 'SUPABASE_NOT_CONFIGURED'
+          error: 'SUPABASE_NOT_CONFIGURED',
+          debug: {
+            hasUrl: !!supabaseUrl,
+            hasKey: !!supabaseKey,
+            envKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('VERCEL'))
+          }
         });
       }
 
