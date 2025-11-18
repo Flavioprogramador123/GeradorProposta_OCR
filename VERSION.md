@@ -23,7 +23,7 @@
 - ✅ Documentação atualizada com integração de orçamentos
 
 **📦 Deploy:**
-- Commits: `[próximo commit]`
+- Commits: `2b43b4d`
 - Branch: `clean-main`
 - URL: https://pieng-propostas.vercel.app
 
