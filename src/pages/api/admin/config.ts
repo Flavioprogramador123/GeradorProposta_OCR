@@ -46,23 +46,41 @@ async function readConfigFromSupabase() {
 }
 
 async function saveConfigToSupabase(config: Record<string, any>) {
-  if (!supabase) return false;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-  const { error } = await supabase
-    .from('configuracoes')
-    .upsert({
-      chave: CONFIG_KEY,
-      valor: config,
-      descricao: 'Configurações globais do sistema',
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'chave' });
-
-  if (error) {
-    console.error('Erro ao salvar configuração no Supabase:', error);
-    return false;
+  if (!supabase) {
+    console.warn('⚠️ Supabase client não disponível');
+    return { success: false, error: 'Supabase não configurado' };
   }
 
-  return true;
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('⚠️ Variáveis Supabase não configuradas');
+    return { success: false, error: 'Variáveis Supabase não configuradas' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('configuracoes')
+      .upsert({
+        chave: CONFIG_KEY,
+        valor: config,
+        descricao: 'Configurações globais do sistema',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'chave' })
+      .select();
+
+    if (error) {
+      console.error('❌ Erro ao salvar configuração no Supabase:', error);
+      return { success: false, error: error.message, details: error };
+    }
+
+    console.log('✅ Configuração salva no Supabase com sucesso');
+    return { success: true, data };
+  } catch (err) {
+    console.error('❌ Erro inesperado ao salvar no Supabase:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Erro desconhecido' };
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -82,6 +100,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } else if (req.method === 'POST') {
     try {
       const config = req.body;
+
+      if (!config || typeof config !== 'object') {
+        return res.status(400).json({ 
+          message: 'Dados de configuração inválidos',
+          error: 'Body deve ser um objeto JSON válido'
+        });
+      }
+
       const configWithMetadata = {
         ...config,
         metadata: {
@@ -90,22 +116,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       };
 
-      const savedToSupabase = await saveConfigToSupabase(configWithMetadata);
-      const shouldFallbackToFile = !savedToSupabase && !(process.env.VERCEL || process.env.NETLIFY);
+      console.log('💾 Tentando salvar configuração...');
+      const supabaseResult = await saveConfigToSupabase(configWithMetadata);
+      const isProduction = process.env.VERCEL || process.env.NETLIFY;
+      const shouldFallbackToFile = !supabaseResult.success && !isProduction;
 
-      if (savedToSupabase) {
-        return res.status(200).json({ message: 'Configuração salva com sucesso no Supabase!' });
+      if (supabaseResult.success) {
+        return res.status(200).json({ 
+          message: 'Configuração salva com sucesso no Supabase!',
+          source: 'supabase'
+        });
       }
 
       if (shouldFallbackToFile) {
-        await saveConfigToFile(configWithMetadata);
-        return res.status(200).json({ message: 'Configuração salva localmente (modo desenvolvimento).' });
+        try {
+          await saveConfigToFile(configWithMetadata);
+          return res.status(200).json({ 
+            message: 'Configuração salva localmente (modo desenvolvimento).',
+            source: 'filesystem',
+            warning: 'Supabase não disponível, usando fallback local'
+          });
+        } catch (fileError) {
+          console.error('❌ Erro ao salvar no filesystem:', fileError);
+          return res.status(500).json({ 
+            message: 'Erro ao salvar configuração no filesystem',
+            error: fileError instanceof Error ? fileError.message : 'Erro desconhecido',
+            supabaseError: supabaseResult.error
+          });
+        }
       }
 
-      return res.status(500).json({ message: 'Não foi possível salvar configuração. Configure o Supabase.' });
+      // Em produção, Supabase é obrigatório
+      return res.status(500).json({ 
+        message: 'Não foi possível salvar configuração. Configure o Supabase.',
+        error: supabaseResult.error,
+        debug: {
+          hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          isProduction,
+          supabaseClientAvailable: !!supabase
+        }
+      });
     } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
-      res.status(500).json({ message: 'Erro ao salvar configuração' });
+      console.error('❌ Erro ao salvar configuração:', error);
+      return res.status(500).json({ 
+        message: 'Erro ao salvar configuração',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
   } else {
     res.status(405).json({ message: 'Method not allowed' });
