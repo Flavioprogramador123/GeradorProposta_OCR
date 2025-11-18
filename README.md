@@ -1,13 +1,13 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.2.3-blue.svg)](CLAUDE.md)
+[![Versão](https://img.shields.io/badge/versão-v2.2.4-blue.svg)](CLAUDE.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.2.3` (17/11/2025) | [Ver Changelog Completo](CLAUDE.md)
+**📌 Versão Atual**: `v2.2.4` (18/11/2025) | [Ver Changelog Completo](CLAUDE.md)
 
 ## ✨ Principais Funcionalidades
 
@@ -20,6 +20,13 @@ Sistema completo de geração de propostas solares com administração web, extr
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
 - 📱 **Mobile First**: Totalmente responsivo para todos os dispositivos
 - 🌐 **CDN Global**: Deploy automático no Vercel Edge Network
+
+### 🆕 Novidades v2.2.4 (18/11/2025)
+- ✅ `admin/config` agora persiste no Supabase com fallback seguro
+- ✅ `/api/admin/clientes` corrigido (variáveis e nomes sanitizados)
+- ✅ Detalhe de cliente `/api/admin/clientes/[id]` busca direto do Supabase
+- ✅ Nova rota de diagnóstico `/api/test-cliente-padrao`
+- ✅ Documentação e badge atualizados
 
 ### 🆕 Novidades v2.2.3 (17/11/2025)
 - ✅ Correções de build e erros no Vercel
@@ -275,10 +282,10 @@ Todos os componentes são modulares e reutilizáveis, permitindo fácil customiz
 - ✅ **Supabase Integrado** para persistência confiável
 - ✅ **Admin Orçamentos** lista todas as propostas do sistema
 
-**🔄 Última Atualização: 31/10/2025**
-- ✅ Admin Orçamentos busca do Supabase
-- ✅ Criar Cliente persiste no Supabase
-- ✅ ID do banco visível na interface
-- ✅ Botões corrigidos (sem null)
+**🔄 Última Atualização: 18/11/2025**
+- ✅ Configurações salvas no Supabase (com fallback `/tmp`)
+- ✅ APIs de clientes compatíveis com dados vindos do banco
+- ✅ Detalhes do cliente acessam Supabase antes do filesystem
+- ✅ Versão exibida no admin atualizada (v2.2.4)
 
 *Sistema desenvolvido com IA para maximizar eficiência e aproveitar todo o potencial do Vercel Edge Network + Supabase* 🚀⚡🤖💾
