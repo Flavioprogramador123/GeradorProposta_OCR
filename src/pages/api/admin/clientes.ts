@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Inicializar variáveis de estatísticas
-    let proposasGeradas = 0;
+    let propostasGeradas = 0;
     let aguardandoOrcamentos = 0;
     
     // 🚀 PRIORIDADE 1: Buscar do Supabase (PRODUÇÃO)
@@ -82,12 +82,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           // Contar estatísticas
-          proposasGeradas = clientes.filter(c => c.temProposta).length;
-          aguardandoOrcamentos = clientes.length - proposasGeradas;
+          propostasGeradas = clientes.filter(c => c.temProposta).length;
+          aguardandoOrcamentos = clientes.length - propostasGeradas;
 
           const stats = {
             totalClientes: clientes.length,
-            proposasGeradas,
+            propostasGeradas,
             aguardandoOrcamentos
           };
 
@@ -133,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const clientes: ClienteInfo[] = [];
-    // proposasGeradas e aguardandoOrcamentos já inicializadas no início da função
+    // propostasGeradas e aguardandoOrcamentos já inicializadas no início da função
 
     for (const pasta of pastas) {
       const clientePath = path.join(finalClientesDir, pasta);
@@ -166,7 +166,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ? new Date(proposta.metadata.created).toLocaleDateString('pt-BR')
             : stat.mtime.toLocaleDateString('pt-BR');
           
-          proposasGeradas++;
+          propostasGeradas++;
           
         } catch (error) {
           // Se não conseguir ler proposta.json, tentar dadosusuario.md
@@ -228,7 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const stats = {
       totalClientes: clientes.length,
-      proposasGeradas,
+      propostasGeradas,
       aguardandoOrcamentos
     };
 
