@@ -54,32 +54,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log(`✅ ${clientesSupabase.length} clientes encontrados no Supabase`);
 
           // Converter formato Supabase para ClienteInfo
-          const clientes: ClienteInfo[] = clientesSupabase.map((cliente: any) => {
-            // Gerar pasta do nome (sanitizado)
-            const pasta = cliente.nome
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^a-z0-9]/g, '')
-              .slice(0, 20);
+          const clientes: ClienteInfo[] = clientesSupabase
+            .map((cliente: any) => {
+              const nomeSeguro = (cliente.nome || cliente.slug || 'cliente')
+                .toString()
+                .trim();
 
-            // Determinar status baseado nas propostas
-            let status = 'aguardando_orcamentos';
-            if (cliente.temProposta) {
-              const ultimaProposta = cliente.propostas?.[0];
-              status = ultimaProposta?.status || 'proposta_gerada';
-            }
+              // Gerar pasta do nome (sanitizado)
+              const pasta = nomeSeguro
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]/g, '')
+                .slice(0, 20) || 'cliente';
 
-            return {
-              nome: cliente.nome,
-              cidade: cliente.cidade,
-              pasta: pasta,
-              status: status,
-              ultimaModificacao: new Date(cliente.updated_at || cliente.created_at).toLocaleDateString('pt-BR'),
-              temProposta: cliente.temProposta || false,
-              id: cliente.id
-            };
-          });
+              // Determinar status baseado nas propostas
+              let status = 'aguardando_orcamentos';
+              if (cliente.temProposta) {
+                const ultimaProposta = cliente.propostas?.[0];
+                status = ultimaProposta?.status || 'proposta_gerada';
+              }
+
+              const ultimaData = cliente.updated_at || cliente.created_at || new Date().toISOString();
+
+              return {
+                nome: nomeSeguro,
+                cidade: cliente.cidade || 'N/A',
+                pasta,
+                status,
+                ultimaModificacao: new Date(ultimaData).toLocaleDateString('pt-BR'),
+                temProposta: cliente.temProposta || (cliente.propostas?.length > 0) || false,
+                id: cliente.id
+              };
+            })
+            .filter(Boolean);
 
           // Contar estatísticas
           propostasGeradas = clientes.filter(c => c.temProposta).length;
@@ -127,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('Diretório de clientes não encontrado, retornando lista vazia');
         return res.status(200).json({
           clientes: [],
-          stats: { totalClientes: 0, proposasGeradas: 0, aguardandoOrcamentos: 0 }
+          stats: { totalClientes: 0, propostasGeradas: 0, aguardandoOrcamentos: 0 }
         });
       }
     }
