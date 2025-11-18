@@ -1,13 +1,33 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.2.3** (17/11/2025)
+## 🎯 **VERSÃO ATUAL: v2.2.4** (18/11/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.2.3** - 17/11/2025 ✅ **ATUAL**
+### **v2.2.4** - 18/11/2025 ✅ **ATUAL**
 **Status**: 🟢 Em Produção (Vercel)
+
+**🔧 Correções:**
+- ✅ `/api/admin/clientes` não quebra mais com dados incompletos do Supabase
+- ✅ `/api/admin/clientes/[id]` busca/atualiza clientes direto no Supabase
+- ✅ `/api/admin/config` persiste no banco com fallback seguro
+
+**✨ Melhorias:**
+- ✅ Rota de diagnóstico `/api/test-cliente-padrao` adicionada
+- ✅ Badge e documentação atualizados para v2.2.4
+- ✅ Logs informam fonte dos dados (Supabase x filesystem)
+
+**📦 Deploy:**
+- Commits: `0c9fe94`, `c562be1`
+- Branch: `clean-main`
+- URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.2.3** - 17/11/2025
+**Status**: 🟡 Substituído
 
 **🔧 Correções:**
 - ✅ Corrigido erro de build Vercel - Next.js 13.5.6 e SWC packages
