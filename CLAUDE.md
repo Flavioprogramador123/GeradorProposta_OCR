@@ -109,6 +109,8 @@ The system recognizes multiple solar distributors automatically:
 /api/admin/clientes             → List all clients (Supabase + filesystem fallback)
 /api/admin/criar-cliente        → Create client (MUST save to Supabase in production)
 /api/admin/orcamentos-todos     → List all proposals as orçamentos (Supabase first)
+/api/admin/orcamentos/[cliente] → CRUD orçamentos (GET/POST - Supabase-first)
+/api/admin/orcamentos/[cliente]/[orcamentoId] → GET/PUT/DELETE orçamento específico
 /api/admin/extract-data         → AI extraction from PDFs/images
 /api/admin/config               → System configuration
 /api/gerar-proposta             → Generate proposal HTML + JSON (saves to Supabase)
@@ -127,6 +129,7 @@ src/lib/types.ts                    → TypeScript interfaces
 src/lib/variantConfig.ts            → Property type variants
 src/lib/supabase.ts                 → Supabase client & helper functions
 src/lib/google-drive.ts             → Cloud storage integration (optional)
+src/utils/orcamentosSupabase.ts     → Orçamentos Supabase utilities (resolve, map, sanitize)
 ```
 
 ---
@@ -177,11 +180,31 @@ Each client has a folder: `src/data/clientes/[slug]/`
 2. File sent to `/api/admin/extract-data`
 3. AI extracts: modules, inverters, prices, distributor
 4. User reviews/edits → `/admin/orcamentos/[clienteId]/manual`
-5. Save to `orcamento[N].json`
+5. Save to Supabase (`orcamentos` table) via `/api/admin/orcamentos/[clienteId]` (POST)
+   - **PRODUCTION**: Saved to Supabase `orcamentos` table
+   - **DEVELOPMENT**: Fallback to `orcamento[N].json` in filesystem
 6. Generate proposal → Calls `/api/gerar-proposta`
 7. Python calculator validates and enriches data
 8. Template engine creates HTML + updates JSON
-9. Files written to both locations (data + public)
+9. Files written to both locations (Supabase + public filesystem)
+
+### Orçamentos (Quotes) Storage
+
+**Supabase Table: `orcamentos`**
+- `id` (UUID) - Primary key
+- `cliente_id` (UUID) - Foreign key to `clientes`
+- `arquivo_nome` (text) - Original file name
+- `fornecedor` (text) - Distributor name
+- `valor_total` (numeric) - Total value
+- `data_orcamento` (timestamp) - Quote date
+- `componentes` (JSONB) - Modules, inverters, etc.
+- `dados_extraidos` (JSONB) - Full extracted data (precoCustoYaml, pdespesa, etc.)
+- `created_at` (timestamp) - Creation timestamp
+
+**Helper Functions** (`src/utils/orcamentosSupabase.ts`):
+- `resolveClienteSupabase(clienteId)` - Resolves client by ID, slug, nome, or pasta
+- `mapSupabaseOrcamentoRow(row)` - Maps Supabase row to API format
+- `sanitizeId(value)` - Sanitizes IDs for matching
 
 ---
 
@@ -379,7 +402,15 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### v2.2.4 — 18/11/2025 ✅ CURRENT
+### v2.2.5 — 18/11/2025 ✅ CURRENT
+- Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase.
+- Orçamentos agora persistem no banco de dados (tabela `orcamentos`) com CRUD completo (GET/POST/PUT/DELETE).
+- Criado `src/utils/orcamentosSupabase.ts` com funções helper para resolução de cliente e mapeamento de dados.
+- Resolução automática de cliente por múltiplos identificadores (ID, slug, nome, pasta).
+- Configuração do ESLint (eslint@8.57.0 compatível com Next.js 13.5.6).
+- Documentação atualizada com detalhes da integração de orçamentos no Supabase.
+
+### v2.2.4 — 18/11/2025
 - `/api/admin/config` salva no Supabase (`configuracoes`) e só cai para filesystem local quando necessário.
 - `/api/admin/clientes` ganhou sanitização completa, estatísticas consistentes (`propostasGeradas`) e logs indicando fonte (`supabase`/`filesystem`).
 - `/api/admin/clientes/[clienteId]` consulta/atualiza clientes diretamente no Supabase antes do filesystem, evitando 404 em produção.

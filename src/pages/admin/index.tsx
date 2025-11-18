@@ -271,7 +271,7 @@ export default function AdminIndex() {
                     🏢 Área Administrativa
                   </h1>
                   <span className="px-2 py-1 text-xs font-mono bg-blue-100 text-blue-700 rounded border border-blue-200">
-                    v2.2.4
+                    v2.2.5
                   </span>
                 </div>
                 <p className="text-gray-600">
