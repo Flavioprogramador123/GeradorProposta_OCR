@@ -1,13 +1,36 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.2.4** (18/11/2025)
+## 🎯 **VERSÃO ATUAL: v2.2.5** (18/11/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.2.4** - 18/11/2025 ✅ **ATUAL**
+### **v2.2.5** - 18/11/2025 ✅ **ATUAL**
 **Status**: 🟢 Em Produção (Vercel)
+
+**🔧 Correções:**
+- ✅ Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase
+- ✅ Orçamentos agora persistem no banco de dados (tabela `orcamentos`)
+- ✅ GET/POST/PUT/DELETE de orçamentos funcionando com Supabase-first
+- ✅ Configuração do ESLint (eslint@8.57.0 compatível com Next.js 13.5.6)
+
+**✨ Melhorias:**
+- ✅ Criado `src/utils/orcamentosSupabase.ts` para gerenciar orçamentos no Supabase
+- ✅ Resolução automática de cliente por ID, slug, nome ou pasta
+- ✅ Mapeamento robusto de dados do Supabase para formato da API
+- ✅ Fallback seguro para filesystem em desenvolvimento
+- ✅ Documentação atualizada com integração de orçamentos
+
+**📦 Deploy:**
+- Commits: `[próximo commit]`
+- Branch: `clean-main`
+- URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.2.4** - 18/11/2025
+**Status**: 🟡 Substituído
 
 **🔧 Correções:**
 - ✅ `/api/admin/clientes` não quebra mais com dados incompletos do Supabase
