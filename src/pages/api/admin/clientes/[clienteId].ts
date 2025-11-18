@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { getAllClientes, updateCliente } from '@/lib/supabase';
 
 interface ClienteData {
   nome: string;
@@ -11,6 +12,44 @@ interface ClienteData {
   pdespesa: string;
   pasta: string;
   observacoes?: string;
+}
+
+function sanitizeId(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 50);
+}
+
+async function getClienteFromSupabase(clienteId: string) {
+  const clientes = await getAllClientes();
+  if (!clientes || clientes.length === 0) return null;
+
+  const sanitizedId = sanitizeId(clienteId);
+
+  const cliente = clientes.find((c) => {
+    const byId = c.id === clienteId;
+    const bySlug = typeof (c as any).slug === 'string' && sanitizeId((c as any).slug) === sanitizedId;
+    const byNome = c.nome && sanitizeId(c.nome) === sanitizedId;
+    const byPasta = (c as any).pasta && sanitizeId((c as any).pasta) === sanitizedId;
+    return byId || bySlug || byNome || byPasta;
+  });
+
+  if (!cliente) return null;
+
+  return {
+    id: cliente.id,
+    nome: cliente.nome,
+    cidade: cliente.cidade,
+    consumoKwh: cliente.consumo_mensal?.toString() || '0',
+    tipo: cliente.tipo_imovel || 'Residencial',
+    hspLocal: cliente.hsp_local?.toString() || '5.21',
+    pdespesa: cliente.pdespesa?.toString() || '0',
+    pasta: sanitizeId(cliente.nome || clienteId),
+    observacoes: (cliente as any).observacoes
+  } satisfies ClienteData & { id: string };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -26,6 +65,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     // Buscar dados do cliente
     try {
+      // Prioridade: Supabase
+      const clienteSupabase = await getClienteFromSupabase(clienteId);
+      if (clienteSupabase) {
+        return res.status(200).json(clienteSupabase);
+      }
+
       // Verificar se a pasta existe
       try {
         await fs.access(clientePath);
@@ -91,6 +136,24 @@ HSP: ${hspLocal}
 CONSUMO MENSAL: ${consumoKwh} KWH/MES
 `;
 
+      // Se cliente existe no Supabase, atualizar lá
+      const clienteSupabase = await getClienteFromSupabase(clienteId);
+      if (clienteSupabase?.id) {
+        await updateCliente(clienteSupabase.id, {
+          nome,
+          cidade,
+          consumo_mensal: Number(consumoKwh),
+          tipo_imovel: tipo,
+          hsp_local: Number(hspLocal),
+          pdespesa: Number(pdespesa),
+        });
+
+        return res.status(200).json({
+          message: 'Cliente atualizado com sucesso (Supabase)',
+          cliente: { nome, cidade, consumoKwh, tipo, hspLocal, pdespesa, pasta: clienteSupabase.pasta }
+        });
+      }
+
       // Criar diretório se não existe
       await fs.mkdir(clientePath, { recursive: true });
       
@@ -110,6 +173,12 @@ CONSUMO MENSAL: ${consumoKwh} KWH/MES
   else if (req.method === 'DELETE') {
     // Excluir cliente
     try {
+      const clienteSupabase = await getClienteFromSupabase(clienteId);
+      if (clienteSupabase?.id) {
+        res.status(405).json({ message: 'Remoção via API não permitida para clientes do Supabase' });
+        return;
+      }
+
       // Verificar se cliente existe
       try {
         await fs.access(clientePath);
