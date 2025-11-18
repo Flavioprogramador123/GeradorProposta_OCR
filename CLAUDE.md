@@ -41,8 +41,9 @@ npx vercel logs                      # View deployment logs
 2. Quote Upload → AI Extraction → src/pages/api/admin/extract-data.ts
 3. Quote Processing → Python Calculator → Financial Analysis
 4. Proposal Generation → Template Engine → HTML/JSON output
-5. Proposal Persistence → Supabase (propostas table) with html_gerado + dados_completos
-6. Public Access → /proposta/[slug] (reads from Supabase first, then filesystem fallback)
+5. Proposal Persistence → Supabase (propostas table) with html_gerado + dados_completos (filesystem fallback only in dev)
+6. Configurações globais → Supabase (`configuracoes` table) com fallback local em `src/data/sistema/configuracoes.json`
+7. Public Access → /proposta/[slug] (reads from Supabase first, then filesystem fallback)
 ```
 
 **⚠️ IMPORTANT:** In production (Vercel), data MUST be saved to Supabase. Filesystem is read-only.
@@ -83,8 +84,9 @@ The system recognizes multiple solar distributors automatically:
 - Validates extracted data consistency
 
 #### 5. **Configuration System**
-- Central config: `src/data/sistema/configuracoes.json`
+- Primary storage: Supabase `configuracoes` table (`chave = 'sistema_config'`)
 - API endpoint: `/api/admin/config`
+- Fallback: `src/data/sistema/configuracoes.json` (dev) or `/tmp/configuracoes.json` (serverless fallback)
 - Controls: pricing margins, discount rates, performance factors
 - Editable through `/admin/configuracoes`
 
@@ -113,6 +115,7 @@ The system recognizes multiple solar distributors automatically:
 /api/propostas-publicas         → List public proposals (Supabase + filesystem)
 /api/test-supabase              → Test Supabase connection
 /api/test-proposta-slug         → Diagnostic API for specific proposal
+/api/test-cliente-padrao        → Diagnóstico rápido para cliente/proposta em produção
 ```
 
 ### Core Libraries
@@ -306,6 +309,11 @@ Use emoji prefixes:
 - **Likely cause**: Template engine trying to read files from filesystem
 - **Solution**: Ensure CSS files are in `public/styles/` and template engine uses `<link>` tags in production
 
+### `/api/admin/config` returning 500
+- **Likely cause**: Supabase vars ausentes. Endpoint agora salva em Supabase; sem `NEXT_PUBLIC_SUPABASE_*` ele cai para `/tmp` apenas em dev.
+- **Diagnóstico**: Ver `VERIFICAR_VARIAVEIS_VERCEL.md` e checar `/api/admin/config` + logs (`savedToSupabase: false`).
+- **Solução**: Configure as variáveis em Vercel ou rode localmente com `.env`; apenas em dev o fallback para arquivo é permitido.
+
 ### Proposal Shows 404
 - **First**: Check if proposal exists in Supabase: `/api/test-proposta-slug?slug=[slug]`
 - **Second**: Check if `proposta.json` exists in `src/data/clientes/[slug]/` (local only)
@@ -324,6 +332,7 @@ Use emoji prefixes:
 - Check API `/api/admin/clientes` response (should show `source: 'supabase'` or `source: 'filesystem'`)
 - Ensure folder name matches slug pattern
 - **Test Supabase connection**: `/api/test-supabase`
+- **Diagnóstico rápido**: usar `/api/test-cliente-padrao` (ou clone desse endpoint) para validar cliente + proposta por slug.
 
 ### Python Calculator Errors
 - Check if Python backend is accessible
@@ -370,110 +379,35 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### **v2.2.1** - 31/10/2025 ✅ **CURRENT**
+### v2.2.4 — 18/11/2025 ✅ CURRENT
+- `/api/admin/config` salva no Supabase (`configuracoes`) e só cai para filesystem local quando necessário.
+- `/api/admin/clientes` ganhou sanitização completa, estatísticas consistentes (`propostasGeradas`) e logs indicando fonte (`supabase`/`filesystem`).
+- `/api/admin/clientes/[clienteId]` consulta/atualiza clientes diretamente no Supabase antes do filesystem, evitando 404 em produção.
+- Nova rota diagnóstica `/api/test-cliente-padrao` confirma se cliente/proposta existem no banco.
+- Badge da área admin, README e VERSION atualizados para `v2.2.4`, garantindo visibilidade da versão deployada.
 
-**🔧 Critical Fixes:**
-- ✅ **Admin Orçamentos**: Now fetches from Supabase (was filesystem-only)
-- ✅ **Criar Cliente**: Now REQUIRED to save to Supabase in production (was optional)
-- ✅ **Botão "Ver Orçamento" null**: Fixed with validation check
-- ✅ **ID do banco não aparecia**: API now returns `propostaId` from Supabase
-- ✅ **Admin `/orcamentos` page**: Shows ID do banco and "Ver Proposta" button
+### v2.2.3 — 17/11/2025
+- Corrigido download de SWC (Next 13.5.6 fixado) e sincronização `package-lock.json`.
+- `/api/gerar-proposta` recebeu validações extras (dados obrigatórios, divisões por zero, fallback de HTML, try/catch em Python).
+- Supabase client ficou null-safe; página duplicada `/proposta-supabase/[slug]` removida.
+- Documentação operacional expandida: `VERIFICAR_VARIAVEIS_VERCEL.md`, `DIAGNOSTICO_404_SUPABASE.md`, `VERIFICAR_VERSAO_LOCAL.md`.
 
-**🏗️ Architectural Changes:**
-- **Storage Strategy**: Supabase is PRIMARY in production
-  - All proposals MUST be saved to Supabase (`propostas` table)
-  - All clients MUST be saved to Supabase (`clientes` table)
-  - Filesystem is fallback for development only
-  - `/admin/orcamentos` queries Supabase first, filesystem second
+### v2.2.2 — 06/11/2025
+- `/proposta/exemplo`, `/propostas-publicas` e `/validar-ambiente` modernizados (busca, filtros, ações rápidas).
+- Fluxo público ganhou botões WhatsApp, copiar link e limpeza automática de propostas de teste.
+- Branch strategy formalizada (`clean-main` produção, `desenvolvimento` sandbox) com guias de workflow.
 
-**📋 Supabase Integration:**
-- ✅ Configured: `https://asmvbrcxzvfvvolnalxw.supabase.co`
-- ✅ Tables: `clientes`, `propostas`, `orcamentos`, `configuracoes`
-- ✅ APIs updated: All admin APIs prioritize Supabase
-- ✅ Error handling: Clear messages when Supabase not configured
+### v2.2.1 — 31/10/2025
+- `/api/admin/orcamentos-todos` e `/admin/orcamentos` passaram a usar Supabase como fonte principal (IDs e botões corrigidos).
+- `/api/admin/criar-cliente` agora exige Supabase em produção e retorna mensagens detalhadas.
+- Definição oficial do modo híbrido: Supabase obrigatório em Vercel, filesystem apenas em desenvolvimento.
 
-**📦 Key Files Modified:**
-- `src/pages/api/admin/orcamentos-todos.ts` - Supabase integration
-- `src/pages/api/admin/criar-cliente.ts` - Required Supabase save
-- `src/pages/admin/orcamentos/index.tsx` - Shows ID do banco
-- `src/pages/admin/novo-cliente.tsx` - Better error messages
+### v2.2.0 — 26/10/2025
+- Migração plena para estratégia Supabase + filesystem; rotas dinâmicas configuradas com fallback `'blocking'`.
+- Correções de 404 em propostas SSG.
 
-**✅ Status:**
-- All features working in production
-- Supabase fully integrated
-- Production-ready
+### v2.1.0 — 25/10/2025
+- Primeira versão com controle de versão visual (`VERSION.md`, badge no admin).
+- Correções de ordenação em `/api/admin/clientes` e melhorias de logs/erros.
 
----
-
-### **v2.2.0** - 26/10/2025
-
-**🔧 Critical Fixes:**
-- Fixed error 404 in SSG routes (dynamic `getStaticPaths`)
-- `src/pages/proposta/[slug].tsx` now reads all clients automatically
-- Changed fallback from `true` to `'blocking'` for better UX
-
-**🏗️ Architectural Decisions:**
-- Migrated from filesystem-only to Supabase + filesystem hybrid
-- Supabase became primary storage for production reliability
-
----
-
-### **v2.1.0** - 25/10/2025
-
-**🔧 Bug Fixes:**
-- Fixed error 500 in `/api/admin/clientes` (date sorting crash)
-- Added safe date validation with NaN checks
-- Improved error handling with detailed logging
-
-**✨ Improvements:**
-- Added version badge in admin header (`v2.1.0`)
-- Created VERSION.md with complete version history
-- Implemented Semantic Versioning (SemVer) convention
-- Updated README.md with version badges
-- Enhanced documentation for continuity
-
----
-
----
-
-### **v2.2.2** - 06/11/2025 ✅ **CURRENT**
-
-**🔧 Critical Fixes:**
-- ✅ Fallback de especificações corrigido (usava || agora !== undefined)
-- ✅ Texto de garantia atualizado (10 anos defeitos + 25 anos desempenho)
-- ✅ Link botão Propostas Públicas corrigido (/propostas-publicas)
-
-**✨ New Features:**
-- ✅ `/proposta/exemplo` - Redireciona automaticamente para proposta mais recente
-- ✅ `/propostas-publicas` - Página modernizada com filtros e busca
-- ✅ `/validar-ambiente` - Interface de validação de configuração
-- ✅ Filtro automático de propostas de teste
-- ✅ Botões: Copiar Link, WhatsApp, Apagar
-
-**🔒 Security & Organization:**
-- ✅ Branch `desenvolvimento` criado e protegido
-- ✅ `WORKFLOW_DESENVOLVIMENTO.md` - Guia completo de desenvolvimento
-- ✅ `SETUP_AMBIENTE_DEV.md` - Setup de ambiente DEV separado
-- ✅ 12 arquivos obsoletos movidos para `/obsoleto/`
-- ✅ API `/api/validar-ambiente` para detectar ambiente
-
-**📝 Documentation:**
-- ✅ `CHANGELOG_LIMPEZA.md` - Registro de arquivos movidos
-- ✅ `analise-rotas.md` - Mapeamento completo de rotas ativas/obsoletas
-- ✅ `.env.example` atualizado com Supabase obrigatório marcado
-
-**🎯 Key Improvements:**
-- Propostas públicas com busca e filtros por mês
-- Remove propostas de teste automaticamente
-- Botão WhatsApp para compartilhar propostas
-- Validação automática de ambiente (prod vs dev)
-- Workflow de desenvolvimento documentado e seguro
-
----
-
-**Last Updated**: 2025-11-06 ✅ **v2.2.2**
-**System Status**: ✅ Production Ready
-**Current Issues**: None - All fixes applied
-**Supabase**: ✅ Fully integrated and required for production
-**Branch Strategy**: ✅ `clean-main` (prod) | `desenvolvimento` (dev)
-**Next Version**: v2.3.0 (Potential: Advanced analytics, multi-user auth)
+**Status atual:** Produção saudável em `clean-main` (Supabase obrigatório). Próximas metas: v2.3.0 (analytics avançado, multiusuário).
