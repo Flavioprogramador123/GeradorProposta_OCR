@@ -16,7 +16,10 @@ interface SistemaItem {
   potencia: number;
   modulos: number;
   inversores: number;
-  valorTotal: number;
+  valorTotal?: number;
+  total_final?: number;
+  ppix?: number;
+  precoPixDecimal?: number;
   geracaoMensal?: number;
   paybackMeses?: number;
   cobertura?: number;
@@ -306,7 +309,7 @@ export default function TodosOrcamentos() {
                             <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
                               <span className="text-gray-600 font-medium">Valor:</span>
                               <span className="font-bold text-green-600">
-                                R$ {sistema.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                R$ {(sistema.valorTotal || sistema.total_final || sistema.ppix || sistema.precoPixDecimal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
                             {sistema.geracaoMensal && typeof sistema.geracaoMensal === 'number' && (
