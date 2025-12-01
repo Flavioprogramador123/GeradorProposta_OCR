@@ -13,9 +13,10 @@ export default function Document() {
         <meta name="apple-mobile-web-app-title" content="PIENG" />
 
         {/* Icons */}
-        <link rel="icon" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <link rel="shortcut icon" href="/icon-192x192.png" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
 
         {/* Splash Screens (iOS) */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
