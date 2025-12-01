@@ -309,19 +309,19 @@ export default function TodosOrcamentos() {
                                 R$ {sistema.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
-                            {sistema.geracaoMensal && (
+                            {sistema.geracaoMensal && typeof sistema.geracaoMensal === 'number' && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Geração:</span>
                                 <span className="font-medium text-blue-600">{sistema.geracaoMensal.toFixed(0)} kWh/mês</span>
                               </div>
                             )}
-                            {sistema.paybackMeses && (
+                            {sistema.paybackMeses && typeof sistema.paybackMeses === 'number' && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Payback:</span>
                                 <span className="font-medium text-purple-600">{sistema.paybackMeses.toFixed(0)} meses</span>
                               </div>
                             )}
-                            {sistema.cobertura && (
+                            {sistema.cobertura && typeof sistema.cobertura === 'number' && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Cobertura:</span>
                                 <span className="font-medium text-orange-600">{sistema.cobertura.toFixed(0)}%</span>

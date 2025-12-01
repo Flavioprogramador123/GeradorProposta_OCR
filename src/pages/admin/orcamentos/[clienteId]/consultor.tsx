@@ -91,60 +91,64 @@ export default function ConsultorOrcamentosPage() {
           }
         }
         
-        // 🔧 FALLBACK: Dados simulados se não houver no localStorage
-        console.log('ℹ️ Carregando dados simulados (fallback)');
-        
-        const clienteData: Cliente = {
-          id: clienteId as string,
-          nome: 'Cliente Exemplo',
-          cidade: 'São Paulo',
-          consumoMensal: 600
-        };
-        
-        const orcamentosData: OrcamentoComparativo[] = [
-          {
-            id: '1',
-            nome: 'Sistema SOOLLAR',
-            fornecedor: 'SOOLLAR',
-            pcusto: 12000,
-            modulos: 20,
-            pot_modulo: 580,
-            marca_modulo: 'SOOLLAR',
-            inversores: 1,
-            pot_inv: 10,
-            marca_inversor: 'SOOLLAR',
-            status: 'pendente'
-          },
-          {
-            id: '2',
-            nome: 'Sistema BELENERGY',
-            fornecedor: 'BELENERGY',
-            pcusto: 11500,
-            modulos: 20,
-            pot_modulo: 580,
-            marca_modulo: 'BELENERGY',
-            inversores: 1,
-            pot_inv: 10,
-            marca_inversor: 'BELENERGY',
-            status: 'pendente'
-          },
-          {
-            id: '3',
-            nome: 'Sistema FORTLEV',
-            fornecedor: 'FORTLEV',
-            pcusto: 10800,
-            modulos: 20,
-            pot_modulo: 580,
-            marca_modulo: 'FORTLEV',
-            inversores: 1,
-            pot_inv: 10,
-            marca_inversor: 'FORTLEV',
-            status: 'pendente'
-          }
-        ];
+        // 🔧 FALLBACK: Carregar dados reais do cliente via API
+        console.log('📥 Carregando dados reais do cliente via API:', clienteId);
 
-        setCliente(clienteData);
-        setOrcamentos(orcamentosData);
+        try {
+          // Buscar dados do cliente
+          const clienteRes = await fetch(`/api/admin/clientes/${clienteId}`);
+          if (!clienteRes.ok) {
+            throw new Error('Cliente não encontrado');
+          }
+          const clienteApiData = await clienteRes.json();
+
+          const clienteData: Cliente = {
+            id: clienteId as string,
+            nome: clienteApiData.nome || 'Cliente',
+            cidade: clienteApiData.cidade || 'N/A',
+            consumoMensal: clienteApiData.consumoMensal || 600
+          };
+
+          // Buscar orçamentos do cliente
+          const orcamentosRes = await fetch(`/api/admin/orcamentos/${clienteId}`);
+          let orcamentosData: OrcamentoComparativo[] = [];
+
+          if (orcamentosRes.ok) {
+            const orcamentosApiData = await orcamentosRes.json();
+            console.log('✅ Orçamentos encontrados:', orcamentosApiData.orcamentos?.length || 0);
+
+            // Converter orçamentos da API para o formato do consultor
+            orcamentosData = (orcamentosApiData.orcamentos || []).map((orc: any, index: number) => ({
+              id: orc.id || `orc-${index}`,
+              nome: orc.fornecedor || `Orçamento ${index + 1}`,
+              fornecedor: orc.fornecedor || 'Fornecedor',
+              pcusto: orc.valorTotal || orc.precoCustoYaml || 0,
+              modulos: orc.componentes?.modulos?.quantidade || 0,
+              pot_modulo: orc.componentes?.modulos?.componente?.potencia || 550,
+              marca_modulo: orc.componentes?.modulos?.componente?.marca || 'Padrão',
+              inversores: orc.componentes?.inversores?.quantidade || 1,
+              pot_inv: orc.componentes?.inversores?.componente?.potencia || 5,
+              marca_inversor: orc.componentes?.inversores?.componente?.marca || 'Padrão',
+              status: orc.status || 'pendente'
+            }));
+          }
+
+          console.log('✅ Cliente e orçamentos carregados:', { cliente: clienteData.nome, orcamentos: orcamentosData.length });
+
+          setCliente(clienteData);
+          setOrcamentos(orcamentosData);
+        } catch (apiError) {
+          console.error('❌ Erro ao carregar dados da API:', apiError);
+
+          // Se falhar API, usar dados mínimos
+          setCliente({
+            id: clienteId as string,
+            nome: 'Cliente',
+            cidade: 'N/A',
+            consumoMensal: 600
+          });
+          setOrcamentos([]);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       } finally {
