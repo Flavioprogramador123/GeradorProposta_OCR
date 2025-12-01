@@ -1,12 +1,30 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.2.5** (18/11/2025)
+## 🎯 **VERSÃO ATUAL: v2.3.1** (01/12/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.2.5** - 18/11/2025 ✅ **ATUAL**
+### **v2.3.1** - 01/12/2025 ✅ **ATUAL**
+**Status**: 🟢 Em Produção (Vercel)
+
+**🔧 Correções:**
+- ✅ Removido card do Google Drive da área administrativa
+- ✅ Sistema de configurações indexado para uso global
+- ✅ Versão atualizada para 2.3.1
+
+**✨ Melhorias:**
+- ✅ Configurações agora podem ser utilizadas sem hardcode
+- ✅ Interface administrativa simplificada
+
+**📦 Deploy:**
+- Branch: `clean-main`
+- URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.2.5** - 18/11/2025
 **Status**: 🟢 Em Produção (Vercel)
 
 **🔧 Correções:**

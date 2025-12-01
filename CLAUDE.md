@@ -402,7 +402,12 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### v2.2.5 — 18/11/2025 ✅ CURRENT
+### v2.3.1 — 01/12/2025 ✅ CURRENT
+- Removido card do Google Drive da área administrativa
+- Sistema de configurações indexado para uso global (sem hardcode)
+- Versão atualizada para 2.3.1
+
+### v2.2.5 — 18/11/2025
 - Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase.
 - Orçamentos agora persistem no banco de dados (tabela `orcamentos`) com CRUD completo (GET/POST/PUT/DELETE).
 - Criado `src/utils/orcamentosSupabase.ts` com funções helper para resolução de cliente e mapeamento de dados.
@@ -502,7 +507,7 @@ Before deploying major changes:
 
 ---
 
-**Last Updated**: 2025-12-01 ✅ **v2.2.5** (production atual) → **v2.3.1** (deploy em andamento)
+**Last Updated**: 2025-12-01 ✅ **v2.3.1** (production atual)
 **System Status**: ✅ Production Ready - Deploy v2.3.1 in progress
 **Current Issues**: None - All fixes applied and tested
 **Supabase**: ✅ Fully integrated and required for production

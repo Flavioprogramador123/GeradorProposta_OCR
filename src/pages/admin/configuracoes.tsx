@@ -195,6 +195,9 @@ export default function Configuracoes() {
               <p className="text-gray-600">
                 Configure parâmetros, cálculos e textos do sistema de propostas
               </p>
+              <p className="text-sm text-blue-600 mt-2">
+                ✅ Configurações indexadas - Use o hook <code className="bg-blue-50 px-2 py-1 rounded">useConfiguracoes()</code> para acessar sem hardcode
+              </p>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
