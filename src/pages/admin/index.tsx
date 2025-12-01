@@ -147,7 +147,30 @@ export default function AdminIndex() {
     }
   };
 
-  const openEnviarPropostaModal = () => {
+  const openEnviarPropostaModal = (cliente?: ClienteInfo) => {
+    if (cliente) {
+      // Preencher formulário com dados do cliente
+      setEnviarForm({
+        clienteNome: cliente.nome,
+        clienteEmail: '',
+        clienteTelefone: '',
+        propostaSlug: cliente.pasta,
+        cidade: cliente.cidade,
+        consumoMensal: 2500,
+        tipoInstalacao: 'Telhado Fibrocimento'
+      });
+    } else {
+      // Limpar formulário para novo envio
+      setEnviarForm({
+        clienteNome: '',
+        clienteEmail: '',
+        clienteTelefone: '',
+        propostaSlug: '',
+        cidade: 'Anápolis/GO',
+        consumoMensal: 2500,
+        tipoInstalacao: 'Telhado Fibrocimento'
+      });
+    }
     setShowEnviarModal(true);
   };
 
@@ -306,7 +329,7 @@ export default function AdminIndex() {
             </div>
 
             {/* Ações Principais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
                 <div className="text-3xl mb-3">⚡</div>
                 <h3 className="font-semibold mb-1">Gerador Rápido</h3>
@@ -332,15 +355,6 @@ export default function AdminIndex() {
                   <p className="text-sm opacity-90">Ver todas propostas online</p>
                 </a>
               </Link>
-
-              <button
-                onClick={openEnviarPropostaModal}
-                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
-              >
-                <div className="text-3xl mb-3">📧</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Enviar Proposta</h3>
-                <p className="text-sm text-gray-600">Enviar link para cliente</p>
-              </button>
             </div>
 
             {/* Lista de Clientes */}
@@ -419,6 +433,13 @@ export default function AdminIndex() {
                                   >
                                     👁️ Ver Proposta
                                   </a>
+                                  <button
+                                    onClick={() => openEnviarPropostaModal(cliente)}
+                                    className="text-pink-600 hover:text-pink-900 px-2 py-1 rounded bg-pink-50 hover:bg-pink-100"
+                                    title="Enviar proposta por email"
+                                  >
+                                    📧 Email
+                                  </button>
                                   <button
                                     onClick={() => {
                                       const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
@@ -536,6 +557,7 @@ export default function AdminIndex() {
                   value={enviarForm.propostaSlug}
                   onChange={(e) => handleEnviarFormChange('propostaSlug', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Selecione a proposta para enviar"
                 >
                   <option value="">Selecione uma proposta</option>
                   {clientes.filter(c => c.temProposta).map(cliente => (
@@ -580,6 +602,7 @@ export default function AdminIndex() {
                   value={enviarForm.tipoInstalacao}
                   onChange={(e) => handleEnviarFormChange('tipoInstalacao', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Tipo de instalação"
                 >
                   <option value="Telhado Fibrocimento">Telhado Fibrocimento</option>
                   <option value="Telhado Cerâmico">Telhado Cerâmico</option>
