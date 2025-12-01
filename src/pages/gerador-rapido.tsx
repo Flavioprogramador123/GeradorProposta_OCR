@@ -110,24 +110,72 @@ export default function GeradorRapido() {
           potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
         }
 
-        // Extrair P.Custo de diferentes formatos
-        const pcusto = sistema.pcusto || sistema.precoCusto || sistema.valorTotal || sistema.total_final || 0;
+        // Extrair P.Custo de diferentes formatos com fallback robusto
+        let pcusto = 0;
+        if (sistema.pcusto) {
+          pcusto = typeof sistema.pcusto === 'number' ? sistema.pcusto : parseFloat(sistema.pcusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        } else if (sistema.precoCusto) {
+          pcusto = typeof sistema.precoCusto === 'number' ? sistema.precoCusto : parseFloat(sistema.precoCusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        } else if (sistema.valorTotal) {
+          pcusto = typeof sistema.valorTotal === 'number' ? sistema.valorTotal : parseFloat(sistema.valorTotal.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        } else if (sistema.total_final) {
+          pcusto = typeof sistema.total_final === 'number' ? sistema.total_final : parseFloat(sistema.total_final.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        } else if (sistema.ppix) {
+          // Se não tem pcusto, usar ppix como fallback (mas avisar)
+          pcusto = typeof sistema.ppix === 'number' ? sistema.ppix : parseFloat(sistema.ppix.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+          console.warn(`⚠️ Sistema ${index + 1} não tem pcusto, usando ppix como fallback`);
+        }
         
-        // Calcular módulos e inversores se não existirem
-        const modulos = sistema.modulos || (potenciaTotal > 0 ? Math.round(potenciaTotal * 1000 / 605) : 10);
-        const inversores = sistema.inversores || (potenciaTotal > 0 ? Math.ceil(potenciaTotal / 15) : 1);
-        const pot_modulo = sistema.pot_modulo || 605;
-        const pot_inv = sistema.pot_inv || 15;
+        // Calcular módulos e inversores se não existirem (com valores mínimos garantidos)
+        let modulos = 0;
+        if (sistema.modulos) {
+          modulos = typeof sistema.modulos === 'number' ? sistema.modulos : parseInt(sistema.modulos.toString()) || 0;
+        } else if (potenciaTotal > 0) {
+          modulos = Math.round(potenciaTotal * 1000 / 605);
+        } else {
+          modulos = 10; // Valor padrão mínimo
+        }
+        
+        let inversores = 0;
+        if (sistema.inversores) {
+          inversores = typeof sistema.inversores === 'number' ? sistema.inversores : parseInt(sistema.inversores.toString()) || 0;
+        } else if (potenciaTotal > 0) {
+          inversores = Math.ceil(potenciaTotal / 15);
+        } else {
+          inversores = 1; // Valor padrão mínimo
+        }
+        
+        let pot_modulo = 0;
+        if (sistema.pot_modulo) {
+          pot_modulo = typeof sistema.pot_modulo === 'number' ? sistema.pot_modulo : parseFloat(sistema.pot_modulo.toString().replace(',', '.')) || 0;
+        } else {
+          pot_modulo = 605; // Valor padrão
+        }
+        
+        let pot_inv = 0;
+        if (sistema.pot_inv) {
+          pot_inv = typeof sistema.pot_inv === 'number' ? sistema.pot_inv : parseFloat(sistema.pot_inv.toString().replace(',', '.')) || 0;
+        } else {
+          pot_inv = 15; // Valor padrão
+        }
+
+        // Garantir valores mínimos válidos
+        if (pcusto <= 0) {
+          console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido (${pcusto}), usando valor padrão mínimo`);
+          pcusto = 10000; // Valor mínimo padrão
+        }
+        if (modulos <= 0) modulos = 10;
+        if (pot_modulo <= 0) pot_modulo = 605;
 
         const orcamento: Orcamento = {
           nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
           distribuidora: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
-          pcusto: typeof pcusto === 'number' ? pcusto : parseFloat(pcusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0,
-          modulos: typeof modulos === 'number' ? modulos : parseInt(modulos.toString()) || 10,
-          pot_modulo: typeof pot_modulo === 'number' ? pot_modulo : parseFloat(pot_modulo.toString().replace(',', '.')) || 605,
+          pcusto,
+          modulos,
+          pot_modulo,
           marca_modulo: sistema.marca_modulo || 'Padrão',
-          inversores: typeof inversores === 'number' ? inversores : parseInt(inversores.toString()) || 1,
-          pot_inv: typeof pot_inv === 'number' ? pot_inv : parseFloat(pot_inv.toString().replace(',', '.')) || 15,
+          inversores: inversores || 1,
+          pot_inv: pot_inv || 15,
           marca_inversor: sistema.marca_inversor || 'Padrão',
           pdespesa_fixo: sistema.pdespesa_fixo || sistema.pdespesaFixo || config.pdespesaFixo,
           pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || sistema.pdespesaVariavel || config.pdespesaVariavel,
@@ -139,18 +187,54 @@ export default function GeradorRapido() {
           pcusto: orcamento.pcusto,
           modulos: orcamento.modulos,
           pot_modulo: orcamento.pot_modulo,
-          valido: orcamento.pcusto > 0 && orcamento.modulos > 0 && orcamento.pot_modulo > 0
+          inversores: orcamento.inversores,
+          valido: orcamento.pcusto > 0 && orcamento.modulos > 0 && orcamento.pot_modulo > 0,
+          sistemaOriginal: {
+            pcusto: sistema.pcusto,
+            precoCusto: sistema.precoCusto,
+            valorTotal: sistema.valorTotal,
+            total_final: sistema.total_final,
+            ppix: sistema.ppix,
+            modulos: sistema.modulos,
+            pot_modulo: sistema.pot_modulo
+          }
         });
 
         return orcamento;
       });
 
-      // Validar orçamentos antes de salvar
-      const orcamentosValidos = orcamentosCarregados.filter(orc => {
-        const valido = orc && orc.nome && orc.pcusto > 0 && orc.modulos > 0 && orc.pot_modulo > 0;
+      // Validar orçamentos antes de salvar com logs detalhados
+      const orcamentosValidos = orcamentosCarregados.filter((orc, index) => {
+        const validacoes = {
+          temOrcamento: !!orc,
+          temNome: !!orc?.nome,
+          pcustoValido: orc?.pcusto > 0,
+          modulosValido: orc?.modulos > 0,
+          pot_moduloValido: orc?.pot_modulo > 0
+        };
+        
+        const valido = validacoes.temOrcamento && validacoes.temNome && validacoes.pcustoValido && validacoes.modulosValido && validacoes.pot_moduloValido;
+        
         if (!valido) {
-          console.warn('⚠️ Orçamento inválido será removido:', orc);
+          console.warn(`⚠️ Orçamento ${index + 1} inválido será removido:`, {
+            orcamento: orc,
+            validacoes,
+            valores: {
+              nome: orc?.nome,
+              pcusto: orc?.pcusto,
+              modulos: orc?.modulos,
+              pot_modulo: orc?.pot_modulo
+            }
+          });
+        } else {
+          console.log(`✅ Orçamento ${index + 1} válido:`, {
+            nome: orc.nome,
+            pcusto: orc.pcusto,
+            modulos: orc.modulos,
+            pot_modulo: orc.pot_modulo
+          });
         }
+        
         return valido;
       });
 
