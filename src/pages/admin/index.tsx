@@ -331,15 +331,6 @@ export default function AdminIndex() {
                 <p className="text-sm text-gray-600">Gerenciar orçamentos</p>
               </a></Link>
 
-              <button
-                onClick={loadClientesData}
-                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
-              >
-                <div className="text-3xl mb-3">🔄</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Atualizar</h3>
-                <p className="text-sm text-gray-600">Recarregar dados</p>
-              </button>
-
               <Link href="/propostas-publicas" legacyBehavior>
                 <a className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
                   <div className="text-3xl mb-3">🌐</div>
