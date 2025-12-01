@@ -1,6 +1,6 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.3.1-blue.svg)](CLAUDE.md)
+[![Versão](https://img.shields.io/badge/versão-v2.3.3-blue.svg)](CLAUDE.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
@@ -8,8 +8,20 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.3.1` (01/12/2025) ✅ **PRODUÇÃO**
+**📌 Versão Atual**: `v2.3.3` (01/12/2025) ✅ **PRODUÇÃO**
 **📖** [Ver Changelog Completo](CLAUDE.md) | [Documentação PWA](PWA.md)
+
+## 🆕 Novidades v2.3.3 (01/12/2025)
+
+**🔧 Correções Críticas:**
+- ✅ **TypeError Fix**: Corrigido erro `toLocaleString()` em `/admin/orcamentos`
+- ✅ Verificação robusta de valores undefined/null
+- ✅ Fallback seguro para exibição de valores monetários
+
+**🎨 Melhorias UI/UX:**
+- ✅ Removido card "Enviar Proposta" da tela principal
+- ✅ Botão "Email" integrado na linha de ações dos clientes
+- ✅ Modal pré-preenchido com dados do cliente
 
 ## 🆕 Novidades v2.3.1 (01/12/2025)
 

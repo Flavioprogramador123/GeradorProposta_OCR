@@ -1,12 +1,46 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.3.1** (01/12/2025)
+## 🎯 **VERSÃO ATUAL: v2.3.3** (01/12/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.3.1** - 01/12/2025 ✅ **ATUAL**
+### **v2.3.3** - 01/12/2025 ✅ **ATUAL**
+**Status**: 🟢 Em Produção (Vercel)
+
+**🔧 Correções Críticas:**
+- ✅ **TypeError Fix**: Corrigido erro `Cannot read properties of undefined (reading 'toLocaleString')` em `/admin/orcamentos`
+  - Adicionada verificação robusta de tipo antes de chamar `toLocaleString()`
+  - Fallback seguro para valores undefined/null
+  - Uso de nullish coalescing (`??`) para preservar valores `0`
+
+**🎨 Melhorias UI/UX:**
+- ✅ Removido card "Enviar Proposta" da tela principal do admin
+- ✅ Integrado botão "Email" na linha de ações da lista de clientes
+- ✅ Modal de envio de proposta pré-preenchido com dados do cliente
+
+**📦 Arquivos Modificados:**
+- `src/pages/admin/orcamentos/index.tsx` - Fix TypeError com verificação de tipo
+- `src/pages/admin/index.tsx` - Removido card "Enviar Proposta", adicionado botão Email na lista
+
+**📦 Deploy:**
+- Commits: `25ee551`
+- Branch: `clean-main`
+- URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.3.2** - 01/12/2025
+**Status**: 🟡 Substituído
+
+**🔧 Correções:**
+- ✅ Removido card "Novo Cliente" do admin
+- ✅ Melhorias no carregamento de propostas existentes
+
+---
+
+### **v2.3.1** - 01/12/2025
 **Status**: 🟢 Em Produção (Vercel)
 
 **🔧 Correções Críticas:**

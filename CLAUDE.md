@@ -402,7 +402,36 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### v2.3.1 — 01/12/2025 ✅ **CURRENT PRODUCTION**
+### v2.3.3 — 01/12/2025 ✅ **CURRENT PRODUCTION**
+
+**🔧 Critical Fixes:**
+- ✅ **TypeError Fix**: Fixed `Cannot read properties of undefined (reading 'toLocaleString')` in `/admin/orcamentos`
+  - Added robust type checking before calling `toLocaleString()`
+  - Safe fallback for undefined/null values
+  - Using nullish coalescing (`??`) to preserve `0` values
+
+**🎨 UI/UX Improvements:**
+- ✅ Removed "Enviar Proposta" card from main admin screen
+- ✅ Integrated "Email" button in client list action row
+- ✅ Email modal pre-filled with client data (name, slug, city)
+
+**📦 Files Modified:**
+- `src/pages/admin/orcamentos/index.tsx` - TypeError fix with type checking
+- `src/pages/admin/index.tsx` - Removed "Enviar Proposta" card, added Email button
+
+**✅ Status:**
+- All fixes tested and deployed
+- Production ready (Vercel) - v2.3.3
+
+---
+
+### v2.3.2 — 01/12/2025
+- ✅ Removed "Novo Cliente" card from admin
+- ✅ Improved existing proposal loading
+
+---
+
+### v2.3.1 — 01/12/2025
 
 **🔧 Critical Fixes:**
 - ✅ **Window Opening Fix**: Proposta agora abre diretamente na URL correta sem `about:blank`
@@ -524,7 +553,7 @@ Before deploying major changes:
 
 ---
 
-**Last Updated**: 2025-12-01 ✅ **v2.3.1**
+**Last Updated**: 2025-12-01 ✅ **v2.3.3**
 **System Status**: ✅ Production Ready
 **Current Issues**: None - All fixes applied and tested
 **Supabase**: ✅ Fully integrated and required for production
