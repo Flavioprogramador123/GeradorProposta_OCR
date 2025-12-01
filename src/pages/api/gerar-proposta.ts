@@ -660,7 +660,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
           tir: `${(sistema.tirAnual || 0).toFixed(1)}%`,
           isRecommended: index === melhorIndice,
-          badge: index === melhorIndice ? '⭐ MELHOR PAYBACK' : ''
+          badge: index === melhorIndice ? '⭐ MELHOR PAYBACK' : '',
+          // ✅ NOVOS CAMPOS para edição de proposta (Supabase dados_completos)
+          pcusto: sistema.pcusto || sistema.precoCusto || 0,
+          modulos: sistema.modulos || Math.round(sistema.potTotal * 1000 / 580),
+          pot_modulo: sistema.pot_modulo || 580,
+          marca_modulo: sistema.marca_modulo || 'N/A',
+          inversores: sistema.inversores || 1,
+          pot_inv: sistema.pot_inv || Math.ceil(sistema.potTotal),
+          marca_inversor: sistema.marca_inversor || 'N/A',
+          pdespesa_fixo: sistema.pdespesa_fixo || 0,
+          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || 0,
+          potTotal: sistema.potTotal || 0,
+          nome: sistema.nome || `Sistema ${String(index + 1).padStart(2, '0')}`,
+          distribuidora: sistema.distribuidora || 'Fornecedor'
         }));
       })(),
       analise: (() => {
