@@ -41,8 +41,9 @@ npx vercel logs                      # View deployment logs
 2. Quote Upload → AI Extraction → src/pages/api/admin/extract-data.ts
 3. Quote Processing → Python Calculator → Financial Analysis
 4. Proposal Generation → Template Engine → HTML/JSON output
-5. Proposal Persistence → Supabase (propostas table) with html_gerado + dados_completos
-6. Public Access → /proposta/[slug] (reads from Supabase first, then filesystem fallback)
+5. Proposal Persistence → Supabase (propostas table) with html_gerado + dados_completos (filesystem fallback only in dev)
+6. Configurações globais → Supabase (`configuracoes` table) com fallback local em `src/data/sistema/configuracoes.json`
+7. Public Access → /proposta/[slug] (reads from Supabase first, then filesystem fallback)
 ```
 
 **⚠️ IMPORTANT:** In production (Vercel), data MUST be saved to Supabase. Filesystem is read-only.
@@ -83,8 +84,9 @@ The system recognizes multiple solar distributors automatically:
 - Validates extracted data consistency
 
 #### 5. **Configuration System**
-- Central config: `src/data/sistema/configuracoes.json`
+- Primary storage: Supabase `configuracoes` table (`chave = 'sistema_config'`)
 - API endpoint: `/api/admin/config`
+- Fallback: `src/data/sistema/configuracoes.json` (dev) or `/tmp/configuracoes.json` (serverless fallback)
 - Controls: pricing margins, discount rates, performance factors
 - Editable through `/admin/configuracoes`
 
@@ -107,12 +109,15 @@ The system recognizes multiple solar distributors automatically:
 /api/admin/clientes             → List all clients (Supabase + filesystem fallback)
 /api/admin/criar-cliente        → Create client (MUST save to Supabase in production)
 /api/admin/orcamentos-todos     → List all proposals as orçamentos (Supabase first)
+/api/admin/orcamentos/[cliente] → CRUD orçamentos (GET/POST - Supabase-first)
+/api/admin/orcamentos/[cliente]/[orcamentoId] → GET/PUT/DELETE orçamento específico
 /api/admin/extract-data         → AI extraction from PDFs/images
 /api/admin/config               → System configuration
 /api/gerar-proposta             → Generate proposal HTML + JSON (saves to Supabase)
 /api/propostas-publicas         → List public proposals (Supabase + filesystem)
 /api/test-supabase              → Test Supabase connection
 /api/test-proposta-slug         → Diagnostic API for specific proposal
+/api/test-cliente-padrao        → Diagnóstico rápido para cliente/proposta em produção
 ```
 
 ### Core Libraries
@@ -124,6 +129,7 @@ src/lib/types.ts                    → TypeScript interfaces
 src/lib/variantConfig.ts            → Property type variants
 src/lib/supabase.ts                 → Supabase client & helper functions
 src/lib/google-drive.ts             → Cloud storage integration (optional)
+src/utils/orcamentosSupabase.ts     → Orçamentos Supabase utilities (resolve, map, sanitize)
 ```
 
 ---
@@ -174,11 +180,31 @@ Each client has a folder: `src/data/clientes/[slug]/`
 2. File sent to `/api/admin/extract-data`
 3. AI extracts: modules, inverters, prices, distributor
 4. User reviews/edits → `/admin/orcamentos/[clienteId]/manual`
-5. Save to `orcamento[N].json`
+5. Save to Supabase (`orcamentos` table) via `/api/admin/orcamentos/[clienteId]` (POST)
+   - **PRODUCTION**: Saved to Supabase `orcamentos` table
+   - **DEVELOPMENT**: Fallback to `orcamento[N].json` in filesystem
 6. Generate proposal → Calls `/api/gerar-proposta`
 7. Python calculator validates and enriches data
 8. Template engine creates HTML + updates JSON
-9. Files written to both locations (data + public)
+9. Files written to both locations (Supabase + public filesystem)
+
+### Orçamentos (Quotes) Storage
+
+**Supabase Table: `orcamentos`**
+- `id` (UUID) - Primary key
+- `cliente_id` (UUID) - Foreign key to `clientes`
+- `arquivo_nome` (text) - Original file name
+- `fornecedor` (text) - Distributor name
+- `valor_total` (numeric) - Total value
+- `data_orcamento` (timestamp) - Quote date
+- `componentes` (JSONB) - Modules, inverters, etc.
+- `dados_extraidos` (JSONB) - Full extracted data (precoCustoYaml, pdespesa, etc.)
+- `created_at` (timestamp) - Creation timestamp
+
+**Helper Functions** (`src/utils/orcamentosSupabase.ts`):
+- `resolveClienteSupabase(clienteId)` - Resolves client by ID, slug, nome, or pasta
+- `mapSupabaseOrcamentoRow(row)` - Maps Supabase row to API format
+- `sanitizeId(value)` - Sanitizes IDs for matching
 
 ---
 
@@ -306,6 +332,11 @@ Use emoji prefixes:
 - **Likely cause**: Template engine trying to read files from filesystem
 - **Solution**: Ensure CSS files are in `public/styles/` and template engine uses `<link>` tags in production
 
+### `/api/admin/config` returning 500
+- **Likely cause**: Supabase vars ausentes. Endpoint agora salva em Supabase; sem `NEXT_PUBLIC_SUPABASE_*` ele cai para `/tmp` apenas em dev.
+- **Diagnóstico**: Ver `VERIFICAR_VARIAVEIS_VERCEL.md` e checar `/api/admin/config` + logs (`savedToSupabase: false`).
+- **Solução**: Configure as variáveis em Vercel ou rode localmente com `.env`; apenas em dev o fallback para arquivo é permitido.
+
 ### Proposal Shows 404
 - **First**: Check if proposal exists in Supabase: `/api/test-proposta-slug?slug=[slug]`
 - **Second**: Check if `proposta.json` exists in `src/data/clientes/[slug]/` (local only)
@@ -324,6 +355,7 @@ Use emoji prefixes:
 - Check API `/api/admin/clientes` response (should show `source: 'supabase'` or `source: 'filesystem'`)
 - Ensure folder name matches slug pattern
 - **Test Supabase connection**: `/api/test-supabase`
+- **Diagnóstico rápido**: usar `/api/test-cliente-padrao` (ou clone desse endpoint) para validar cliente + proposta por slug.
 
 ### Python Calculator Errors
 - Check if Python backend is accessible
@@ -370,72 +402,46 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### **v2.2.1** - 31/10/2025 ✅ **CURRENT**
+### v2.2.5 — 18/11/2025 ✅ CURRENT
+- Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase.
+- Orçamentos agora persistem no banco de dados (tabela `orcamentos`) com CRUD completo (GET/POST/PUT/DELETE).
+- Criado `src/utils/orcamentosSupabase.ts` com funções helper para resolução de cliente e mapeamento de dados.
+- Resolução automática de cliente por múltiplos identificadores (ID, slug, nome, pasta).
+- Configuração do ESLint (eslint@8.57.0 compatível com Next.js 13.5.6).
+- Documentação atualizada com detalhes da integração de orçamentos no Supabase.
 
-**🔧 Critical Fixes:**
-- ✅ **Admin Orçamentos**: Now fetches from Supabase (was filesystem-only)
-- ✅ **Criar Cliente**: Now REQUIRED to save to Supabase in production (was optional)
-- ✅ **Botão "Ver Orçamento" null**: Fixed with validation check
-- ✅ **ID do banco não aparecia**: API now returns `propostaId` from Supabase
-- ✅ **Admin `/orcamentos` page**: Shows ID do banco and "Ver Proposta" button
+### v2.2.4 — 18/11/2025
+- `/api/admin/config` salva no Supabase (`configuracoes`) e só cai para filesystem local quando necessário.
+- `/api/admin/clientes` ganhou sanitização completa, estatísticas consistentes (`propostasGeradas`) e logs indicando fonte (`supabase`/`filesystem`).
+- `/api/admin/clientes/[clienteId]` consulta/atualiza clientes diretamente no Supabase antes do filesystem, evitando 404 em produção.
+- Nova rota diagnóstica `/api/test-cliente-padrao` confirma se cliente/proposta existem no banco.
+- Badge da área admin, README e VERSION atualizados para `v2.2.4`, garantindo visibilidade da versão deployada.
 
-**🏗️ Architectural Changes:**
-- **Storage Strategy**: Supabase is PRIMARY in production
-  - All proposals MUST be saved to Supabase (`propostas` table)
-  - All clients MUST be saved to Supabase (`clientes` table)
-  - Filesystem is fallback for development only
-  - `/admin/orcamentos` queries Supabase first, filesystem second
+### v2.2.3 — 17/11/2025
+- Corrigido download de SWC (Next 13.5.6 fixado) e sincronização `package-lock.json`.
+- `/api/gerar-proposta` recebeu validações extras (dados obrigatórios, divisões por zero, fallback de HTML, try/catch em Python).
+- Supabase client ficou null-safe; página duplicada `/proposta-supabase/[slug]` removida.
+- Documentação operacional expandida: `VERIFICAR_VARIAVEIS_VERCEL.md`, `DIAGNOSTICO_404_SUPABASE.md`, `VERIFICAR_VERSAO_LOCAL.md`.
 
-**📋 Supabase Integration:**
-- ✅ Configured: `https://asmvbrcxzvfvvolnalxw.supabase.co`
-- ✅ Tables: `clientes`, `propostas`, `orcamentos`, `configuracoes`
-- ✅ APIs updated: All admin APIs prioritize Supabase
-- ✅ Error handling: Clear messages when Supabase not configured
+### v2.2.2 — 06/11/2025
+- `/proposta/exemplo`, `/propostas-publicas` e `/validar-ambiente` modernizados (busca, filtros, ações rápidas).
+- Fluxo público ganhou botões WhatsApp, copiar link e limpeza automática de propostas de teste.
+- Branch strategy formalizada (`clean-main` produção, `desenvolvimento` sandbox) com guias de workflow.
 
-**📦 Key Files Modified:**
-- `src/pages/api/admin/orcamentos-todos.ts` - Supabase integration
-- `src/pages/api/admin/criar-cliente.ts` - Required Supabase save
-- `src/pages/admin/orcamentos/index.tsx` - Shows ID do banco
-- `src/pages/admin/novo-cliente.tsx` - Better error messages
+### v2.2.1 — 31/10/2025
+- `/api/admin/orcamentos-todos` e `/admin/orcamentos` passaram a usar Supabase como fonte principal (IDs e botões corrigidos).
+- `/api/admin/criar-cliente` agora exige Supabase em produção e retorna mensagens detalhadas.
+- Definição oficial do modo híbrido: Supabase obrigatório em Vercel, filesystem apenas em desenvolvimento.
 
-**✅ Status:**
-- All features working in production
-- Supabase fully integrated
-- Production-ready
+### v2.2.0 — 26/10/2025
+- Migração plena para estratégia Supabase + filesystem; rotas dinâmicas configuradas com fallback `'blocking'`.
+- Correções de 404 em propostas SSG.
 
----
+### v2.1.0 — 25/10/2025
+- Primeira versão com controle de versão visual (`VERSION.md`, badge no admin).
+- Correções de ordenação em `/api/admin/clientes` e melhorias de logs/erros.
 
-### **v2.2.0** - 26/10/2025
-
-**🔧 Critical Fixes:**
-- Fixed error 404 in SSG routes (dynamic `getStaticPaths`)
-- `src/pages/proposta/[slug].tsx` now reads all clients automatically
-- Changed fallback from `true` to `'blocking'` for better UX
-
-**🏗️ Architectural Decisions:**
-- Migrated from filesystem-only to Supabase + filesystem hybrid
-- Supabase became primary storage for production reliability
-
----
-
-### **v2.1.0** - 25/10/2025
-
-**🔧 Bug Fixes:**
-- Fixed error 500 in `/api/admin/clientes` (date sorting crash)
-- Added safe date validation with NaN checks
-- Improved error handling with detailed logging
-
-**✨ Improvements:**
-- Added version badge in admin header (`v2.1.0`)
-- Created VERSION.md with complete version history
-- Implemented Semantic Versioning (SemVer) convention
-- Updated README.md with version badges
-- Enhanced documentation for continuity
-
----
-
-### **v2.3.0** - 06/11/2025 ✅ **CURRENT**
-
+### v2.3.0 — 06/11/2025 (branch `desenvolvimento`)
 **📱 PWA Implementation (Progressive Web App):**
 - ✅ **Manifest.json**: Full PWA configuration with shortcuts
 - ✅ **Service Worker**: Offline cache with Network First strategy
@@ -454,41 +460,18 @@ Before deploying major changes:
 - `src/pages/_document.tsx` - PWA meta tags
 - `src/components/InstallPWA.tsx` - Installation component
 - `PWA.md` - Complete PWA documentation
-- `scripts/generate-icons.js` - Icon generation helper
-- `scripts/create-placeholder-icons.js` - Placeholder icons for testing
 
 **✨ Features:**
 - Installable on Android, iPhone, Windows, Mac, Linux
 - Works offline after first visit (cached pages)
 - Native app experience (standalone window)
 - Fast loading with Service Worker cache
-- Automatic updates when new version deployed
-- iOS Safari support (manual installation)
-
-**🎨 Design:**
-- Theme color: Orange (#f59e0b) - PIENG brand
-- Icon: Solar panel + sun symbol
-- Splash screen configured
-- Status bar styled
-
-**📊 Testing:**
-- ✅ Tested locally with `npm run dev`
-- ✅ Service Worker registers correctly
-- ✅ Manifest loads without errors
-- ⏳ Production deployment pending
-
-**📖 Documentation:**
-- Complete guide in [PWA.md](PWA.md)
-- Installation instructions for all platforms
-- Troubleshooting section
-- Technical details (cache strategy, offline behavior)
-- Roadmap (v1.1.0: Push notifications, Background sync)
 
 ---
 
-**Last Updated**: 2025-11-06 ✅ **v2.3.0**
-**System Status**: ✅ Production Ready + PWA Enabled
+**Last Updated**: 2025-11-18 ✅ **v2.2.5** (production) / **v2.3.0** (desenvolvimento)
+**System Status**: ✅ Production Ready (clean-main) + PWA in Development
 **Current Issues**: None - All fixes applied
 **Supabase**: ✅ Fully integrated and required for production
-**PWA Status**: ✅ Implemented (pending production deployment)
-**Next Version**: v2.4.0 (Potential: Push notifications, Background sync, Share API)
+**PWA Status**: ✅ Implemented in `desenvolvimento` (pending merge to clean-main)
+**Next Version**: v2.3.0 (PWA deployment) → v2.4.0 (Push notifications, Background sync, Share API)

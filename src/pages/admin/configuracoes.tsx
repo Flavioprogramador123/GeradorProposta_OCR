@@ -121,13 +121,21 @@ export default function Configuracoes() {
         body: JSON.stringify(config),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        alert('Configurações salvas com sucesso!');
+        const source = data.source || 'desconhecido';
+        alert(`✅ ${data.message || 'Configurações salvas com sucesso!'}\n\nFonte: ${source}`);
       } else {
-        alert('Erro ao salvar configurações');
+        const errorMsg = data.error || data.message || 'Erro desconhecido';
+        const debugInfo = data.debug ? `\n\nDebug:\n${JSON.stringify(data.debug, null, 2)}` : '';
+        alert(`❌ Erro ao salvar configurações\n\n${errorMsg}${debugInfo}`);
+        console.error('Erro ao salvar configurações:', data);
       }
     } catch (error) {
-      alert('Erro ao salvar configurações');
+      const errorMsg = error instanceof Error ? error.message : 'Erro de rede';
+      alert(`❌ Erro ao salvar configurações\n\n${errorMsg}`);
+      console.error('Erro ao salvar configurações:', error);
     } finally {
       setLoading(false);
     }

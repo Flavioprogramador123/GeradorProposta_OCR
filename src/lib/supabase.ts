@@ -1,14 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Configuração do Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Criar cliente apenas se as variáveis estiverem configuradas
+let supabaseInstance: SupabaseClient | null = null;
+
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (error) {
+    console.warn('⚠️ Erro ao criar cliente Supabase:', error);
+  }
+} else {
   console.warn('⚠️ Variáveis Supabase não configuradas. Usando modo fallback.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Exportar função que retorna o cliente ou null
+export const supabase = supabaseInstance;
 
 // ============================================
 // TIPOS TYPESCRIPT
@@ -79,6 +89,11 @@ export interface Configuracao {
  * Buscar cliente por slug
  */
 export async function getClienteBySlug(slug: string) {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Não é possível buscar cliente.');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .select('*')
@@ -97,6 +112,11 @@ export async function getClienteBySlug(slug: string) {
  * Buscar proposta por slug
  */
 export async function getPropostaBySlug(slug: string) {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Não é possível buscar proposta.');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('propostas')
     .select('*, clientes(*)')
@@ -115,6 +135,10 @@ export async function getPropostaBySlug(slug: string) {
  * Criar ou atualizar proposta
  */
 export async function upsertProposta(proposta: Partial<Proposta>) {
+  if (!supabase) {
+    throw new Error('Supabase não configurado. Não é possível salvar proposta.');
+  }
+
   const { data, error } = await supabase
     .from('propostas')
     .upsert(proposta, { onConflict: 'slug' })
@@ -133,6 +157,10 @@ export async function upsertProposta(proposta: Partial<Proposta>) {
  * Criar cliente
  */
 export async function createCliente(cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) {
+  if (!supabase) {
+    throw new Error('Supabase não configurado. Não é possível criar cliente.');
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .insert(cliente)
@@ -151,6 +179,11 @@ export async function createCliente(cliente: Omit<Cliente, 'id' | 'created_at' |
  * Buscar todos os clientes
  */
 export async function getAllClientes() {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Retornando lista vazia.');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .select('*')
@@ -168,6 +201,11 @@ export async function getAllClientes() {
  * Buscar configuração por chave
  */
 export async function getConfiguracao(chave: string) {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Não é possível buscar configuração.');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('configuracoes')
     .select('*')
@@ -186,6 +224,11 @@ export async function getConfiguracao(chave: string) {
  * Buscar todas as configurações
  */
 export async function getAllConfiguracoes() {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Retornando lista vazia.');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('configuracoes')
     .select('*');
@@ -203,6 +246,10 @@ export async function getAllConfiguracoes() {
  * Retorna o cliente existente ou cria um novo
  */
 export async function findOrCreateCliente(cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) {
+  if (!supabase) {
+    throw new Error('Supabase não configurado. Não é possível buscar ou criar cliente.');
+  }
+
   // Tentar buscar cliente existente
   const { data: clienteExistente } = await supabase
     .from('clientes')
@@ -245,6 +292,11 @@ export async function findOrCreateCliente(cliente: Omit<Cliente, 'id' | 'created
  * Buscar cliente por ID
  */
 export async function getClienteById(id: string) {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Não é possível buscar cliente.');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .select('*')
@@ -263,6 +315,10 @@ export async function getClienteById(id: string) {
  * Atualizar cliente
  */
 export async function updateCliente(id: string, updates: Partial<Cliente>) {
+  if (!supabase) {
+    throw new Error('Supabase não configurado. Não é possível atualizar cliente.');
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .update({
@@ -285,6 +341,11 @@ export async function updateCliente(id: string, updates: Partial<Cliente>) {
  * Buscar clientes com propostas (para dashboard)
  */
 export async function getClientesWithPropostas() {
+  if (!supabase) {
+    console.warn('⚠️ Supabase não configurado. Retornando lista vazia.');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .select(`

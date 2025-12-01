@@ -131,16 +131,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Validar dados
     if (!cliente || !orcamentos || !config) {
-      return res.status(400).json({ message: 'Dados incompletos' });
+      return res.status(400).json({ 
+        message: 'Dados incompletos',
+        details: {
+          temCliente: !!cliente,
+          temOrcamentos: !!orcamentos,
+          temConfig: !!config,
+          orcamentosCount: orcamentos?.length || 0
+        }
+      });
+    }
+
+    // Validar que orcamentos não está vazio
+    if (!Array.isArray(orcamentos) || orcamentos.length === 0) {
+      return res.status(400).json({ 
+        message: 'Nenhum orçamento fornecido. Adicione pelo menos um orçamento para gerar a proposta.',
+        details: {
+          orcamentosType: typeof orcamentos,
+          orcamentosLength: Array.isArray(orcamentos) ? orcamentos.length : 'N/A'
+        }
+      });
     }
 
     // 🔧 NOVO: Carregar configurações dinâmicas do sistema
-    const configSistema = await carregarConfiguracoes();
-    console.log('📋 Configurações carregadas:', configSistema);
+    let configSistema;
+    try {
+      configSistema = await carregarConfiguracoes();
+      console.log('📋 Configurações carregadas:', configSistema);
+    } catch (configError) {
+      console.error('⚠️ Erro ao carregar configurações, usando padrão:', configError);
+      configSistema = {
+        descontoPix: 10.0,
+        fatorParcelado: 1.20,
+        fator12x: 0.88,
+        fator18x: 0.83,
+        performanceRate: 0.75,
+        jurosParcela12x: 2.5,
+        jurosParcela18x: 3.2
+      };
+    }
 
-    // 🔧 NOVO: Validar dados com Python Calculator
-    const validationResults = await validarDadosComPython(orcamentos, cliente);
-    console.log('🐍 Validação Python:', validationResults.length, 'resultados');
+    // 🔧 NOVO: Validar dados com Python Calculator (opcional, não deve quebrar se falhar)
+    let validationResults = [];
+    try {
+      validationResults = await validarDadosComPython(orcamentos, cliente);
+      console.log('🐍 Validação Python:', validationResults.length, 'resultados');
+    } catch (validationError) {
+      console.warn('⚠️ Validação Python não disponível, continuando sem validação:', validationError);
+    }
 
     // Calcular preços usando configurações dinâmicas do sistema
     const calcularPrecos = (totalFinal: number) => {
@@ -177,29 +215,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // 🔧 NOVO: Usar performanceRate das configurações do sistema
       const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
       const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
-      const cobertura = (geracaoMensal / consumoMensal) * 100;
-      const economiaMensal = geracaoMensal * tarifa;
-      const paybackMeses = investimentoPix / economiaMensal;
-      const tirAnual = (12 / paybackMeses) * 100;
+      const cobertura = consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0;
+      const economiaMensal = geracaoMensal * (tarifa || 0);
+      const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
+      const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
       
       return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
     };
 
     // Processar orçamentos - USAR DADOS JÁ CALCULADOS DO FRONTEND
-    const sistemas = orcamentos.map((orc: any, index: number) => {
-      console.log(`🔍 Processando orçamento ${index + 1}:`, {
-        nome: orc.nome,
-        modulos: orc.modulos,
-        pot_modulo: orc.pot_modulo,
-        marca_modulo: orc.marca_modulo,
-        inversores: orc.inversores,
-        pot_inv: orc.pot_inv,
-        marca_inversor: orc.marca_inversor,
-        temPpix: !!orc.ppix,
-        temPavista: !!orc.pavista,
-        temGeracaoMensal: !!orc.geracaoMensal,
-        temPaybackMeses: !!orc.paybackMeses
-      });
+    let sistemas;
+    try {
+      sistemas = orcamentos.map((orc: any, index: number) => {
+        console.log(`🔍 Processando orçamento ${index + 1}:`, {
+          nome: orc.nome,
+          modulos: orc.modulos,
+          pot_modulo: orc.pot_modulo,
+          marca_modulo: orc.marca_modulo,
+          inversores: orc.inversores,
+          pot_inv: orc.pot_inv,
+          marca_inversor: orc.marca_inversor,
+          temPpix: !!orc.ppix,
+          temPavista: !!orc.pavista,
+          temGeracaoMensal: !!orc.geracaoMensal,
+          temPaybackMeses: !!orc.paybackMeses
+        });
 
       // Se os dados já vêm calculados do frontend, usar diretamente
       if (orc.ppix !== undefined && orc.pavista !== undefined && orc.geracaoMensal !== undefined && orc.paybackMeses !== undefined) {
@@ -231,10 +271,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p18x_parcela: orc.p18x_parcela !== undefined ? orc.p18x_parcela : (precos.p18x_parcela !== undefined ? precos.p18x_parcela : 0),
           p18x_total: orc.p18x_total !== undefined ? orc.p18x_total : (precos.p18x_total !== undefined ? precos.p18x_total : 0),
           geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
-          cobertura: orc.cobertura !== undefined ? orc.cobertura : ((orc.geracaoMensal / config.consumoMensal) * 100 || 0),
-          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * config.tarifa) || 0),
+          cobertura: orc.cobertura !== undefined ? orc.cobertura : (config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0),
+          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
           paybackMeses: orc.paybackMeses !== undefined ? orc.paybackMeses : 0,
-          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 ? (12 / orc.paybackMeses) * 100 : 0)
+          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 && orc.paybackMeses !== Infinity ? (12 / orc.paybackMeses) * 100 : 0)
         };
       }
 
@@ -261,7 +301,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...precos,
         ...performance
       };
-    });
+      });
+    } catch (processError) {
+      console.error('❌ ERRO ao processar orçamentos:', processError);
+      throw new Error(`Erro ao processar orçamentos: ${processError instanceof Error ? processError.message : String(processError)}`);
+    }
 
     // Debug: mostrar sistemas processados
     console.log('🔍 Sistemas processados:', {
@@ -277,8 +321,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }))
     });
 
+    // Validar que sistemas foi gerado corretamente
+    if (!sistemas || sistemas.length === 0) {
+      console.error('❌ ERRO: Nenhum sistema foi gerado dos orçamentos');
+      return res.status(500).json({ 
+        message: 'Erro ao processar orçamentos. Nenhum sistema foi gerado.',
+        error: 'NO_SYSTEMS_GENERATED',
+        details: {
+          orcamentosRecebidos: orcamentos.length,
+          sistemasGerados: 0
+        }
+      });
+    }
+
     // Ordenar por PIX
-    sistemas.sort((a: any, b: any) => a.ppix - b.ppix);
+    sistemas.sort((a: any, b: any) => (a.ppix || 0) - (b.ppix || 0));
 
     // Gerar HTML da proposta
     const dataAtual = new Date().toLocaleDateString('pt-BR');
@@ -677,32 +734,99 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     try {
       const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Tentar múltiplas formas de ler as variáveis (compatibilidade)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+      // Debug: Log das variáveis (sem expor valores sensíveis)
+      console.log('🔍 Verificando variáveis Supabase:');
+      console.log('  - NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ Configurada' : '❌ Não configurada');
+      console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseKey ? '✅ Configurada' : '❌ Não configurada');
+      console.log('  - VERCEL:', process.env.VERCEL ? '✅ Sim' : '❌ Não');
+      console.log('  - NODE_ENV:', process.env.NODE_ENV);
 
       if (!supabaseUrl || !supabaseKey) {
-        console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
-        throw new Error('Variáveis Supabase não configuradas');
+        console.error('❌ Variáveis Supabase não configuradas');
+        console.error('  Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+        
+        // Em produção, retornar erro mais informativo
+        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+          throw new Error('Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.');
+        } else {
+          // Em desenvolvimento, apenas avisar
+          console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
+          throw new Error('Variáveis Supabase não configuradas');
+        }
       }
 
       const supabase = createClient(supabaseUrl, supabaseKey);
       
-      // Buscar ou criar cliente usando função helper
-      const { findOrCreateCliente } = await import('@/lib/supabase');
+      // Buscar ou criar cliente diretamente (sem usar função helper que pode ter supabase null)
       const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
       
       console.log('💾 Salvando cliente no Supabase...');
-      const clienteSupabase = await findOrCreateCliente({
-        nome: cliente.nome,
-        cidade: cliente.cidade,
-        estado: estadoCliente,
-        tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
-        consumo_mensal: cliente.consumo_mensal || 0,
-        hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
-        email: cliente.email,
-        telefone: cliente.telefone,
-        pdespesa: cliente.pdespesa,
-      });
+      
+      // Tentar buscar cliente existente
+      const { data: clienteExistente } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('nome', cliente.nome)
+        .eq('cidade', cliente.cidade)
+        .maybeSingle();
+
+      let clienteSupabase;
+      
+      if (clienteExistente) {
+        // Atualizar dados se necessário
+        const { data: updated, error: updateError } = await supabase
+          .from('clientes')
+          .update({
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            estado: estadoCliente,
+            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+            consumo_mensal: cliente.consumo_mensal || 0,
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            email: cliente.email,
+            telefone: cliente.telefone,
+            pdespesa: cliente.pdespesa,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clienteExistente.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.warn('⚠️ Erro ao atualizar cliente, usando existente:', updateError);
+          clienteSupabase = clienteExistente;
+        } else {
+          clienteSupabase = updated;
+        }
+      } else {
+        // Criar novo cliente
+        const { data: novoCliente, error: createError } = await supabase
+          .from('clientes')
+          .insert({
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            estado: estadoCliente,
+            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+            consumo_mensal: cliente.consumo_mensal || 0,
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            email: cliente.email,
+            telefone: cliente.telefone,
+            pdespesa: cliente.pdespesa,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Erro ao criar cliente:', createError);
+          throw new Error(`Erro ao criar cliente no Supabase: ${createError.message}`);
+        }
+
+        clienteSupabase = novoCliente;
+      }
 
       if (!clienteSupabase || !clienteSupabase.id) {
         throw new Error('Falha ao criar/buscar cliente no Supabase');
@@ -710,11 +834,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ Cliente salvo/buscado no Supabase:', clienteSupabase.id);
 
-      // Ler HTML gerado
-      const htmlGenerated = await fs.readFile(arquivoPath, 'utf8').catch(() => '');
+      // Tentar ler HTML gerado do arquivo (se existir), senão usar htmlContent gerado anteriormente
+      let htmlGenerated = '';
+      try {
+        if (!isServerless && arquivoPath) {
+          htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
+        }
+      } catch (readError) {
+        console.log('⚠️ Não foi possível ler HTML do arquivo, usando htmlContent gerado');
+      }
+      
+      // Se não conseguiu ler do arquivo, usar o htmlContent gerado anteriormente
+      if (!htmlGenerated && htmlContent) {
+        htmlGenerated = htmlContent;
+      }
+      
+      // Verificar se sistemas existe e tem pelo menos um item
+      if (!sistemas || sistemas.length === 0) {
+        throw new Error('Nenhum sistema foi gerado. Verifique os dados dos orçamentos.');
+      }
       
       // Salvar proposta no Supabase (OBRIGATÓRIO)
       console.log('💾 Salvando proposta no Supabase...');
+      const sistemaPrincipal = sistemas[0];
       const { data: propostaSalva, error: propostaError } = await supabase
         .from('propostas')
         .upsert({
@@ -722,15 +864,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           slug: slug,
           titulo: `Proposta Solar - ${cliente.nome}`,
           template_usado: 'pieng_basic',
-          sistema_kwp: sistemas[0]?.potTotal || 0,
-          geracao_mensal: sistemas[0]?.geracaoMensal || 0,
-          geracao_anual: (sistemas[0]?.geracaoMensal || 0) * 12,
-          valor_total: sistemas[0]?.ppix || 0,
-          valor_kwp: (sistemas[0]?.ppix || 0) / (sistemas[0]?.potTotal || 1),
-          payback: Math.round((sistemas[0]?.paybackMeses || 0) / 12),
-          tir: sistemas[0]?.tirAnual || 0,
+          sistema_kwp: sistemaPrincipal?.potTotal || 0,
+          geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
+          geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
+          valor_total: sistemaPrincipal?.ppix || 0,
+          valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
+          payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
+          tir: sistemaPrincipal?.tirAnual || 0,
           dados_completos: propostaData,
-          html_gerado: htmlGenerated,
+          html_gerado: htmlGenerated || htmlContent,
           status: 'ativa',
         }, { onConflict: 'slug' })
         .select()
@@ -751,9 +893,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (supabaseError) {
       console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
-      // Em produção, não permitir continuar sem salvar no Supabase
-      if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-        throw new Error(`Falha ao persistir proposta no banco de dados: ${supabaseError instanceof Error ? supabaseError.message : 'Erro desconhecido'}`);
+      console.error('  Tipo:', typeof supabaseError);
+      console.error('  Mensagem:', supabaseError instanceof Error ? supabaseError.message : String(supabaseError));
+      
+      // Em produção, retornar erro mais informativo
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
+        
+        // Se for erro de variáveis não configuradas, retornar erro específico
+        if (errorMessage.includes('Variáveis Supabase não configuradas')) {
+          throw new Error(`Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel. Detalhes: ${errorMessage}`);
+        }
+        
+        throw new Error(`Falha ao persistir proposta no banco de dados: ${errorMessage}`);
       } else {
         // Em desenvolvimento, avisar mas permitir continuar
         console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
@@ -811,15 +963,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('❌ ERRO COMPLETO ao gerar proposta:', error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('Tipo de erro:', typeof error);
+    console.error('Nome do erro:', error instanceof Error ? error.name : 'N/A');
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isSupabaseError = errorMessage.includes('Supabase') || errorMessage.includes('SUPABASE');
     
     res.status(500).json({ 
-      message: 'Erro interno do servidor',
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      message: isSupabaseError 
+        ? 'Erro ao conectar com banco de dados Supabase'
+        : 'Erro interno do servidor',
+      error: errorMessage,
+      errorType: isSupabaseError ? 'SUPABASE_ERROR' : 'INTERNAL_ERROR',
       stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
       details: {
         clienteRecebido: !!req.body?.cliente,
         sistemasRecebidos: req.body?.sistemas?.length || 0,
-        orcamentosRecebidos: req.body?.orcamentos?.length || 0
+        orcamentosRecebidos: req.body?.orcamentos?.length || 0,
+        isProduction: !!(process.env.VERCEL || process.env.NODE_ENV === 'production'),
+        debug: isSupabaseError ? {
+          hint: 'Verifique se NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão configuradas no Vercel'
+        } : undefined
       }
     });
   }

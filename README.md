@@ -1,15 +1,17 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.3.0-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.2.5-blue.svg)](CLAUDE.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
-[![PWA](https://img.shields.io/badge/PWA-enabled-purple.svg)](PWA.md)
+[![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
+[![PWA](https://img.shields.io/badge/PWA-desenvolvimento-purple.svg)](PWA.md)
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.3.0` (06/11/2025) | [Ver Histórico Completo](VERSION.md)
+**📌 Versão Atual**: `v2.2.5` (18/11/2025) - Produção | **v2.3.0** - Desenvolvimento (PWA)
+**📖** [Ver Changelog Completo](CLAUDE.md) | [Documentação PWA](PWA.md)
 
-## 🆕 Novidades v2.3.0 - PWA (Progressive Web App)
+## 🆕 Novidades v2.3.0 - PWA (branch desenvolvimento)
 
 - 📱 **Instalável como App**: Android, iPhone, Windows, Mac
 - ⚡ **Acesso Offline**: Propostas em cache para visualização sem internet
@@ -24,12 +26,40 @@ Sistema completo de geração de propostas solares com administração web, extr
 - 🏢 **Área Administrativa**: CRUD completo de clientes com dashboard profissional
 - 🎯 **Propostas Personalizadas**: URLs únicas para cada cliente com análise financeira
 - 💾 **Banco de Dados Supabase**: Persistência confiável em produção
-- ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo  
+- ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo
 - 🎨 **Design Responsivo**: Visual moderno com Tailwind CSS
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
 - 📱 **Progressive Web App**: Instalável como app nativo em qualquer dispositivo
 - 🌐 **CDN Global**: Deploy automático no Vercel Edge Network
 - 💾 **Modo Offline**: Funciona sem conexão após primeira visita
+
+### 🆕 Novidades v2.2.5 (18/11/2025)
+- ✅ Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase
+- ✅ Orçamentos agora persistem no banco de dados (tabela `orcamentos`)
+- ✅ CRUD completo de orçamentos funcionando com Supabase-first
+- ✅ Criado `src/utils/orcamentosSupabase.ts` para gerenciar orçamentos
+- ✅ Configuração do ESLint (eslint@8.57.0 compatível com Next.js 13.5.6)
+- ✅ Documentação atualizada com integração de orçamentos
+
+### 🆕 Novidades v2.2.4 (18/11/2025)
+- ✅ `admin/config` agora persiste no Supabase com fallback seguro
+- ✅ `/api/admin/clientes` corrigido (variáveis e nomes sanitizados)
+- ✅ Detalhe de cliente `/api/admin/clientes/[id]` busca direto do Supabase
+- ✅ Nova rota de diagnóstico `/api/test-cliente-padrao`
+- ✅ Documentação e badge atualizados
+
+### 🆕 Novidades v2.2.3 (17/11/2025)
+- ✅ Correções de build e erros no Vercel
+- ✅ Melhorias no tratamento de erros Supabase
+- ✅ Debug aprimorado para diagnóstico
+
+### 🆕 Novidades v2.2.2 (06/11/2025)
+
+- 🔍 **Propostas Públicas Modernizada**: Busca, filtros por mês, botões WhatsApp
+- ✨ **Rota /proposta/exemplo**: Sempre mostra proposta mais recente
+- 🛡️ **Ambiente Protegido**: Branch desenvolvimento separado, workflow documentado
+- 🧪 **Validação de Ambiente**: `/validar-ambiente` para verificar configuração
+- 📋 **Organização**: 12 arquivos obsoletos movidos, documentação completa
 
 ## 🏗️ Arquitetura
 
@@ -170,9 +200,10 @@ vercel --prod
 - Clientes: `/api/admin/clientes` → Supabase + filesystem fallback
 - Criar Cliente: `/api/admin/criar-cliente` → Salva no Supabase
 - Todos Orçamentos: `/api/admin/orcamentos-todos` → Lista do Supabase
+- Orçamentos Cliente: `/api/admin/orcamentos/[cliente]` → CRUD completo (Supabase-first)
+- Orçamento Individual: `/api/admin/orcamentos/[cliente]/[orcamentoId]` → GET/PUT/DELETE
 - Extração IA: `/api/admin/extract-data`
 - Configurações: `/api/admin/config`
-- Orçamentos: `/api/admin/orcamentos/[cliente]`
 - Test Supabase: `/api/test-supabase` → Testa conexão
 - Test Proposta: `/api/test-proposta-slug?slug=xxx` → Diagnóstico
 
@@ -272,10 +303,11 @@ Todos os componentes são modulares e reutilizáveis, permitindo fácil customiz
 - ✅ **Supabase Integrado** para persistência confiável
 - ✅ **Admin Orçamentos** lista todas as propostas do sistema
 
-**🔄 Última Atualização: 31/10/2025**
-- ✅ Admin Orçamentos busca do Supabase
-- ✅ Criar Cliente persiste no Supabase
-- ✅ ID do banco visível na interface
-- ✅ Botões corrigidos (sem null)
+**🔄 Última Atualização: 18/11/2025**
+- ✅ Orçamentos integrados com Supabase (tabela `orcamentos`)
+- ✅ CRUD completo de orçamentos funcionando em produção
+- ✅ Resolução automática de cliente por múltiplos identificadores
+- ✅ ESLint configurado e funcionando
+- ✅ Versão exibida no admin atualizada (v2.2.5)
 
 *Sistema desenvolvido com IA para maximizar eficiência e aproveitar todo o potencial do Vercel Edge Network + Supabase* 🚀⚡🤖💾

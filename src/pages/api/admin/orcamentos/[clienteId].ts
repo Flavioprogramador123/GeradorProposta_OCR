@@ -2,27 +2,69 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabase';
+import type { ApiOrcamento, OrcamentoArquivo } from '@/utils/orcamentosSupabase';
+import { mapSupabaseOrcamentoRow, resolveClienteSupabase } from '@/utils/orcamentosSupabase';
 
-interface Orcamento {
-  id: string;
-  fornecedor: string;
-  dataOrcamento: string;
-  status: 'pendente' | 'analisando' | 'aprovado' | 'rejeitado';
-  valorTotal: number;
-  componentes: {
-    modulos?: any;
-    inversores?: any;
-    estrutura?: any;
-    outros?: any[];
+type Orcamento = ApiOrcamento & Record<string, any>;
+
+const hasSupabaseEnv = Boolean(
+  (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL) &&
+  (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)
+);
+
+const supabaseReady = Boolean(supabase && hasSupabaseEnv);
+
+const ALLOWED_STATUSES: Orcamento['status'][] = [
+  'pendente',
+  'analisando',
+  'aprovado',
+  'rejeitado',
+];
+
+const filesystemRoot = path.join(process.cwd(), 'src/data/clientes');
+
+function normalizeStatus(value: any): Orcamento['status'] {
+  if (typeof value === 'string') {
+    const normalized = value.toLowerCase() as Orcamento['status'];
+    if (ALLOWED_STATUSES.includes(normalized)) {
+      return normalized;
+    }
+  }
+  return 'pendente';
+}
+
+function buildStats(orcamentos: Orcamento[]) {
+  return {
+    total: orcamentos.length,
+    pendentes: orcamentos.filter((o) => o.status === 'pendente').length,
+    aprovados: orcamentos.filter((o) => o.status === 'aprovado').length,
+    rejeitados: orcamentos.filter((o) => o.status === 'rejeitado').length,
   };
-  observacoes?: string;
-  arquivos: Array<{
-    nome: string;
-    url?: string;
-    tipo: 'pdf' | 'jpg' | 'png';
-  }>;
-  createdAt: string;
-  updatedAt: string;
+}
+
+function getOrcamentosPath(clienteId: string) {
+  return path.join(filesystemRoot, clienteId, 'orcamentos.json');
+}
+
+function buildArquivosFromPayload(payload: any): OrcamentoArquivo[] {
+  if (Array.isArray(payload?.arquivos)) {
+    return payload.arquivos.map((arquivo: any) => ({
+      nome: arquivo?.nome || arquivo?.fileName || 'arquivo',
+      url: arquivo?.url,
+      tipo: (arquivo?.tipo as OrcamentoArquivo['tipo']) || 'outros',
+    }));
+  }
+
+  if (payload?.arquivo) {
+    return [{
+      nome: payload.arquivo,
+      url: payload.arquivoUrl,
+      tipo: 'outros',
+    }];
+  }
+
+  return [];
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -32,11 +74,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ message: 'ID do cliente é obrigatório' });
   }
 
-  const orcamentosPath = path.join(process.cwd(), 'src/data/clientes', clienteId, 'orcamentos.json');
+  const orcamentosPath = getOrcamentosPath(clienteId);
 
   if (req.method === 'GET') {
     // Listar orçamentos do cliente
     try {
+      if (supabaseReady && supabase) {
+        try {
+          const clienteSupabase = await resolveClienteSupabase(clienteId);
+
+          if (clienteSupabase) {
+            const { data, error } = await supabase
+              .from('orcamentos')
+              .select('*')
+              .eq('cliente_id', clienteSupabase.id)
+              .order('created_at', { ascending: false });
+
+            if (error) {
+              console.error('Erro ao buscar orçamentos no Supabase:', error);
+            } else if (data) {
+              const orcamentos = data.map(mapSupabaseOrcamentoRow);
+              return res.status(200).json({
+                orcamentos,
+                stats: buildStats(orcamentos),
+                source: 'supabase',
+              });
+            }
+          }
+        } catch (supabaseError) {
+          console.error('Erro inesperado no Supabase ao listar orçamentos:', supabaseError);
+        }
+      }
+
       let orcamentos: Orcamento[] = [];
       
       try {
@@ -46,14 +115,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Arquivo não existe, retornar lista vazia
       }
 
-      const stats = {
-        total: orcamentos.length,
-        pendentes: orcamentos.filter(o => o.status === 'pendente').length,
-        aprovados: orcamentos.filter(o => o.status === 'aprovado').length,
-        rejeitados: orcamentos.filter(o => o.status === 'rejeitado').length,
-      };
-
-      res.status(200).json({ orcamentos, stats });
+      res.status(200).json({
+        orcamentos,
+        stats: buildStats(orcamentos),
+        source: 'filesystem',
+      });
     } catch (error) {
       console.error('Erro ao listar orçamentos:', error);
       res.status(500).json({ message: 'Erro interno do servidor' });
@@ -63,21 +129,82 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   else if (req.method === 'POST') {
     // Criar novo orçamento
     try {
+      const payload = req.body || {};
+      const now = new Date().toISOString();
+      const arquivos = buildArquivosFromPayload(payload);
+      const componentes = (payload.componentes && typeof payload.componentes === 'object')
+        ? payload.componentes
+        : {};
+      const valorTotal = Number(payload.valorTotal ?? payload.precoCustoYaml ?? 0);
+      const precoCustoYaml = typeof payload.precoCustoYaml === 'number'
+        ? payload.precoCustoYaml
+        : Number(payload.precoCustoYaml ?? payload.valorTotal ?? 0);
+
       const novoOrcamento: Orcamento = {
+        ...payload,
         id: uuidv4(),
-        ...req.body,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        fornecedor: payload.fornecedor || payload.distribuidora || 'Fornecedor não identificado',
+        dataOrcamento: payload.dataOrcamento || now,
+        status: normalizeStatus(payload.status),
+        valorTotal,
+        componentes,
+        precoCustoYaml,
+        arquivos,
+        despesas: payload.despesas,
+        observacoes: payload.observacoes,
+        createdAt: now,
+        updatedAt: now,
       };
 
-      // Validação básica
       if (!novoOrcamento.fornecedor) {
         return res.status(400).json({ message: 'Fornecedor é obrigatório' });
       }
 
+      if (supabaseReady && supabase) {
+        try {
+          const clienteSupabase = await resolveClienteSupabase(clienteId);
+
+          if (clienteSupabase) {
+            const { data, error } = await supabase
+              .from('orcamentos')
+              .insert({
+                id: novoOrcamento.id,
+                cliente_id: clienteSupabase.id,
+                arquivo_nome: payload.arquivo || arquivos[0]?.nome || `${clienteId}-orcamento-${Date.now()}.json`,
+                fornecedor: novoOrcamento.fornecedor,
+                valor_total: valorTotal,
+                data_orcamento: novoOrcamento.dataOrcamento,
+                componentes,
+                dados_extraidos: {
+                  ...payload,
+                  id: novoOrcamento.id,
+                  createdAt: now,
+                  updatedAt: now,
+                  dataOrcamento: novoOrcamento.dataOrcamento,
+                },
+              })
+              .select()
+              .single();
+
+            if (error) {
+              console.error('Erro ao salvar orçamento no Supabase:', error);
+            } else if (data) {
+              const orcamentoSupabase = mapSupabaseOrcamentoRow(data);
+              return res.status(201).json({
+                message: 'Orçamento criado com sucesso (Supabase)',
+                orcamento: orcamentoSupabase,
+                source: 'supabase',
+              });
+            }
+          }
+        } catch (supabaseError) {
+          console.error('Erro inesperado ao salvar orçamento no Supabase:', supabaseError);
+        }
+      }
+
       let orcamentos: Orcamento[] = [];
       
-      // Tentar carregar orçamentos existentes
+      // Tentar carregar orçamentos existentes do filesystem
       try {
         const orcamentosData = await fs.readFile(orcamentosPath, 'utf8');
         orcamentos = JSON.parse(orcamentosData);
@@ -85,9 +212,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Arquivo não existe, criar novo array
       }
 
-      // Sem limite de orçamentos (removido para permitir múltiplos orçamentos via YAML)
-
-      // Adicionar novo orçamento
       orcamentos.push(novoOrcamento);
 
       // Criar diretório se não existe
@@ -99,7 +223,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       res.status(201).json({ 
         message: 'Orçamento criado com sucesso',
-        orcamento: novoOrcamento 
+        orcamento: novoOrcamento,
+        source: 'filesystem',
       });
     } catch (error) {
       console.error('Erro ao criar orçamento:', error);
