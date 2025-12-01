@@ -109,7 +109,8 @@ export async function getClienteBySlug(slug: string) {
 }
 
 /**
- * Buscar proposta por slug
+ * Buscar proposta por slug (otimizado)
+ * Busca apenas os campos necessários para melhor performance
  */
 export async function getPropostaBySlug(slug: string) {
   if (!supabase) {
@@ -117,18 +118,28 @@ export async function getPropostaBySlug(slug: string) {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('propostas')
-    .select('*, clientes(*)')
-    .eq('slug', slug)
-    .single();
+  try {
+    // Buscar apenas campos essenciais (sem JOIN com clientes para melhor performance)
+    const { data, error } = await supabase
+      .from('propostas')
+      .select('id, slug, titulo, status, dados_completos, created_at, updated_at')
+      .eq('slug', slug)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Erro ao buscar proposta:', error);
+    if (error) {
+      // Se erro for "not found", não é crítico
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Erro ao buscar proposta:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erro inesperado ao buscar proposta:', error);
     return null;
   }
-
-  return data;
 }
 
 /**

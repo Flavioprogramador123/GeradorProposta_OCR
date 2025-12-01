@@ -19,12 +19,27 @@ export default async function handler(
   }
 
   try {
-    // PRODUÇÃO: Tentar carregar do Supabase
+    // PRODUÇÃO: Tentar carregar do Supabase com timeout
     console.log('🔍 Buscando proposta no Supabase:', slug);
-    const propostaSupabase = await getPropostaBySlug(slug);
+    const startTime = Date.now();
+    
+    // Adicionar timeout de 10 segundos
+    const propostaSupabase = await Promise.race([
+      getPropostaBySlug(slug),
+      new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout ao buscar proposta')), 10000)
+      )
+    ]);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`⏱️ Tempo de busca: ${elapsed}ms`);
 
     if (propostaSupabase && propostaSupabase.dados_completos) {
       console.log('✅ API: Proposta encontrada no Supabase:', slug);
+      
+      // Adicionar headers de cache para melhor performance
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      
       return res.status(200).json(propostaSupabase.dados_completos);
     }
 
