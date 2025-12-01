@@ -620,10 +620,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         nome: cliente.nome,
         cidade: cliente.cidade,
         consumoMensal: cliente.consumo_mensal,
+        consumo: cliente.consumo_mensal, // Alias
         consumoKwh: cliente.consumo_mensal.toString(),
         tipoImovel: cliente.tipo_imovel,
         tipo: cliente.tipo_imovel,
-        hspLocal: (cliente.hsp || configSistema.hspPadrao || 5.21).toString()
+        hspLocal: (cliente.hsp || configSistema.hspPadrao || 5.21).toString(),
+        hsp: cliente.hsp || configSistema.hspPadrao || 5.21, // Numérico também
+        tarifa: cliente.tarifa || configSistema.tarifaPadrao || 0.982, // Tarifa numérica
+        tarifaEnergia: cliente.tarifa || configSistema.tarifaPadrao || 0.982 // Alias
       },
       sistemas: (() => {
         // Encontrar o sistema com melhor payback
@@ -662,18 +666,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           isRecommended: index === melhorIndice,
           badge: index === melhorIndice ? '⭐ MELHOR PAYBACK' : '',
           // ✅ NOVOS CAMPOS para edição de proposta (Supabase dados_completos)
+          // Campos numéricos ESSENCIAIS para recarregar a proposta
           pcusto: sistema.pcusto || sistema.precoCusto || 0,
+          precoCusto: sistema.pcusto || sistema.precoCusto || 0, // Alias
+          ppix: sistema.ppix || 0, // Preço PIX numérico
+          total_final: sistema.ppix || 0, // Total final = ppix (sem desconto adicional)
+          pdespesa_total: sistema.pdespesa_total || (sistema.pdespesa_fixo || 0) + (sistema.pcusto || 0) * ((sistema.pdespesa_variavel_percent || 0) / 100),
+          pdespesaTotal: sistema.pdespesa_total || (sistema.pdespesa_fixo || 0) + (sistema.pcusto || 0) * ((sistema.pdespesa_variavel_percent || 0) / 100), // Alias
+          pdespesa_fixo: sistema.pdespesa_fixo || 0,
+          pdespesaFixo: sistema.pdespesa_fixo || 0, // Alias
+          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || 0,
+          pdespesaVariavel: sistema.pdespesa_variavel_percent || 0, // Alias
+          // Campos de equipamentos
           modulos: sistema.modulos || Math.round(sistema.potTotal * 1000 / 580),
           pot_modulo: sistema.pot_modulo || 580,
           marca_modulo: sistema.marca_modulo || 'N/A',
           inversores: sistema.inversores || 1,
           pot_inv: sistema.pot_inv || Math.ceil(sistema.potTotal),
           marca_inversor: sistema.marca_inversor || 'N/A',
-          pdespesa_fixo: sistema.pdespesa_fixo || 0,
-          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || 0,
+          // Campos de potência e identificação
           potTotal: sistema.potTotal || 0,
           nome: sistema.nome || `Sistema ${String(index + 1).padStart(2, '0')}`,
-          distribuidora: sistema.distribuidora || 'Fornecedor'
+          distribuidora: sistema.distribuidora || 'Fornecedor',
+          fornecedor: sistema.distribuidora || sistema.fornecedor || 'Fornecedor', // Alias
+          // Campos financeiros adicionais (para compatibilidade)
+          pavista: sistema.pavista || sistema.ppix || 0,
+          priscado: sistema.priscado || sistema.pavista || sistema.ppix || 0,
+          p12x: sistema.p12x || 0,
+          p12x_total: sistema.p12x_total || (sistema.p12x || 0) * 12,
+          p18x_parcela: sistema.p18x_parcela || 0,
+          p18x_total: sistema.p18x_total || (sistema.p18x_parcela || 0) * 18,
+          // Campos técnicos
+          geracaoMensal: sistema.geracaoMensal || 0,
+          cobertura: sistema.cobertura || 0,
+          economiaMensal: sistema.economiaMensal || 0,
+          paybackMeses: sistema.paybackMeses || 0,
+          tirAnual: sistema.tirAnual || 0
         }));
       })(),
       analise: (() => {
