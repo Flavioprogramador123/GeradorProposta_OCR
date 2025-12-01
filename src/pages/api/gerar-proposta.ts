@@ -496,7 +496,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           consumoMensal: cliente.consumo_mensal,
           consumoKwh: cliente.consumo_mensal.toString(),
           tipo: cliente.tipo_imovel,
-          hspLocal: (cliente.hsp || 5.21).toString(),
+          hspLocal: (cliente.hsp || configSistema.hspPadrao || 5.21).toString(),
           // Novo: tipo de instalação vindo do payload/YAML
           tipoInstalacao: (cliente.tipoInstalacao || cliente.tipo_instalacao || cliente.instalacao || '').toString()
         },
@@ -623,7 +623,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         consumoKwh: cliente.consumo_mensal.toString(),
         tipoImovel: cliente.tipo_imovel,
         tipo: cliente.tipo_imovel,
-        hspLocal: (cliente.hsp || 5.21).toString()
+        hspLocal: (cliente.hsp || configSistema.hspPadrao || 5.21).toString()
       },
       sistemas: (() => {
         // Encontrar o sistema com melhor payback
@@ -786,7 +786,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             estado: estadoCliente,
             tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
             consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
             email: cliente.email,
             telefone: cliente.telefone,
             pdespesa: cliente.pdespesa,
@@ -812,7 +812,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             estado: estadoCliente,
             tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
             consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
             email: cliente.email,
             telefone: cliente.telefone,
             pdespesa: cliente.pdespesa,

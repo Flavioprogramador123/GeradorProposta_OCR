@@ -263,6 +263,22 @@ export default function GeradorRapido() {
           const configData = await response.json();
           console.log('🔧 Configurações carregadas:', configData);
           setConfigSistema(configData);
+
+          // ✅ ATUALIZAR config state com valores do Supabase
+          setConfig(prev => ({
+            ...prev,
+            hsp: parseFloat(configData.hspPadrao) || prev.hsp,
+            tarifa: parseFloat(configData.tarifaEnergia) || prev.tarifa,
+            performanceRate: parseFloat(configData.performanceRate) || prev.performanceRate,
+            pdespesaFixo: parseFloat(configData.pdespesaFixo) || prev.pdespesaFixo,
+            pdespesaVariavel: parseFloat(configData.pdespesaVariavel) || prev.pdespesaVariavel
+          }));
+
+          console.log('✅ Config atualizado com valores do Supabase:', {
+            hsp: parseFloat(configData.hspPadrao),
+            performanceRate: parseFloat(configData.performanceRate),
+            pdespesaFixo: parseFloat(configData.pdespesaFixo)
+          });
         }
       } catch (error) {
         console.error('Erro ao carregar configurações:', error);
