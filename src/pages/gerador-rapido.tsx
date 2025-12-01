@@ -129,70 +129,127 @@ export default function GeradorRapido() {
         const parseValue = (val: any): number => {
           if (typeof val === 'number') return val;
           if (!val) return 0;
+          
+          // Converter para string e remover espaços
+          let str = val.toString().trim();
+          
+          // Se já é um número válido, retornar
+          if (!isNaN(Number(str)) && !str.includes(',') && !str.includes('.')) {
+            return Number(str);
+          }
+          
           // Remover tudo exceto dígitos, vírgulas e pontos
-          let str = val.toString().replace(/[^\d,.-]/g, '');
-          // Se tem vírgula e ponto, assumir que vírgula é decimal (formato BR: 13.500,00)
+          str = str.replace(/[^\d,.-]/g, '');
+          
+          // Se está vazio após limpeza, retornar 0
+          if (!str) return 0;
+          
+          // Se tem vírgula e ponto, assumir formato BR: 13.500,00 (ponto = milhar, vírgula = decimal)
           if (str.includes(',') && str.includes('.')) {
             // Remover pontos (separadores de milhar) e substituir vírgula por ponto
             str = str.replace(/\./g, '').replace(',', '.');
           } else if (str.includes(',')) {
-            // Apenas vírgula, pode ser decimal ou separador de milhar
-            // Se tem mais de 2 dígitos após vírgula, é separador de milhar
+            // Apenas vírgula, verificar se é decimal ou separador de milhar
             const parts = str.split(',');
             if (parts[1] && parts[1].length <= 2) {
-              // Decimal
+              // Decimal (ex: "13500,50")
               str = str.replace(',', '.');
             } else {
-              // Separador de milhar
+              // Separador de milhar (ex: "13,500")
               str = str.replace(',', '');
             }
           }
-          return parseFloat(str) || 0;
+          
+          const parsed = parseFloat(str);
+          return isNaN(parsed) ? 0 : parsed;
         };
 
-        // Tentar extrair pcusto diretamente
+        // Tentar extrair pcusto diretamente (prioridade: campos diretos)
         if (sistema.pcusto) {
           pcusto = parseValue(sistema.pcusto);
+          console.log(`✅ Sistema ${index + 1}: pcusto direto = ${pcusto}`);
         } else if (sistema.precoCusto) {
           pcusto = parseValue(sistema.precoCusto);
+          console.log(`✅ Sistema ${index + 1}: precoCusto = ${pcusto}`);
         } else {
-          // Se não tem pcusto, calcular a partir do total descontando despesas
-          // Prioridade: total_final > ppix > precoPixDecimal > valorTotal
-          const totalFinal = parseValue(sistema.total_final) || 
-                            parseValue(sistema.ppix) || 
-                            parseValue(sistema.precoPixDecimal) || 
-                            parseValue(sistema.valorTotal);
-          const pdespesaTotal = parseValue(sistema.pdespesa_total) || parseValue(sistema.pdespesaTotal);
+          // Se não tem pcusto, calcular a partir do preço final (precoPixDecimal/ppix)
+          // O precoPixDecimal JÁ É o total final (pcusto + pdespesa)
+          // Precisamos calcular o pcusto reverso
           
-          if (totalFinal > 0) {
-            if (pdespesaTotal > 0 && pdespesaTotal < totalFinal) {
-              // Calcular pcusto: total_final = pcusto + pdespesa_total
-              pcusto = totalFinal - pdespesaTotal;
-              console.log(`📊 Sistema ${index + 1}: Calculado pcusto = ${totalFinal} - ${pdespesaTotal} = ${pcusto}`);
+          // Tentar múltiplos campos possíveis para o preço final
+          const precoFinal = parseValue(sistema.precoPixDecimal) || 
+                            parseValue(sistema.ppix) || 
+                            parseValue(sistema.total_final) || 
+                            parseValue(sistema.valorTotal) ||
+                            parseValue(sistema.precoAtual) ||
+                            parseValue(sistema.precoRiscado) ||
+                            parseValue(sistema.preco) ||
+                            parseValue(sistema.valor);
+          
+          // Tentar múltiplos campos possíveis para pdespesa
+          const pdespesaTotal = parseValue(sistema.pdespesa_total) || 
+                               parseValue(sistema.pdespesaTotal) ||
+                               parseValue(sistema.preco_despesa) ||
+                               parseValue(sistema.despesa) ||
+                               parseValue(sistema.despesas);
+          
+          console.log(`🔍 Sistema ${index + 1} - Valores extraídos:`, {
+            precoFinal,
+            pdespesaTotal,
+            precoPixDecimal_raw: sistema.precoPixDecimal,
+            ppix_raw: sistema.ppix,
+            total_final_raw: sistema.total_final
+          });
+          
+          if (precoFinal > 0) {
+            if (pdespesaTotal > 0 && pdespesaTotal < precoFinal) {
+              // Calcular pcusto: precoFinal = pcusto + pdespesa_total
+              pcusto = precoFinal - pdespesaTotal;
+              console.log(`✅ Sistema ${index + 1}: Calculado pcusto = ${precoFinal} - ${pdespesaTotal} = ${pcusto}`);
             } else {
-              // Se não tem pdespesa ou pdespesa é inválida, tentar calcular usando configurações atuais
-              // Fórmula: total_final = pcusto + (pdespesaFixo + pcusto * pdespesaVariavel/100)
-              // total_final = pcusto * (1 + pdespesaVariavel/100) + pdespesaFixo
-              // pcusto = (total_final - pdespesaFixo) / (1 + pdespesaVariavel/100)
-              const pdespesaFixo = config.pdespesaFixo || 3000;
-              const pdespesaVariavel = config.pdespesaVariavel || 22;
+              // Se não tem pdespesa, calcular usando configurações atuais
+              // Fórmula: precoFinal = pcusto + (pdespesaFixo + pcusto * pdespesaVariavel/100)
+              // precoFinal = pcusto * (1 + pdespesaVariavel/100) + pdespesaFixo
+              // pcusto = (precoFinal - pdespesaFixo) / (1 + pdespesaVariavel/100)
+              const pdespesaFixo = config.pdespesaFixo || 2000;
+              const pdespesaVariavel = config.pdespesaVariavel || 15;
               const fator = 1 + (pdespesaVariavel / 100);
-              pcusto = Math.max(0, (totalFinal - pdespesaFixo) / fator);
-              console.log(`📊 Sistema ${index + 1}: Estimado pcusto = (${totalFinal} - ${pdespesaFixo}) / ${fator} = ${pcusto}`);
+              pcusto = Math.max(0, (precoFinal - pdespesaFixo) / fator);
+              console.log(`📊 Sistema ${index + 1}: Estimado pcusto = (${precoFinal} - ${pdespesaFixo}) / ${fator} = ${pcusto}`);
+            }
+          } else {
+            console.warn(`⚠️ Sistema ${index + 1}: Não foi possível determinar preço final, tentando calcular da potência`);
+            // Tentar estimar baseado na potência (R$ 4.000/kWp é um valor razoável)
+            if (potenciaTotal > 0) {
+              pcusto = potenciaTotal * 4000; // Estimativa conservadora
+              console.log(`📊 Sistema ${index + 1}: Estimado pcusto da potência = ${potenciaTotal} kWp * 4000 = ${pcusto}`);
+            } else {
+              pcusto = 10000; // Valor padrão mínimo
+              console.warn(`⚠️ Sistema ${index + 1}: Usando valor padrão mínimo de pcusto = ${pcusto}`);
             }
           }
         }
         
-        // Log detalhado para debug
-        console.log(`💰 Sistema ${index + 1} - Extração de valores:`, {
+        // Log detalhado para debug ANTES do cálculo
+        console.log(`💰 Sistema ${index + 1} - Dados brutos do sistema:`, {
+          titulo: sistema.titulo || sistema.nome,
           pcusto_direto: sistema.pcusto,
           precoCusto: sistema.precoCusto,
           total_final: sistema.total_final,
           ppix: sistema.ppix,
           precoPixDecimal: sistema.precoPixDecimal,
+          precoAtual: sistema.precoAtual,
+          precoRiscado: sistema.precoRiscado,
           pdespesa_total: sistema.pdespesa_total,
-          pcusto_calculado: pcusto
+          pdespesaTotal: sistema.pdespesaTotal,
+          preco_despesa: sistema.preco_despesa,
+          valorTotal: sistema.valorTotal,
+          // Mostrar TODOS os campos do sistema para debug
+          todas_chaves: Object.keys(sistema)
         });
+        
+        // Log após cálculo
+        console.log(`✅ Sistema ${index + 1} - pcusto final calculado:`, pcusto);
         
         // Calcular módulos e inversores se não existirem (com valores mínimos garantidos)
         let modulos = 0;
@@ -227,25 +284,8 @@ export default function GeradorRapido() {
           pot_inv = 15; // Valor padrão
         }
 
-        // Garantir valores mínimos válidos - se ainda for 0, tentar mais uma vez com ppix
+        // Garantir valores mínimos válidos - se ainda for 0, usar valor baseado na potência
         if (pcusto <= 0) {
-          // Última tentativa: usar ppix/precoPixDecimal como base e estimar pcusto
-          const ppixValue = parseValue(sistema.ppix) || parseValue(sistema.precoPixDecimal);
-          if (ppixValue > 0) {
-            // Estimar pcusto assumindo que ppix = pcusto + despesas
-            // Usar configurações atuais para estimar
-            const pdespesaFixo = config.pdespesaFixo || 3000;
-            const pdespesaVariavel = config.pdespesaVariavel || 22;
-            // ppix = pcusto + pdespesaFixo + (pcusto * pdespesaVariavel/100)
-            // ppix = pcusto * (1 + pdespesaVariavel/100) + pdespesaFixo
-            // pcusto = (ppix - pdespesaFixo) / (1 + pdespesaVariavel/100)
-            const fator = 1 + (pdespesaVariavel / 100);
-            pcusto = Math.max(0, (ppixValue - pdespesaFixo) / fator);
-            console.log(`📊 Sistema ${index + 1}: Estimado pcusto final de ppix = (${ppixValue} - ${pdespesaFixo}) / ${fator} = ${pcusto}`);
-          }
-          
-          // Se ainda for 0 ou negativo, usar valor mínimo baseado na potência
-          if (pcusto <= 0) {
             // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
             pcusto = Math.max(10000, potenciaTotal * 4000);
             console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
