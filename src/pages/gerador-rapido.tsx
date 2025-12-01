@@ -97,7 +97,19 @@ export default function GeradorRapido() {
 
       // Converter sistemas em orçamentos com validação robusta
       const orcamentosCarregados: Orcamento[] = propostaData.sistemas.map((sistema: any, index: number) => {
-        console.log(`📦 Processando sistema ${index + 1}:`, sistema);
+        console.log(`📦 Processando sistema ${index + 1}:`, {
+          titulo: sistema.titulo || sistema.nome,
+          potencia: sistema.potencia || sistema.potTotal,
+          pcusto: sistema.pcusto,
+          precoCusto: sistema.precoCusto,
+          total_final: sistema.total_final,
+          ppix: sistema.ppix,
+          precoPixDecimal: sistema.precoPixDecimal,
+          pdespesa_total: sistema.pdespesa_total,
+          modulos: sistema.modulos,
+          pot_modulo: sistema.pot_modulo,
+          sistema_completo: sistema // Para debug completo
+        });
         
         // Extrair potência de diferentes formatos possíveis
         let potenciaTotal = 0;
@@ -110,21 +122,77 @@ export default function GeradorRapido() {
           potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
         }
 
-        // Extrair P.Custo de diferentes formatos com fallback robusto
+        // Extrair P.Custo de diferentes formatos com cálculo reverso quando necessário
         let pcusto = 0;
+        
+        // Converter valores para número (suporta strings formatadas como "R$ 13.500,00")
+        const parseValue = (val: any): number => {
+          if (typeof val === 'number') return val;
+          if (!val) return 0;
+          // Remover tudo exceto dígitos, vírgulas e pontos
+          let str = val.toString().replace(/[^\d,.-]/g, '');
+          // Se tem vírgula e ponto, assumir que vírgula é decimal (formato BR: 13.500,00)
+          if (str.includes(',') && str.includes('.')) {
+            // Remover pontos (separadores de milhar) e substituir vírgula por ponto
+            str = str.replace(/\./g, '').replace(',', '.');
+          } else if (str.includes(',')) {
+            // Apenas vírgula, pode ser decimal ou separador de milhar
+            // Se tem mais de 2 dígitos após vírgula, é separador de milhar
+            const parts = str.split(',');
+            if (parts[1] && parts[1].length <= 2) {
+              // Decimal
+              str = str.replace(',', '.');
+            } else {
+              // Separador de milhar
+              str = str.replace(',', '');
+            }
+          }
+          return parseFloat(str) || 0;
+        };
+
+        // Tentar extrair pcusto diretamente
         if (sistema.pcusto) {
-          pcusto = typeof sistema.pcusto === 'number' ? sistema.pcusto : parseFloat(sistema.pcusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+          pcusto = parseValue(sistema.pcusto);
         } else if (sistema.precoCusto) {
-          pcusto = typeof sistema.precoCusto === 'number' ? sistema.precoCusto : parseFloat(sistema.precoCusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-        } else if (sistema.valorTotal) {
-          pcusto = typeof sistema.valorTotal === 'number' ? sistema.valorTotal : parseFloat(sistema.valorTotal.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-        } else if (sistema.total_final) {
-          pcusto = typeof sistema.total_final === 'number' ? sistema.total_final : parseFloat(sistema.total_final.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-        } else if (sistema.ppix) {
-          // Se não tem pcusto, usar ppix como fallback (mas avisar)
-          pcusto = typeof sistema.ppix === 'number' ? sistema.ppix : parseFloat(sistema.ppix.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-          console.warn(`⚠️ Sistema ${index + 1} não tem pcusto, usando ppix como fallback`);
+          pcusto = parseValue(sistema.precoCusto);
+        } else {
+          // Se não tem pcusto, calcular a partir do total descontando despesas
+          // Prioridade: total_final > ppix > precoPixDecimal > valorTotal
+          const totalFinal = parseValue(sistema.total_final) || 
+                            parseValue(sistema.ppix) || 
+                            parseValue(sistema.precoPixDecimal) || 
+                            parseValue(sistema.valorTotal);
+          const pdespesaTotal = parseValue(sistema.pdespesa_total) || parseValue(sistema.pdespesaTotal);
+          
+          if (totalFinal > 0) {
+            if (pdespesaTotal > 0 && pdespesaTotal < totalFinal) {
+              // Calcular pcusto: total_final = pcusto + pdespesa_total
+              pcusto = totalFinal - pdespesaTotal;
+              console.log(`📊 Sistema ${index + 1}: Calculado pcusto = ${totalFinal} - ${pdespesaTotal} = ${pcusto}`);
+            } else {
+              // Se não tem pdespesa ou pdespesa é inválida, tentar calcular usando configurações atuais
+              // Fórmula: total_final = pcusto + (pdespesaFixo + pcusto * pdespesaVariavel/100)
+              // total_final = pcusto * (1 + pdespesaVariavel/100) + pdespesaFixo
+              // pcusto = (total_final - pdespesaFixo) / (1 + pdespesaVariavel/100)
+              const pdespesaFixo = config.pdespesaFixo || 3000;
+              const pdespesaVariavel = config.pdespesaVariavel || 22;
+              const fator = 1 + (pdespesaVariavel / 100);
+              pcusto = Math.max(0, (totalFinal - pdespesaFixo) / fator);
+              console.log(`📊 Sistema ${index + 1}: Estimado pcusto = (${totalFinal} - ${pdespesaFixo}) / ${fator} = ${pcusto}`);
+            }
+          }
         }
+        
+        // Log detalhado para debug
+        console.log(`💰 Sistema ${index + 1} - Extração de valores:`, {
+          pcusto_direto: sistema.pcusto,
+          precoCusto: sistema.precoCusto,
+          total_final: sistema.total_final,
+          ppix: sistema.ppix,
+          precoPixDecimal: sistema.precoPixDecimal,
+          pdespesa_total: sistema.pdespesa_total,
+          pcusto_calculado: pcusto
+        });
         
         // Calcular módulos e inversores se não existirem (com valores mínimos garantidos)
         let modulos = 0;
@@ -159,10 +227,29 @@ export default function GeradorRapido() {
           pot_inv = 15; // Valor padrão
         }
 
-        // Garantir valores mínimos válidos
+        // Garantir valores mínimos válidos - se ainda for 0, tentar mais uma vez com ppix
         if (pcusto <= 0) {
-          console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido (${pcusto}), usando valor padrão mínimo`);
-          pcusto = 10000; // Valor mínimo padrão
+          // Última tentativa: usar ppix/precoPixDecimal como base e estimar pcusto
+          const ppixValue = parseValue(sistema.ppix) || parseValue(sistema.precoPixDecimal);
+          if (ppixValue > 0) {
+            // Estimar pcusto assumindo que ppix = pcusto + despesas
+            // Usar configurações atuais para estimar
+            const pdespesaFixo = config.pdespesaFixo || 3000;
+            const pdespesaVariavel = config.pdespesaVariavel || 22;
+            // ppix = pcusto + pdespesaFixo + (pcusto * pdespesaVariavel/100)
+            // ppix = pcusto * (1 + pdespesaVariavel/100) + pdespesaFixo
+            // pcusto = (ppix - pdespesaFixo) / (1 + pdespesaVariavel/100)
+            const fator = 1 + (pdespesaVariavel / 100);
+            pcusto = Math.max(0, (ppixValue - pdespesaFixo) / fator);
+            console.log(`📊 Sistema ${index + 1}: Estimado pcusto final de ppix = (${ppixValue} - ${pdespesaFixo}) / ${fator} = ${pcusto}`);
+          }
+          
+          // Se ainda for 0 ou negativo, usar valor mínimo baseado na potência
+          if (pcusto <= 0) {
+            // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
+            pcusto = Math.max(10000, potenciaTotal * 4000);
+            console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
+          }
         }
         if (modulos <= 0) modulos = 10;
         if (pot_modulo <= 0) pot_modulo = 605;

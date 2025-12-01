@@ -51,7 +51,10 @@ export default function ConsultorOrcamentosPage() {
 
   // Carregar dados do cliente e orçamentos
   useEffect(() => {
-    if (!clienteId) return;
+    if (!clienteId || clienteId === 'cliente' || typeof clienteId !== 'string') {
+      console.warn('⚠️ clienteId inválido:', clienteId);
+      return;
+    }
 
     const loadData = async () => {
       try {
