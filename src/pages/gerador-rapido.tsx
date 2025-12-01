@@ -931,28 +931,24 @@ consolidado_orcamentos_distribuidores:
           alert(`⚠️ ATENÇÃO: Proposta gerada mas NÃO foi salva no banco de dados!\n\n${data.supabase?.message || 'Erro desconhecido'}\n\nA proposta pode não estar disponível publicamente.`);
         }
 
-        // Se temos HTML inline, abrir diretamente em nova janela
-        if (data.htmlContent) {
-          const newWindow = window.open('', '_blank');
-          if (newWindow) {
-            newWindow.document.write(data.htmlContent);
-            newWindow.document.close();
-          }
-          
-          const mensagemSucesso = data.supabase?.salva 
-            ? `✅ Proposta gerada, salva no banco de dados e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || `/proposta/${data.slug}`}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}`
-            : `✅ Proposta gerada e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n⚠️ Não foi salva no banco de dados`;
-          
-          alert(mensagemSucesso);
+        // ✅ ABRIR PROPOSTA DIRETAMENTE NA URL CORRETA (sem about:blank)
+        const propostaUrl = data.slug ? `/proposta/${data.slug}` : null;
+
+        if (propostaUrl) {
+          // Abrir proposta em nova aba IMEDIATAMENTE com URL correta
+          window.open(propostaUrl, '_blank');
+
+          // Mostrar mensagem de sucesso SEM BLOQUEAR (usando console + log visual opcional)
+          const mensagemSucesso = data.supabase?.salva
+            ? `✅ Proposta gerada e salva no banco de dados!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || propostaUrl}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n\n✨ A proposta foi aberta em nova aba!`
+            : `✅ Proposta gerada!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: ${propostaUrl}\n⚠️ Não foi salva no banco de dados\n\n✨ A proposta foi aberta em nova aba!`;
+
+          console.log(mensagemSucesso);
+
+          // Opcional: Mostrar toast notification não-bloqueante ao invés de alert
+          // Isso permite que a janela abra sem esperar o usuário clicar OK
         } else {
-          // Fallback: tentar abrir via rota Next.js
-          const mensagemConfirmacao = data.supabase?.salva
-            ? `✅ Proposta gerada e salva no banco de dados!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || `/proposta/${data.slug}`}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n\nDeseja abrir a proposta agora?`
-            : `✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n⚠️ Não foi salva no banco de dados\n\nDeseja abrir a proposta agora?`;
-            
-          if (confirm(mensagemConfirmacao)) {
-            window.open(`/proposta/${data.slug}`, '_blank');
-          }
+          alert('❌ Erro: Slug da proposta não foi gerado');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
