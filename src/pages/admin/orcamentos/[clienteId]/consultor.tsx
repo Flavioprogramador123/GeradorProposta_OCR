@@ -120,27 +120,48 @@ export default function ConsultorOrcamentosPage() {
             consumoMensal: proposta.cliente?.consumoMensal || 600
           };
 
+          // Sincronizar configurações do Supabase se disponíveis
+          if (proposta.cliente?.hsp) {
+            updateConfig({ hsp: parseFloat(proposta.cliente.hsp) || config.hsp });
+          }
+          if (proposta.cliente?.tarifa) {
+            updateConfig({ tarifa: parseFloat(proposta.cliente.tarifa) || config.tarifa });
+          }
+          if (proposta.cliente?.consumoMensal) {
+            updateConfig({ consumoMensal: proposta.cliente.consumoMensal });
+          }
+
           // Converter sistemas da proposta em orçamentos
           const orcamentosData: OrcamentoComparativo[] = proposta.sistemas.map((sistema: any, index: number) => {
-            // Extrair potência
-            const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
-            const potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
+            // Extrair potência de múltiplas fontes
+            let potenciaTotal = 0;
+            if (sistema.potTotal) {
+              potenciaTotal = typeof sistema.potTotal === 'number' ? sistema.potTotal : parseFloat(sistema.potTotal) || 0;
+            } else if (sistema.potencia) {
+              const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
+              potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
+            } else if (sistema.modulos && sistema.pot_modulo) {
+              potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
+            }
 
-            // Calcular módulos e inversores
-            const modulos = sistema.modulos || Math.round(potenciaTotal * 1000 / 605);
-            const inversores = sistema.inversores || Math.ceil(potenciaTotal / 15);
+            // Extrair pcusto de múltiplas fontes
+            const pcusto = sistema.pcusto || sistema.precoCusto || sistema.valorTotal || sistema.ppix || sistema.precoPixDecimal || 0;
+
+            // Calcular módulos e inversores se não estiverem presentes
+            const modulos = sistema.modulos || (potenciaTotal > 0 ? Math.round(potenciaTotal * 1000 / 605) : 20);
+            const inversores = sistema.inversores || (potenciaTotal > 0 ? Math.ceil(potenciaTotal / 15) : 1);
 
             return {
               id: sistema.id || `sistema-${index}`,
-              nome: sistema.titulo || `Sistema ${index + 1}`,
-              fornecedor: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
-              pcusto: sistema.pcusto || sistema.valorTotal || 0,
-              modulos,
+              nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
+              fornecedor: sistema.distribuidora || sistema.fornecedor || 'SOOLLAR',
+              pcusto: typeof pcusto === 'number' ? pcusto : parseFloat(pcusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0,
+              modulos: typeof modulos === 'number' ? modulos : parseInt(modulos) || 20,
               pot_modulo: sistema.pot_modulo || 605,
-              marca_modulo: sistema.marca_modulo || 'Padrão',
-              inversores,
-              pot_inv: sistema.pot_inv || 15,
-              marca_inversor: sistema.marca_inversor || 'Padrão',
+              marca_modulo: sistema.marca_modulo || sistema.marcaModulo || 'Padrão',
+              inversores: typeof inversores === 'number' ? inversores : parseInt(inversores) || 1,
+              pot_inv: sistema.pot_inv || sistema.potInv || 15,
+              marca_inversor: sistema.marca_inversor || sistema.marcaInversor || 'Padrão',
               status: 'aprovado' as const // Propostas geradas são aprovadas
             };
           });

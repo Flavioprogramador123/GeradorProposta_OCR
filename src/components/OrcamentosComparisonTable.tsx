@@ -33,11 +33,16 @@ export default function OrcamentosComparisonTable({
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
   const calcularPdespesa = (pcusto: number) => {
-    if (config.metodo === 'fixo') {
+    // Se variável é 0, usa só o fixo
+    if (config.pdespesaVariavel === 0) {
       return config.pdespesaFixo;
-    } else {
-      return config.pdespesaFixo + (pcusto * config.pdespesaVariavel / 100);
     }
+    // Se fixo é 0, usa só o variável
+    if (config.pdespesaFixo === 0) {
+      return pcusto * config.pdespesaVariavel / 100;
+    }
+    // Caso contrário, usa ambos
+    return config.pdespesaFixo + (pcusto * config.pdespesaVariavel / 100);
   };
 
   const calcularPrecos = (totalFinal: number) => {
