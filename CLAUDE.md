@@ -441,6 +441,39 @@ Before deploying major changes:
 - Primeira versão com controle de versão visual (`VERSION.md`, badge no admin).
 - Correções de ordenação em `/api/admin/clientes` e melhorias de logs/erros.
 
+### v2.3.1 — 01/12/2025 ✅ **CURRENT PRODUCTION**
+
+**🔧 Critical Fixes:**
+- ✅ **Admin Clientes API**: Corrigido campo `pasta` para usar slug real da proposta do Supabase
+  - Antes: Gerava slug sanitizado do nome (`ivanmaracana`)
+  - Agora: Usa slug completo da proposta (`ivan-maracana-01-12-2025`)
+  - Impacto: Botões "Editar Proposta", "Ver Proposta", WhatsApp e Copiar agora funcionam corretamente
+- ✅ **Delete Proposta**: API agora deleta do Supabase (soft delete com status='inativa')
+  - Antes: Tentava deletar apenas do filesystem (erro ENOENT em produção)
+  - Agora: Deleta do Supabase primeiro, filesystem depois (se existir)
+  - Fallback seguro: Não dá erro se arquivo não existir localmente
+
+**📋 Admin `/orcamentos` Improvements:**
+- ✅ Agrupamento de propostas por cliente (uma linha por cliente com múltiplos sistemas)
+- ✅ Cards expansíveis mostrando todos os sistemas/propostas do cliente
+- ✅ Botões "Editar", "Ver Proposta", "Consultor" com slugs corretos
+
+**🏗️ Architectural Changes:**
+- Supabase como fonte primária para slugs de propostas
+- Filesystem como fallback apenas em desenvolvimento
+- Melhor tratamento de erros ENOENT (arquivo não encontrado)
+
+**📦 Files Modified:**
+- `src/pages/api/admin/clientes.ts` - Usa slug real da proposta (linhas 63-69)
+- `src/pages/api/propostas-publicas.ts` - Delete com Supabase + filesystem (linhas 13-80)
+
+**✅ Status:**
+- Todas as funcionalidades testadas localmente
+- Deploy para produção (Vercel)
+- Pronto para testes em ambiente web
+
+---
+
 ### v2.3.0 — 06/11/2025 (branch `desenvolvimento`)
 **📱 PWA Implementation (Progressive Web App):**
 - ✅ **Manifest.json**: Full PWA configuration with shortcuts
@@ -469,9 +502,9 @@ Before deploying major changes:
 
 ---
 
-**Last Updated**: 2025-11-18 ✅ **v2.2.5** (production) / **v2.3.0** (desenvolvimento)
-**System Status**: ✅ Production Ready (clean-main) + PWA in Development
-**Current Issues**: None - All fixes applied
+**Last Updated**: 2025-12-01 ✅ **v2.2.5** (production atual) → **v2.3.1** (deploy em andamento)
+**System Status**: ✅ Production Ready - Deploy v2.3.1 in progress
+**Current Issues**: None - All fixes applied and tested
 **Supabase**: ✅ Fully integrated and required for production
 **PWA Status**: ✅ Implemented in `desenvolvimento` (pending merge to clean-main)
-**Next Version**: v2.3.0 (PWA deployment) → v2.4.0 (Push notifications, Background sync, Share API)
+**Next Version**: v2.4.0 (Merge PWA + Push notifications, Background sync, Share API)
