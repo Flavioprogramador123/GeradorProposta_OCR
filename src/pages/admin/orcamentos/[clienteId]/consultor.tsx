@@ -91,62 +91,91 @@ export default function ConsultorOrcamentosPage() {
           }
         }
         
-        // 🔧 FALLBACK: Carregar dados reais do cliente via API
-        console.log('📥 Carregando dados reais do cliente via API:', clienteId);
+        // 🔧 FALLBACK: Carregar PROPOSTA GERADA (não orçamentos individuais)
+        console.log('📥 Carregando proposta gerada para:', clienteId);
 
         try {
-          // Buscar dados do cliente
-          const clienteRes = await fetch(`/api/admin/clientes/${clienteId}`);
-          if (!clienteRes.ok) {
-            throw new Error('Cliente não encontrado');
-          }
-          const clienteApiData = await clienteRes.json();
+          // Buscar proposta gerada (tabela propostas, não orcamentos)
+          const propostaRes = await fetch(`/api/test-proposta-slug?slug=${clienteId}`);
 
+          if (!propostaRes.ok) {
+            throw new Error('Proposta não encontrada');
+          }
+
+          const propostaData = await propostaRes.json();
+          console.log('✅ Proposta encontrada:', propostaData);
+
+          if (!propostaData.proposta || !propostaData.proposta.sistemas) {
+            throw new Error('Dados da proposta incompletos');
+          }
+
+          const proposta = propostaData.proposta;
+
+          // Configurar cliente
           const clienteData: Cliente = {
             id: clienteId as string,
-            nome: clienteApiData.nome || 'Cliente',
-            cidade: clienteApiData.cidade || 'N/A',
-            consumoMensal: clienteApiData.consumoMensal || 600
+            nome: proposta.cliente?.nome || 'Cliente',
+            cidade: proposta.cliente?.cidade || 'N/A',
+            consumoMensal: proposta.cliente?.consumoMensal || 600
           };
 
-          // Buscar orçamentos do cliente
-          const orcamentosRes = await fetch(`/api/admin/orcamentos/${clienteId}`);
-          let orcamentosData: OrcamentoComparativo[] = [];
+          // Converter sistemas da proposta em orçamentos
+          const orcamentosData: OrcamentoComparativo[] = proposta.sistemas.map((sistema: any, index: number) => {
+            // Extrair potência
+            const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
+            const potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
 
-          if (orcamentosRes.ok) {
-            const orcamentosApiData = await orcamentosRes.json();
-            console.log('✅ Orçamentos encontrados:', orcamentosApiData.orcamentos?.length || 0);
+            // Calcular módulos e inversores
+            const modulos = sistema.modulos || Math.round(potenciaTotal * 1000 / 605);
+            const inversores = sistema.inversores || Math.ceil(potenciaTotal / 15);
 
-            // Converter orçamentos da API para o formato do consultor
-            orcamentosData = (orcamentosApiData.orcamentos || []).map((orc: any, index: number) => ({
-              id: orc.id || `orc-${index}`,
-              nome: orc.fornecedor || `Orçamento ${index + 1}`,
-              fornecedor: orc.fornecedor || 'Fornecedor',
-              pcusto: orc.valorTotal || orc.precoCustoYaml || 0,
-              modulos: orc.componentes?.modulos?.quantidade || 0,
-              pot_modulo: orc.componentes?.modulos?.componente?.potencia || 550,
-              marca_modulo: orc.componentes?.modulos?.componente?.marca || 'Padrão',
-              inversores: orc.componentes?.inversores?.quantidade || 1,
-              pot_inv: orc.componentes?.inversores?.componente?.potencia || 5,
-              marca_inversor: orc.componentes?.inversores?.componente?.marca || 'Padrão',
-              status: orc.status || 'pendente'
-            }));
-          }
+            return {
+              id: sistema.id || `sistema-${index}`,
+              nome: sistema.titulo || `Sistema ${index + 1}`,
+              fornecedor: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
+              pcusto: sistema.pcusto || sistema.valorTotal || 0,
+              modulos,
+              pot_modulo: sistema.pot_modulo || 605,
+              marca_modulo: sistema.marca_modulo || 'Padrão',
+              inversores,
+              pot_inv: sistema.pot_inv || 15,
+              marca_inversor: sistema.marca_inversor || 'Padrão',
+              status: 'aprovado' as const // Propostas geradas são aprovadas
+            };
+          });
 
-          console.log('✅ Cliente e orçamentos carregados:', { cliente: clienteData.nome, orcamentos: orcamentosData.length });
+          console.log('✅ Cliente e sistemas carregados:', {
+            cliente: clienteData.nome,
+            sistemas: orcamentosData.length
+          });
 
           setCliente(clienteData);
           setOrcamentos(orcamentosData);
         } catch (apiError) {
-          console.error('❌ Erro ao carregar dados da API:', apiError);
+          console.error('❌ Erro ao carregar proposta:', apiError);
 
-          // Se falhar API, usar dados mínimos
-          setCliente({
-            id: clienteId as string,
-            nome: 'Cliente',
-            cidade: 'N/A',
-            consumoMensal: 600
-          });
+          // Se falhar, tentar buscar cliente básico
+          try {
+            const clienteRes = await fetch(`/api/admin/clientes/${clienteId}`);
+            if (clienteRes.ok) {
+              const clienteApiData = await clienteRes.json();
+              setCliente({
+                id: clienteId as string,
+                nome: clienteApiData.nome || 'Cliente',
+                cidade: clienteApiData.cidade || 'N/A',
+                consumoMensal: clienteApiData.consumoMensal || 600
+              });
+            }
+          } catch {
+            // Fallback final
+            setCliente({
+              id: clienteId as string,
+              nome: 'Cliente',
+              cidade: 'N/A',
+              consumoMensal: 600
+            });
+          }
+
           setOrcamentos([]);
         }
       } catch (error) {
