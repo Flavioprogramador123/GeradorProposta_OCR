@@ -471,22 +471,22 @@ export default function AdminIndex() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-2 flex-wrap">
-                              <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior><a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">
-                                📋 Orçamentos
-                              </a></Link>
-                              {cliente.temProposta && (
+                              {cliente.temProposta ? (
                                 <>
+                                  <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior><a className="text-orange-600 hover:text-orange-900 px-2 py-1 rounded bg-orange-50 hover:bg-orange-100">
+                                    ✏️ Editar Proposta
+                                  </a></Link>
                                   <a
-                                    href={`https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`}
+                                    href={`/proposta/${cliente.pasta}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
                                   >
-                                    👁️ Ver Real
+                                    👁️ Ver Proposta
                                   </a>
                                   <button
                                     onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
                                       const mensagem = `Olá! Sua proposta de energia solar está pronta! 🌞\n\nAcesse aqui: ${propostaUrl}\n\nQualquer dúvida, estou à disposição!\n\nPIENG Soluções Energéticas`;
                                       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
                                       window.open(whatsappUrl, '_blank');
@@ -497,7 +497,7 @@ export default function AdminIndex() {
                                   </button>
                                   <button
                                     onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
                                       navigator.clipboard.writeText(propostaUrl);
                                       alert('Link copiado! Cole no WhatsApp ou email do cliente.');
                                     }}
@@ -506,9 +506,13 @@ export default function AdminIndex() {
                                     🔗 Copiar
                                   </button>
                                 </>
+                              ) : (
+                                <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior><a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">
+                                  📋 Criar Orçamento
+                                </a></Link>
                               )}
                               <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior><a className="text-yellow-600 hover:text-yellow-900 px-2 py-1 rounded bg-yellow-50 hover:bg-yellow-100">
-                                ✏️ Editar
+                                ⚙️ Editar Cliente
                               </a></Link>
                               <button
                                 onClick={() => deleteCliente(cliente.pasta, cliente.nome)}

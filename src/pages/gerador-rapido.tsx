@@ -40,6 +40,74 @@ export default function GeradorRapido() {
   const [showYamlInput, setShowYamlInput] = useState(false);
   const [configSistema, setConfigSistema] = useState<any>(null);
 
+  // ✅ Função para carregar proposta existente
+  const carregarPropostaExistente = async (clienteSlug: string) => {
+    try {
+      console.log('📥 Carregando proposta existente para:', clienteSlug);
+      setLoading(true);
+
+      // Buscar proposta do Supabase ou filesystem
+      const response = await fetch(`/api/test-proposta-slug?slug=${clienteSlug}`);
+      if (!response.ok) {
+        throw new Error('Proposta não encontrada');
+      }
+
+      const data = await response.json();
+      console.log('✅ Dados da proposta carregados:', data);
+
+      // Verificar se tem dados
+      if (!data.proposta || !data.proposta.sistemas) {
+        throw new Error('Dados da proposta incompletos');
+      }
+
+      const propostaData = data.proposta;
+
+      // Preencher dados do cliente
+      setConfig(prev => ({
+        ...prev,
+        nomeCliente: propostaData.cliente?.nome || prev.nomeCliente,
+        cidadeCliente: propostaData.cliente?.cidade || prev.cidadeCliente,
+        consumoMensal: propostaData.cliente?.consumoMensal || prev.consumoMensal,
+        tipoImovel: propostaData.cliente?.tipoImovel || prev.tipoImovel
+      }));
+
+      // Converter sistemas em orçamentos
+      const orcamentosCarregados: Orcamento[] = propostaData.sistemas.map((sistema: any, index: number) => {
+        // Extrair dados do sistema
+        const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
+        const potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
+
+        // Calcular módulos e inversores
+        const modulos = sistema.modulos || Math.round(potenciaTotal * 1000 / 605);
+        const inversores = sistema.inversores || Math.ceil(potenciaTotal / 15);
+
+        return {
+          nome: sistema.titulo || `Sistema ${index + 1}`,
+          distribuidora: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
+          pcusto: sistema.pcusto || sistema.valorTotal || 0,
+          modulos,
+          pot_modulo: sistema.pot_modulo || 605,
+          marca_modulo: sistema.marca_modulo || 'Padrão',
+          inversores,
+          pot_inv: sistema.pot_inv || 15,
+          marca_inversor: sistema.marca_inversor || 'Padrão',
+          pdespesa_fixo: sistema.pdespesa_fixo || config.pdespesaFixo,
+          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || config.pdespesaVariavel,
+          pdespesa_total: sistema.pdespesa_total || 0
+        };
+      });
+
+      setOrcamentos(orcamentosCarregados);
+      setLoading(false);
+
+      alert(`✅ Proposta carregada com sucesso!\n\nCliente: ${propostaData.cliente?.nome}\nSistemas: ${orcamentosCarregados.length}\n\nVocê pode editar e gerar nova versão.`);
+    } catch (error) {
+      console.error('❌ Erro ao carregar proposta:', error);
+      alert(`❌ Erro ao carregar proposta do cliente ${clienteSlug}.\n\nVerifique se a proposta existe.`);
+      setLoading(false);
+    }
+  };
+
   // Carregar configurações do sistema
   useEffect(() => {
     const carregarConfigSistema = async () => {
@@ -56,16 +124,23 @@ export default function GeradorRapido() {
     };
 
     carregarConfigSistema();
-    
-    // Verificar se está no modo "reaproveitar" (um único orçamento)
+
+    // Verificar parâmetros da URL
     const params = new URLSearchParams(window.location.search);
-    if (params.get('modo') === 'reaproveitar') {
+
+    // ✅ CARREGAR PROPOSTA EXISTENTE (novo fluxo)
+    const clienteSlug = params.get('cliente');
+    if (clienteSlug) {
+      carregarPropostaExistente(clienteSlug);
+    }
+    // Verificar se está no modo "reaproveitar" (um único orçamento)
+    else if (params.get('modo') === 'reaproveitar') {
       const dadosReaproveitamento = localStorage.getItem('orcamento-reaproveitar');
       if (dadosReaproveitamento) {
         try {
           const dados = JSON.parse(dadosReaproveitamento);
           console.log('♻️ Reaproveitando orçamento:', dados);
-          
+
           // Criar orçamento a partir dos dados reaproveitados
           const orc = dados.orcamento;
           const novoOrcamento: Orcamento = {
@@ -82,13 +157,13 @@ export default function GeradorRapido() {
             pdespesa_variavel_percent: config.pdespesaVariavel,
             pdespesa_total: 0
           };
-          
+
           // Adicionar orçamento à lista
           setOrcamentos([novoOrcamento]);
-          
+
           // Limpar localStorage
           localStorage.removeItem('orcamento-reaproveitar');
-          
+
           // Mostrar mensagem de sucesso
           alert(`✅ Orçamento reaproveitado!\n\n${dados.origem}\n\nVocê pode agora:\n- Preencher os dados do novo cliente\n- Adicionar/remover orçamentos\n- Calcular e gerar proposta`);
         } catch (error) {

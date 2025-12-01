@@ -11,20 +11,26 @@ interface Cliente {
   consumoMensal: number;
 }
 
+interface SistemaItem {
+  titulo: string;
+  potencia: number;
+  modulos: number;
+  inversores: number;
+  valorTotal: number;
+  geracaoMensal?: number;
+  paybackMeses?: number;
+  cobertura?: number;
+}
+
 interface OrcamentoItem {
   id: string;
   propostaId?: string; // ID do Supabase
   cliente: string;
   clientePasta: string;
-  potencia: number;
-  modulos: number;
-  inversores: number;
-  valorTotal: number;
+  sistemas: SistemaItem[]; // ✅ Array de sistemas
   status: 'pendente' | 'aprovado' | 'rejeitado';
   data: string;
-  geracaoMensal?: number;
-  paybackMeses?: number;
-  cobertura?: number;
+  totalSistemas: number;
 }
 
 export default function TodosOrcamentos() {
@@ -219,65 +225,40 @@ export default function TodosOrcamentos() {
                   key={`${orc.clientePasta}-${orc.id}-${index}`}
                   className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
                 >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  {/* Header do Cliente */}
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-800">{orc.cliente}</h3>
+                        <h3 className="text-xl font-bold text-gray-800">{orc.cliente}</h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          orc.status === 'aprovado' 
-                            ? 'bg-green-100 text-green-700' 
+                          orc.status === 'aprovado'
+                            ? 'bg-green-100 text-green-700'
                             : orc.status === 'rejeitado'
                             ? 'bg-red-100 text-red-700'
                             : 'bg-yellow-100 text-yellow-700'
                         }`}>
                           {orc.status === 'aprovado' ? '✅ Aprovado' : orc.status === 'rejeitado' ? '❌ Rejeitado' : '⏳ Pendente'}
                         </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          {orc.totalSistemas} {orc.totalSistemas === 1 ? 'Proposta' : 'Propostas'}
+                        </span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Potência:</span>
-                          <div className="font-medium text-gray-800">{orc.potencia.toFixed(2)} kWp</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Módulos:</span>
-                          <div className="font-medium text-gray-800">{orc.modulos} un</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Inversores:</span>
-                          <div className="font-medium text-gray-800">{orc.inversores} un</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Valor:</span>
-                          <div className="font-medium text-green-600">
-                            R$ {orc.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </div>
-                        </div>
-                        {orc.geracaoMensal && (
-                          <div>
-                            <span className="text-gray-500">Geração:</span>
-                            <div className="font-medium text-blue-600">{orc.geracaoMensal.toFixed(0)} kWh/mês</div>
-                          </div>
-                        )}
-                        {orc.paybackMeses && (
-                          <div>
-                            <span className="text-gray-500">Payback:</span>
-                            <div className="font-medium text-purple-600">{orc.paybackMeses.toFixed(0)} meses</div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {orc.propostaId ? (
-                          <>ID Banco: {orc.propostaId.slice(0, 8)}... • </>
-                        ) : null}
+                      <div className="text-xs text-gray-500">
+                        {orc.propostaId && <>ID Banco: {orc.propostaId.slice(0, 8)}... • </>}
                         ID: {orc.id} • {new Date(orc.data).toLocaleDateString('pt-BR')}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {orc.clientePasta ? (
                         <>
+                          <Link href={`/gerador-rapido?cliente=${orc.clientePasta}`} legacyBehavior>
+                            <a className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
+                              ✏️ Editar
+                            </a>
+                          </Link>
                           <Link href={`/admin/orcamentos/${orc.clientePasta}`} legacyBehavior>
                             <a className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                              📋 Ver Orçamentos
+                              📋 Gerenciar
                             </a>
                           </Link>
                           <Link href={`/admin/orcamentos/${orc.clientePasta}/consultor`} legacyBehavior>
@@ -285,24 +266,70 @@ export default function TodosOrcamentos() {
                               🎛️ Consultor
                             </a>
                           </Link>
-                          {orc.propostaId && (
-                            <Link href={`/proposta/${orc.clientePasta}`} legacyBehavior>
-                              <a className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2" target="_blank">
-                                🔗 Ver Proposta
-                              </a>
-                            </Link>
-                          )}
+                          <Link href={`/proposta/${orc.clientePasta}`} legacyBehavior>
+                            <a className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2" target="_blank">
+                              🔗 Ver Proposta
+                            </a>
+                          </Link>
                         </>
                       ) : (
                         <span className="px-4 py-2 bg-gray-400 text-white rounded-lg opacity-50 cursor-not-allowed">
                           Sem pasta do cliente
                         </span>
                       )}
-                      {orc.propostaId && (
-                        <div className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">
-                          ID: {orc.propostaId.slice(0, 8)}...
+                    </div>
+                  </div>
+
+                  {/* Lista de Sistemas/Propostas */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Sistemas Propostos:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {orc.sistemas.map((sistema, sIndex) => (
+                        <div key={sIndex} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                          <h5 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            <span className="text-blue-600">#{sIndex + 1}</span>
+                            {sistema.titulo}
+                          </h5>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Potência:</span>
+                              <span className="font-medium text-gray-800">{sistema.potencia.toFixed(2)} kWp</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Módulos:</span>
+                              <span className="font-medium text-gray-800">{sistema.modulos} un</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Inversores:</span>
+                              <span className="font-medium text-gray-800">{sistema.inversores} un</span>
+                            </div>
+                            <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
+                              <span className="text-gray-600 font-medium">Valor:</span>
+                              <span className="font-bold text-green-600">
+                                R$ {sistema.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                            {sistema.geracaoMensal && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Geração:</span>
+                                <span className="font-medium text-blue-600">{sistema.geracaoMensal.toFixed(0)} kWh/mês</span>
+                              </div>
+                            )}
+                            {sistema.paybackMeses && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Payback:</span>
+                                <span className="font-medium text-purple-600">{sistema.paybackMeses.toFixed(0)} meses</span>
+                              </div>
+                            )}
+                            {sistema.cobertura && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Cobertura:</span>
+                                <span className="font-medium text-orange-600">{sistema.cobertura.toFixed(0)}%</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>
