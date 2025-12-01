@@ -8,10 +8,27 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.3.1` (01/12/2025) - Produção | **v2.3.0** - Desenvolvimento (PWA)
+**📌 Versão Atual**: `v2.3.1` (01/12/2025) ✅ **PRODUÇÃO**
 **📖** [Ver Changelog Completo](CLAUDE.md) | [Documentação PWA](PWA.md)
 
-## 🆕 Novidades v2.3.0 - PWA (branch desenvolvimento)
+## 🆕 Novidades v2.3.1 (01/12/2025)
+
+**🔧 Correções Críticas:**
+- ✅ **Window Opening Fix**: Propostas agora abrem diretamente sem `about:blank`
+- ✅ **Favicons Corrigidos**: Logo PIENG aparecendo em todos os navegadores
+- ✅ **Configurações Dinâmicas**: 20 configs no Supabase (HSP, tarifas, margens)
+
+**🎨 Melhorias UI/UX:**
+- ✅ Removidos cards desnecessários do admin (Google Drive, Atualizar)
+- ✅ Gerador rápido sincroniza valores do Supabase automaticamente
+- ✅ Sistema totalmente sem hardcode - tudo configurável
+
+**🛠️ Ferramentas:**
+- ✅ Criado conversor SVG→PNG web (`/convert-svg-to-png.html`)
+- ✅ Scripts SQL para configurações (4 arquivos)
+- ✅ Teste direto da API Supabase (`test-supabase-config.js`)
+
+## 🆕 PWA v2.3.0 (branch desenvolvimento)
 
 - 📱 **Instalável como App**: Android, iPhone, Windows, Mac
 - ⚡ **Acesso Offline**: Propostas em cache para visualização sem internet

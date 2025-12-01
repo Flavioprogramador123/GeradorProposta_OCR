@@ -402,10 +402,57 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### v2.3.1 — 01/12/2025 ✅ CURRENT
-- Removido card do Google Drive da área administrativa
-- Sistema de configurações indexado para uso global (sem hardcode)
-- Versão atualizada para 2.3.1
+### v2.3.1 — 01/12/2025 ✅ **CURRENT PRODUCTION**
+
+**🔧 Critical Fixes:**
+- ✅ **Window Opening Fix**: Proposta agora abre diretamente na URL correta sem `about:blank`
+  - Antes: `window.open('', '_blank')` + `document.write()` causava página em branco
+  - Agora: `window.open(propostaUrl, '_blank')` abre diretamente com URL correta
+  - Removido: Alert bloqueante que prendia a janela anterior
+  - Impacto: UX muito melhorada - usuário vê proposta instantaneamente
+
+- ✅ **Favicons Corrigidos**: Logo PIENG agora aparece corretamente
+  - Problema: Arquivos PNG corrompidos (70 bytes vazios)
+  - Solução: Usar `favicon.svg` (839KB) como fonte principal
+  - Arquivos atualizados: `_document.tsx`, `manifest.json`
+  - Deletados: `favicon.ico`, `favicon-16x16.svg` (corrompidos)
+  - Status: Favicons funcionando em todos os navegadores
+
+- ✅ **Configurações Dinâmicas**: Sistema agora usa Supabase para todas as configs
+  - Criada tabela `configuracoes` no Supabase (20 configs)
+  - API `/api/admin/config` refatorada para ler todas as configs individualmente
+  - `gerador-rapido.tsx`: useEffect sincroniza HSP e outras configs do Supabase
+  - `gerar-proposta.ts`: Todos os fallbacks agora usam `configSistema`
+  - Impacto: HSP 5.30 (ou qualquer valor) agora reflete em todo o app
+
+**🎨 UI/UX Improvements:**
+- ✅ Removido card "Google Drive" da área administrativa
+- ✅ Removido card "Atualizar" (recarregar dados) - desnecessário com Supabase
+- ✅ Admin dashboard mais limpo e focado
+
+**📦 SQL Scripts Created:**
+- `1_criar_tabela_configuracoes.sql` - Estrutura da tabela
+- `2_inserir_configuracoes_padrao.sql` - 20 configurações padrão
+- `3_testar_configuracoes.sql` - Testes de validação
+- `4_atualizar_schema_cache.sql` - Refresh do schema cache
+
+**📦 Files Modified:**
+- `src/pages/gerador-rapido.tsx` - Window opening fix + config sync (linhas 930-952)
+- `src/pages/api/admin/config.ts` - Multi-config pattern
+- `src/pages/api/gerar-proposta.ts` - HSP fallbacks (linhas 499, 626, 789, 815)
+- `src/pages/admin/index.tsx` - Removed "Atualizar" button
+- `src/pages/_document.tsx` - Favicon links updated
+- `public/manifest.json` - Icons updated to use SVG
+
+**🛠️ Tools Created:**
+- `convert-svg-to-png.html` - Ferramenta web para converter SVG → PNG
+- `test-supabase-config.js` - Script de teste direto da API Supabase
+
+**✅ Status:**
+- Todas as funcionalidades testadas localmente
+- Configurações Supabase validadas (20 configs)
+- Deploy para produção (Vercel) - v2.3.1
+- Favicons aparecendo corretamente
 
 ### v2.2.5 — 18/11/2025
 - Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase.
@@ -446,36 +493,6 @@ Before deploying major changes:
 - Primeira versão com controle de versão visual (`VERSION.md`, badge no admin).
 - Correções de ordenação em `/api/admin/clientes` e melhorias de logs/erros.
 
-### v2.3.1 — 01/12/2025 ✅ **CURRENT PRODUCTION**
-
-**🔧 Critical Fixes:**
-- ✅ **Admin Clientes API**: Corrigido campo `pasta` para usar slug real da proposta do Supabase
-  - Antes: Gerava slug sanitizado do nome (`ivanmaracana`)
-  - Agora: Usa slug completo da proposta (`ivan-maracana-01-12-2025`)
-  - Impacto: Botões "Editar Proposta", "Ver Proposta", WhatsApp e Copiar agora funcionam corretamente
-- ✅ **Delete Proposta**: API agora deleta do Supabase (soft delete com status='inativa')
-  - Antes: Tentava deletar apenas do filesystem (erro ENOENT em produção)
-  - Agora: Deleta do Supabase primeiro, filesystem depois (se existir)
-  - Fallback seguro: Não dá erro se arquivo não existir localmente
-
-**📋 Admin `/orcamentos` Improvements:**
-- ✅ Agrupamento de propostas por cliente (uma linha por cliente com múltiplos sistemas)
-- ✅ Cards expansíveis mostrando todos os sistemas/propostas do cliente
-- ✅ Botões "Editar", "Ver Proposta", "Consultor" com slugs corretos
-
-**🏗️ Architectural Changes:**
-- Supabase como fonte primária para slugs de propostas
-- Filesystem como fallback apenas em desenvolvimento
-- Melhor tratamento de erros ENOENT (arquivo não encontrado)
-
-**📦 Files Modified:**
-- `src/pages/api/admin/clientes.ts` - Usa slug real da proposta (linhas 63-69)
-- `src/pages/api/propostas-publicas.ts` - Delete com Supabase + filesystem (linhas 13-80)
-
-**✅ Status:**
-- Todas as funcionalidades testadas localmente
-- Deploy para produção (Vercel)
-- Pronto para testes em ambiente web
 
 ---
 
@@ -507,9 +524,11 @@ Before deploying major changes:
 
 ---
 
-**Last Updated**: 2025-12-01 ✅ **v2.3.1** (production atual)
-**System Status**: ✅ Production Ready - Deploy v2.3.1 in progress
+**Last Updated**: 2025-12-01 ✅ **v2.3.1**
+**System Status**: ✅ Production Ready
 **Current Issues**: None - All fixes applied and tested
 **Supabase**: ✅ Fully integrated and required for production
-**PWA Status**: ✅ Implemented in `desenvolvimento` (pending merge to clean-main)
-**Next Version**: v2.4.0 (Merge PWA + Push notifications, Background sync, Share API)
+**Configurations**: ✅ 20 configs in Supabase (dynamic, no hardcode)
+**Favicons**: ✅ Working (favicon.svg 839KB)
+**Window UX**: ✅ Fixed (direct URL opening, no blocking alerts)
+**Next Version**: v2.3.2 (PWA icons optimization, PNG generation)

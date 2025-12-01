@@ -9,16 +9,44 @@
 ### **v2.3.1** - 01/12/2025 ✅ **ATUAL**
 **Status**: 🟢 Em Produção (Vercel)
 
-**🔧 Correções:**
-- ✅ Removido card do Google Drive da área administrativa
-- ✅ Sistema de configurações indexado para uso global
-- ✅ Versão atualizada para 2.3.1
+**🔧 Correções Críticas:**
+- ✅ **Window Opening Fix**: Propostas abrem diretamente sem `about:blank`
+  - Antes: `window.open('', '_blank')` + `document.write()` causava página em branco
+  - Agora: `window.open(propostaUrl, '_blank')` abre diretamente
+  - Removido alert bloqueante que travava a janela anterior
 
-**✨ Melhorias:**
-- ✅ Configurações agora podem ser utilizadas sem hardcode
-- ✅ Interface administrativa simplificada
+- ✅ **Favicons Corrigidos**: Logo PIENG aparecendo em todos os navegadores
+  - Arquivos PNG corrompidos (70 bytes) substituídos por SVG (839KB)
+  - Atualizados: `_document.tsx`, `manifest.json`
+  - Deletados: `favicon.ico`, `favicon-16x16.svg` (corrompidos)
+
+- ✅ **Configurações Dinâmicas**: Sistema usa Supabase para todas as configs
+  - Criada tabela `configuracoes` com 20 configurações
+  - API `/api/admin/config` refatorada (multi-config pattern)
+  - `gerador-rapido.tsx` sincroniza HSP automaticamente
+  - `gerar-proposta.ts` usa configs do Supabase em todos os fallbacks
+  - **HSP 5.30** (ou qualquer valor) agora reflete em todo o app
+
+**🎨 Melhorias UI/UX:**
+- ✅ Removidos cards desnecessários do admin (Google Drive, Atualizar)
+- ✅ Admin dashboard mais limpo e focado
+- ✅ Sistema totalmente sem hardcode - 100% configurável
+
+**🛠️ Ferramentas Criadas:**
+- ✅ `convert-svg-to-png.html` - Conversor web SVG → PNG
+- ✅ 4 scripts SQL para configurações (criar, inserir, testar, refresh)
+- ✅ `test-supabase-config.js` - Teste direto da API Supabase
+
+**📦 Arquivos Modificados:**
+- `src/pages/gerador-rapido.tsx` - Window fix + config sync
+- `src/pages/api/admin/config.ts` - Multi-config pattern
+- `src/pages/api/gerar-proposta.ts` - HSP fallbacks (4 locais)
+- `src/pages/admin/index.tsx` - Removido botão "Atualizar"
+- `src/pages/_document.tsx` - Favicon links
+- `public/manifest.json` - Icons SVG
 
 **📦 Deploy:**
+- Commits: `2c59087`, `430e9f4`, `ce0a7a3`
 - Branch: `clean-main`
 - URL: https://pieng-propostas.vercel.app
 
