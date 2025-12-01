@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG to PNG Converter - PIENG</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #f59e0b; }
+        button {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #d97706; }
+        .preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+        canvas { border: 1px solid #ddd; margin: 10px; }
+        .instructions {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Conversor SVG → PNG - PIENG</h1>
+
+        <div class="instructions">
+            <strong>📋 Instruções:</strong><br>
+            1. Clique nos botões abaixo para gerar os PNGs<br>
+            2. Clique com botão direito na imagem gerada<br>
+            3. Escolha "Salvar imagem como..."<br>
+            4. Salve como: <code>icon-192x192.png</code> ou <code>icon-512x512.png</code><br>
+            5. Salve na pasta: <code>public/</code>
+        </div>
+
+        <button onclick="convertToPNG(192)">📱 Gerar 192x192</button>
+        <button onclick="convertToPNG(512)">💻 Gerar 512x512</button>
+
+        <div class="preview" id="preview"></div>
+    </div>
+
+    <script>
+        async function convertToPNG(size) {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '<p>⏳ Convertendo...</p>';
+
+            try {
+                // Carregar SVG
+                const response = await fetch('/icon.svg');
+                const svgText = await response.text();
+
+                // Criar imagem a partir do SVG
+                const img = new Image();
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+
+                img.onload = function() {
+                    // Criar canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+
+                    // Desenhar SVG no canvas
+                    ctx.drawImage(img, 0, 0, size, size);
+
+                    // Converter para PNG
+                    canvas.toBlob(function(blob) {
+                        const pngUrl = URL.createObjectURL(blob);
+
+                        // Mostrar preview
+                        preview.innerHTML = `
+                            <h3>✅ PNG ${size}x${size} gerado!</h3>
+                            <img src="${pngUrl}" width="${size}" height="${size}"
+                                 style="border: 2px solid #f59e0b; border-radius: 10px;">
+                            <br>
+                            <a href="${pngUrl}" download="icon-${size}x${size}.png">
+                                <button>💾 Download icon-${size}x${size}.png</button>
+                            </a>
+                            <p><small>Ou clique com botão direito → Salvar imagem como...</small></p>
+                        `;
+
+                        URL.revokeObjectURL(url);
+                    }, 'image/png');
+                };
+
+                img.onerror = function() {
+                    preview.innerHTML = '<p style="color: red;">❌ Erro ao carregar SVG</p>';
+                };
+
+                img.src = url;
+
+            } catch (error) {
+                preview.innerHTML = `<p style="color: red;">❌ Erro: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

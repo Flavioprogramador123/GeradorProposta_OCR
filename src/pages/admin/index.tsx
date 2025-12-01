@@ -307,16 +307,10 @@ export default function AdminIndex() {
 
             {/* Ações Principais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
+              <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
                 <div className="text-3xl mb-3">⚡</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Gerador Rápido</h3>
-                <p className="text-sm text-gray-600">Geração rápida de propostas</p>
-              </a></Link>
-
-              <Link href="/admin/novo-cliente" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
-                <div className="text-3xl mb-3">👤</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Novo Cliente</h3>
-                <p className="text-sm text-gray-600">Cadastrar novo cliente</p>
+                <h3 className="font-semibold mb-1">Gerador Rápido</h3>
+                <p className="text-sm opacity-90">Geração rápida de propostas</p>
               </a></Link>
 
               <Link href="/admin/configuracoes" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
@@ -364,8 +358,8 @@ export default function AdminIndex() {
               ) : clientes.length === 0 ? (
                 <div className="p-8 text-center">
                   <div className="text-gray-500 mb-4">Nenhum cliente cadastrado</div>
-                  <Link href="/admin/novo-cliente" legacyBehavior><a className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    👤 Cadastrar Primeiro Cliente
+                  <Link href="/gerador-rapido" legacyBehavior><a className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    ⚡ Gerar Primeira Proposta
                   </a></Link>
                 </div>
               ) : (
