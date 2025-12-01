@@ -55,20 +55,26 @@ export default function GeradorRapido() {
       const data = await response.json();
       console.log('✅ Dados da proposta carregados:', data);
 
-      // Verificar se tem dados
-      if (!data.proposta || !data.proposta.sistemas) {
+      // Verificar se tem dados (suporta data.proposta OU data diretamente)
+      const propostaData = data.proposta || data;
+
+      if (!propostaData || !propostaData.sistemas || !Array.isArray(propostaData.sistemas) || propostaData.sistemas.length === 0) {
+        console.error('❌ Estrutura inválida:', {
+          temProposta: !!data.proposta,
+          temSistemas: !!(data.proposta?.sistemas || data.sistemas),
+          ehArray: Array.isArray(data.proposta?.sistemas || data.sistemas),
+          quantidade: (data.proposta?.sistemas || data.sistemas)?.length
+        });
         throw new Error('Dados da proposta incompletos');
       }
-
-      const propostaData = data.proposta;
 
       // Preencher dados do cliente
       setConfig(prev => ({
         ...prev,
         nomeCliente: propostaData.cliente?.nome || prev.nomeCliente,
         cidadeCliente: propostaData.cliente?.cidade || prev.cidadeCliente,
-        consumoMensal: propostaData.cliente?.consumoMensal || prev.consumoMensal,
-        tipoImovel: propostaData.cliente?.tipoImovel || prev.tipoImovel
+        consumoMensal: propostaData.cliente?.consumoMensal || propostaData.cliente?.consumo || prev.consumoMensal,
+        tipoImovel: propostaData.cliente?.tipoImovel || propostaData.cliente?.tipo || prev.tipoImovel
       }));
 
       // Converter sistemas em orçamentos

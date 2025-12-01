@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { getAllClientes, updateCliente } from '@/lib/supabase';
+import { getClientesWithPropostas, updateCliente } from '@/lib/supabase';
 
 interface ClienteData {
   nome: string;
@@ -24,7 +24,7 @@ function sanitizeId(value: string) {
 }
 
 async function getClienteFromSupabase(clienteId: string) {
-  const clientes = await getAllClientes();
+  const clientes = await getClientesWithPropostas();
   if (!clientes || clientes.length === 0) return null;
 
   const sanitizedId = sanitizeId(clienteId);
@@ -39,6 +39,14 @@ async function getClienteFromSupabase(clienteId: string) {
 
   if (!cliente) return null;
 
+  // ✅ USAR SLUG REAL (não sanitizar o nome)
+  let pasta = (cliente as any).slug || clienteId;
+
+  // Se tem propostas, pegar slug da primeira proposta
+  if ((cliente as any).propostas && (cliente as any).propostas.length > 0) {
+    pasta = (cliente as any).propostas[0].slug || pasta;
+  }
+
   return {
     id: cliente.id,
     nome: cliente.nome,
@@ -47,7 +55,7 @@ async function getClienteFromSupabase(clienteId: string) {
     tipo: cliente.tipo_imovel || 'Residencial',
     hspLocal: cliente.hsp_local?.toString() || '5.21',
     pdespesa: cliente.pdespesa?.toString() || '0',
-    pasta: sanitizeId(cliente.nome || clienteId),
+    pasta, // ✅ Usa slug real da proposta
     observacoes: (cliente as any).observacoes
   } satisfies ClienteData & { id: string };
 }
