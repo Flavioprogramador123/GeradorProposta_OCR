@@ -95,21 +95,19 @@ export default function ConsultorOrcamentosPage() {
         console.log('📥 Carregando proposta gerada para:', clienteId);
 
         try {
-          // Buscar proposta gerada (tabela propostas, não orcamentos)
-          const propostaRes = await fetch(`/api/test-proposta-slug?slug=${clienteId}`);
+          // Buscar proposta gerada usando a API correta que retorna dados completos
+          const propostaRes = await fetch(`/api/propostas/${clienteId}`);
 
           if (!propostaRes.ok) {
             throw new Error('Proposta não encontrada');
           }
 
-          const propostaData = await propostaRes.json();
-          console.log('✅ Proposta encontrada:', propostaData);
+          const proposta = await propostaRes.json();
+          console.log('✅ Proposta encontrada:', proposta);
 
-          if (!propostaData.proposta || !propostaData.proposta.sistemas) {
-            throw new Error('Dados da proposta incompletos');
+          if (!proposta || !proposta.sistemas || !Array.isArray(proposta.sistemas)) {
+            throw new Error('Dados da proposta incompletos - sistemas não encontrados');
           }
-
-          const proposta = propostaData.proposta;
 
           // Configurar cliente
           const clienteData: Cliente = {

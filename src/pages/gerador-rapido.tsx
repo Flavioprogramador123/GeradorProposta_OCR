@@ -46,26 +46,25 @@ export default function GeradorRapido() {
       console.log('📥 Carregando proposta existente para:', clienteSlug);
       setLoading(true);
 
-      // Buscar proposta do Supabase ou filesystem
-      const response = await fetch(`/api/test-proposta-slug?slug=${clienteSlug}`);
+      // Buscar proposta do Supabase ou filesystem usando a API correta
+      const response = await fetch(`/api/propostas/${clienteSlug}`);
       if (!response.ok) {
         throw new Error('Proposta não encontrada');
       }
 
-      const data = await response.json();
-      console.log('✅ Dados da proposta carregados:', data);
+      const propostaData = await response.json();
+      console.log('✅ Dados da proposta carregados:', propostaData);
 
-      // Verificar se tem dados (suporta data.proposta OU data diretamente)
-      const propostaData = data.proposta || data;
-
+      // Verificar se tem dados e sistemas
       if (!propostaData || !propostaData.sistemas || !Array.isArray(propostaData.sistemas) || propostaData.sistemas.length === 0) {
         console.error('❌ Estrutura inválida:', {
-          temProposta: !!data.proposta,
-          temSistemas: !!(data.proposta?.sistemas || data.sistemas),
-          ehArray: Array.isArray(data.proposta?.sistemas || data.sistemas),
-          quantidade: (data.proposta?.sistemas || data.sistemas)?.length
+          temProposta: !!propostaData,
+          temSistemas: !!propostaData?.sistemas,
+          ehArray: Array.isArray(propostaData?.sistemas),
+          quantidade: propostaData?.sistemas?.length,
+          keys: propostaData ? Object.keys(propostaData) : []
         });
-        throw new Error('Dados da proposta incompletos');
+        throw new Error('Dados da proposta incompletos - sistemas não encontrados');
       }
 
       // Preencher dados do cliente
