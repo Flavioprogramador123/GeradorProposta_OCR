@@ -309,7 +309,12 @@ export default function TodosOrcamentos() {
                             <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
                               <span className="text-gray-600 font-medium">Valor:</span>
                               <span className="font-bold text-green-600">
-                                R$ {(sistema.valorTotal || sistema.total_final || sistema.ppix || sistema.precoPixDecimal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                R$ {(() => {
+                                  const valor = sistema.valorTotal ?? sistema.total_final ?? sistema.ppix ?? sistema.precoPixDecimal ?? 0;
+                                  return typeof valor === 'number' && !isNaN(valor) 
+                                    ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                                    : '0,00';
+                                })()}
                               </span>
                             </div>
                             {sistema.geracaoMensal && typeof sistema.geracaoMensal === 'number' && (
