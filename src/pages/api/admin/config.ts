@@ -31,18 +31,34 @@ async function saveConfigToFile(config: Record<string, any>) {
 async function readConfigFromSupabase() {
   if (!supabase) return null;
 
+  // ✅ LER TODAS AS CONFIGURAÇÕES (não apenas uma)
   const { data, error } = await supabase
     .from('configuracoes')
-    .select('valor')
-    .eq('chave', CONFIG_KEY)
-    .maybeSingle();
+    .select('chave, valor');
 
   if (error) {
-    console.error('Erro ao ler configuração no Supabase:', error);
+    console.error('Erro ao ler configurações no Supabase:', error);
     return null;
   }
 
-  return data?.valor || null;
+  if (!data || data.length === 0) {
+    console.warn('⚠️ Nenhuma configuração encontrada no Supabase');
+    return null;
+  }
+
+  // Converter array de configurações em objeto
+  const config: Record<string, any> = {};
+  data.forEach((item: any) => {
+    // Remover aspas do valor JSON se for string
+    let valor = item.valor;
+    if (typeof valor === 'string' && valor.startsWith('"') && valor.endsWith('"')) {
+      valor = valor.slice(1, -1);
+    }
+    config[item.chave] = parseFloat(valor) || valor;
+  });
+
+  console.log(`✅ ${data.length} configurações carregadas do Supabase`);
+  return config;
 }
 
 async function saveConfigToSupabase(config: Record<string, any>) {
@@ -60,22 +76,26 @@ async function saveConfigToSupabase(config: Record<string, any>) {
   }
 
   try {
+    // ✅ SALVAR CADA CONFIGURAÇÃO INDIVIDUALMENTE
+    const updates = Object.entries(config).map(([chave, valor]) => ({
+      chave,
+      valor: JSON.stringify(valor), // Converter para JSON string
+      updated_at: new Date().toISOString()
+    }));
+
+    console.log(`💾 Salvando ${updates.length} configurações no Supabase...`);
+
     const { data, error } = await supabase
       .from('configuracoes')
-      .upsert({
-        chave: CONFIG_KEY,
-        valor: config,
-        descricao: 'Configurações globais do sistema',
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'chave' })
+      .upsert(updates, { onConflict: 'chave' })
       .select();
 
     if (error) {
-      console.error('❌ Erro ao salvar configuração no Supabase:', error);
+      console.error('❌ Erro ao salvar configurações no Supabase:', error);
       return { success: false, error: error.message, details: error };
     }
 
-    console.log('✅ Configuração salva no Supabase com sucesso');
+    console.log(`✅ ${updates.length} configurações salvas no Supabase com sucesso`);
     return { success: true, data };
   } catch (err) {
     console.error('❌ Erro inesperado ao salvar no Supabase:', err);
