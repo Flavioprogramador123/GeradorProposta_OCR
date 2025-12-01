@@ -51,6 +51,8 @@ export default function TodosOrcamentos() {
   const loadData = async () => {
     try {
       console.log('🔍 Carregando orçamentos...');
+      setLoading(true);
+      
       // Carregar todos os orçamentos diretamente das propostas
       const orcamentosRes = await fetch('/api/admin/orcamentos-todos');
       console.log('📡 Response status:', orcamentosRes.status);
@@ -60,9 +62,11 @@ export default function TodosOrcamentos() {
         console.log('✅ Dados recebidos:', {
           total: orcamentosData.orcamentos?.length || 0,
           source: orcamentosData.source,
+          stats: orcamentosData.stats,
           primeiroOrcamento: orcamentosData.orcamentos?.[0]
         });
 
+        // Sempre definir orçamentos, mesmo se vazio
         setOrcamentos(orcamentosData.orcamentos || []);
 
         // Extrair clientes únicos dos orçamentos
@@ -83,10 +87,17 @@ export default function TodosOrcamentos() {
         setClientes(Array.from(clientesUnicos.values()));
         console.log('✅ Orçamentos carregados com sucesso!', orcamentosData.orcamentos?.length || 0);
       } else {
-        console.error('❌ Erro na resposta:', orcamentosRes.status);
+        const errorText = await orcamentosRes.text();
+        console.error('❌ Erro na resposta:', orcamentosRes.status, errorText);
+        // Definir arrays vazios em caso de erro
+        setOrcamentos([]);
+        setClientes([]);
       }
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
+      // Definir arrays vazios em caso de erro
+      setOrcamentos([]);
+      setClientes([]);
     } finally {
       console.log('✅ Loading finalizado');
       setLoading(false);

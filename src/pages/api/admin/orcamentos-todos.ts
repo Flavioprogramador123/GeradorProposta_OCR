@@ -74,7 +74,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .eq('status', 'ativa')
           .order('created_at', { ascending: false });
 
-        if (!error && propostas && propostas.length > 0) {
+        if (error) {
+          console.error('❌ Erro ao buscar do Supabase:', error);
+          // Retornar vazio em caso de erro
+          return res.status(200).json({ 
+            orcamentos: [], 
+            stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
+            source: 'supabase-error'
+          });
+        }
+
+        if (propostas && propostas.length > 0) {
           console.log(`✅ ${propostas.length} propostas encontradas no Supabase`);
 
           // ✅ AGRUPAR SISTEMAS POR CLIENTE (uma linha por cliente)
@@ -106,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   potencia,
                   modulos,
                   inversores,
-                  valorTotal: sistema.ppix || sistema.valorTotal || 0,
+                  valorTotal: sistema.ppix || sistema.valorTotal || sistema.total_final || sistema.precoPixDecimal || 0,
                   geracaoMensal: sistema.geracaoMensal,
                   paybackMeses: sistema.paybackMeses,
                   cobertura: sistema.cobertura || sistema.coberturaPercent
@@ -143,6 +153,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           console.log(`✅ Orçamentos processados: ${total} clientes com ${todosOrcamentos.reduce((sum, o) => sum + o.totalSistemas, 0)} sistemas totais`);
           return res.status(200).json({ orcamentos: todosOrcamentos, stats, source: 'supabase' });
+        } else {
+          // ✅ Nenhuma proposta encontrada - retornar vazio
+          console.log('ℹ️ Nenhuma proposta encontrada no Supabase');
+          return res.status(200).json({ 
+            orcamentos: [], 
+            stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
+            source: 'supabase-empty'
+          });
         }
       } catch (supabaseError) {
         console.error('⚠️ Erro ao buscar do Supabase, usando fallback filesystem:', supabaseError);
