@@ -104,6 +104,53 @@ export default function TodosOrcamentos() {
     }
   };
 
+  const handleExcluirProposta = async (clientePasta: string, clienteNome: string) => {
+    // Primeira confirmação
+    const primeiraConfirmacao = window.confirm(
+      `⚠️ ATENÇÃO: Você realmente deseja excluir a proposta do cliente "${clienteNome}"?\n\n` +
+      `Esta ação marcará a proposta como inativa no sistema.`
+    );
+
+    if (!primeiraConfirmacao) {
+      return;
+    }
+
+    // Segunda confirmação
+    const segundaConfirmacao = window.confirm(
+      `🔴 CONFIRMAÇÃO FINAL\n\n` +
+      `Você tem CERTEZA que deseja excluir a proposta de "${clienteNome}"?\n\n` +
+      `Esta ação não pode ser desfeita facilmente.\n\n` +
+      `Clique em "OK" para confirmar ou "Cancelar" para abortar.`
+    );
+
+    if (!segundaConfirmacao) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`/api/admin/propostas/${clientePasta}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao excluir proposta');
+      }
+
+      // Recarregar lista após exclusão
+      await loadData();
+      
+      alert('✅ Proposta excluída com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao excluir proposta:', error);
+      alert(`❌ Erro ao excluir proposta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const orcamentosFiltrados = orcamentos
     .filter(orc => filtro === 'todos' || orc.status === filtro)
     .filter(orc => 
@@ -285,6 +332,14 @@ export default function TodosOrcamentos() {
                               🔗 Ver Proposta
                             </a>
                           </Link>
+                          <button
+                            onClick={() => handleExcluirProposta(orc.clientePasta, orc.cliente)}
+                            disabled={loading}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Excluir proposta permanentemente"
+                          >
+                            🗑️ Excluir
+                          </button>
                         </>
                       ) : (
                         <span className="px-4 py-2 bg-gray-400 text-white rounded-lg opacity-50 cursor-not-allowed">
