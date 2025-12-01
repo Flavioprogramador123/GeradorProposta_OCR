@@ -146,15 +146,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Em produção, Supabase é obrigatório
+      // Em produção, tentar fallback para arquivo temporário se Supabase falhar
+      if (isProduction) {
+        try {
+          console.log('⚠️ Supabase falhou, tentando salvar em arquivo temporário...');
+          await saveConfigToFile(configWithMetadata);
+          return res.status(200).json({ 
+            message: 'Configuração salva em arquivo temporário (Supabase não disponível).',
+            source: 'filesystem-temp',
+            warning: 'A tabela "configuracoes" não existe no Supabase. Execute o script criar_tabela_configuracoes.sql',
+            error: supabaseResult.error,
+            debug: {
+              hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+              hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+              isProduction,
+              supabaseClientAvailable: !!supabase,
+              tableError: supabaseResult.error?.includes('table') ? 'Tabela configuracoes não encontrada' : 'Outro erro'
+            }
+          });
+        } catch (fileError) {
+          console.error('❌ Erro ao salvar no filesystem temporário:', fileError);
+        }
+      }
+
+      // Se chegou aqui, não foi possível salvar
       return res.status(500).json({ 
-        message: 'Não foi possível salvar configuração. Configure o Supabase.',
+        message: 'Não foi possível salvar configuração. A tabela "configuracoes" não existe no Supabase.',
         error: supabaseResult.error,
+        solution: 'Execute o script criar_tabela_configuracoes.sql no Supabase Dashboard',
         debug: {
           hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
           hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
           isProduction,
-          supabaseClientAvailable: !!supabase
+          supabaseClientAvailable: !!supabase,
+          tableError: supabaseResult.error?.includes('table') ? 'Tabela configuracoes não encontrada' : 'Outro erro'
         }
       });
     } catch (error) {
