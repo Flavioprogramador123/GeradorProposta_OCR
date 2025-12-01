@@ -54,6 +54,12 @@ export default function GeradorRapido() {
 
       const propostaData = await response.json();
       console.log('✅ Dados da proposta carregados:', propostaData);
+      console.log('📊 Estrutura da proposta:', {
+        temCliente: !!propostaData?.cliente,
+        temSistemas: !!propostaData?.sistemas,
+        quantidadeSistemas: propostaData?.sistemas?.length || 0,
+        keys: propostaData ? Object.keys(propostaData) : []
+      });
 
       // Verificar se tem dados e sistemas
       if (!propostaData || !propostaData.sistemas || !Array.isArray(propostaData.sistemas) || propostaData.sistemas.length === 0) {
@@ -62,50 +68,101 @@ export default function GeradorRapido() {
           temSistemas: !!propostaData?.sistemas,
           ehArray: Array.isArray(propostaData?.sistemas),
           quantidade: propostaData?.sistemas?.length,
-          keys: propostaData ? Object.keys(propostaData) : []
+          keys: propostaData ? Object.keys(propostaData) : [],
+          primeiroSistema: propostaData?.sistemas?.[0]
         });
         throw new Error('Dados da proposta incompletos - sistemas não encontrados');
       }
 
-      // Preencher dados do cliente
+      // Preencher TODOS os dados do cliente da proposta (não hardcoded)
+      const cliente = propostaData.cliente || {};
       setConfig(prev => ({
         ...prev,
-        nomeCliente: propostaData.cliente?.nome || prev.nomeCliente,
-        cidadeCliente: propostaData.cliente?.cidade || prev.cidadeCliente,
-        consumoMensal: propostaData.cliente?.consumoMensal || propostaData.cliente?.consumo || prev.consumoMensal,
-        tipoImovel: propostaData.cliente?.tipoImovel || propostaData.cliente?.tipo || prev.tipoImovel
+        nomeCliente: cliente.nome || prev.nomeCliente,
+        cidadeCliente: cliente.cidade || prev.cidadeCliente,
+        consumoMensal: cliente.consumoMensal || cliente.consumo || parseFloat(cliente.consumoKwh) || prev.consumoMensal,
+        tipoImovel: cliente.tipoImovel || cliente.tipo || prev.tipoImovel,
+        // Carregar HSP e tarifa do cliente se disponíveis
+        hsp: cliente.hsp || parseFloat(cliente.hspLocal?.toString().replace(',', '.')) || prev.hsp,
+        tarifa: cliente.tarifa || parseFloat(cliente.tarifaEnergia?.toString().replace(',', '.')) || prev.tarifa
       }));
 
-      // Converter sistemas em orçamentos
-      const orcamentosCarregados: Orcamento[] = propostaData.sistemas.map((sistema: any, index: number) => {
-        // Extrair dados do sistema
-        const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
-        const potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
-
-        // Calcular módulos e inversores
-        const modulos = sistema.modulos || Math.round(potenciaTotal * 1000 / 605);
-        const inversores = sistema.inversores || Math.ceil(potenciaTotal / 15);
-
-        return {
-          nome: sistema.titulo || `Sistema ${index + 1}`,
-          distribuidora: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
-          pcusto: sistema.pcusto || sistema.valorTotal || 0,
-          modulos,
-          pot_modulo: sistema.pot_modulo || 605,
-          marca_modulo: sistema.marca_modulo || 'Padrão',
-          inversores,
-          pot_inv: sistema.pot_inv || 15,
-          marca_inversor: sistema.marca_inversor || 'Padrão',
-          pdespesa_fixo: sistema.pdespesa_fixo || config.pdespesaFixo,
-          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || config.pdespesaVariavel,
-          pdespesa_total: sistema.pdespesa_total || 0
-        };
+      console.log('📋 Dados do cliente carregados:', {
+        nome: cliente.nome,
+        cidade: cliente.cidade,
+        consumo: cliente.consumoMensal || cliente.consumo,
+        hsp: cliente.hsp || cliente.hspLocal,
+        tarifa: cliente.tarifa || cliente.tarifaEnergia
       });
 
-      setOrcamentos(orcamentosCarregados);
+      // Converter sistemas em orçamentos com validação robusta
+      const orcamentosCarregados: Orcamento[] = propostaData.sistemas.map((sistema: any, index: number) => {
+        console.log(`📦 Processando sistema ${index + 1}:`, sistema);
+        
+        // Extrair potência de diferentes formatos possíveis
+        let potenciaTotal = 0;
+        if (sistema.potTotal) {
+          potenciaTotal = typeof sistema.potTotal === 'number' ? sistema.potTotal : parseFloat(sistema.potTotal.toString().replace(',', '.'));
+        } else if (sistema.potencia) {
+          const potenciaMatch = sistema.potencia.toString().match(/(\d+[.,]?\d*)/);
+          potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1].replace(',', '.')) : 0;
+        } else if (sistema.modulos && sistema.pot_modulo) {
+          potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
+        }
+
+        // Extrair P.Custo de diferentes formatos
+        const pcusto = sistema.pcusto || sistema.precoCusto || sistema.valorTotal || sistema.total_final || 0;
+        
+        // Calcular módulos e inversores se não existirem
+        const modulos = sistema.modulos || (potenciaTotal > 0 ? Math.round(potenciaTotal * 1000 / 605) : 10);
+        const inversores = sistema.inversores || (potenciaTotal > 0 ? Math.ceil(potenciaTotal / 15) : 1);
+        const pot_modulo = sistema.pot_modulo || 605;
+        const pot_inv = sistema.pot_inv || 15;
+
+        const orcamento: Orcamento = {
+          nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
+          distribuidora: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
+          pcusto: typeof pcusto === 'number' ? pcusto : parseFloat(pcusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0,
+          modulos: typeof modulos === 'number' ? modulos : parseInt(modulos.toString()) || 10,
+          pot_modulo: typeof pot_modulo === 'number' ? pot_modulo : parseFloat(pot_modulo.toString().replace(',', '.')) || 605,
+          marca_modulo: sistema.marca_modulo || 'Padrão',
+          inversores: typeof inversores === 'number' ? inversores : parseInt(inversores.toString()) || 1,
+          pot_inv: typeof pot_inv === 'number' ? pot_inv : parseFloat(pot_inv.toString().replace(',', '.')) || 15,
+          marca_inversor: sistema.marca_inversor || 'Padrão',
+          pdespesa_fixo: sistema.pdespesa_fixo || sistema.pdespesaFixo || config.pdespesaFixo,
+          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || sistema.pdespesaVariavel || config.pdespesaVariavel,
+          pdespesa_total: sistema.pdespesa_total || sistema.pdespesaTotal || 0
+        };
+
+        console.log(`✅ Orçamento ${index + 1} convertido:`, {
+          nome: orcamento.nome,
+          pcusto: orcamento.pcusto,
+          modulos: orcamento.modulos,
+          pot_modulo: orcamento.pot_modulo,
+          valido: orcamento.pcusto > 0 && orcamento.modulos > 0 && orcamento.pot_modulo > 0
+        });
+
+        return orcamento;
+      });
+
+      // Validar orçamentos antes de salvar
+      const orcamentosValidos = orcamentosCarregados.filter(orc => {
+        const valido = orc && orc.nome && orc.pcusto > 0 && orc.modulos > 0 && orc.pot_modulo > 0;
+        if (!valido) {
+          console.warn('⚠️ Orçamento inválido será removido:', orc);
+        }
+        return valido;
+      });
+
+      if (orcamentosValidos.length === 0) {
+        throw new Error('Nenhum orçamento válido encontrado na proposta. Verifique os dados dos sistemas.');
+      }
+
+      console.log(`✅ ${orcamentosValidos.length} de ${orcamentosCarregados.length} orçamentos válidos`);
+      setOrcamentos(orcamentosValidos);
       setLoading(false);
 
-      alert(`✅ Proposta carregada com sucesso!\n\nCliente: ${propostaData.cliente?.nome}\nSistemas: ${orcamentosCarregados.length}\n\nVocê pode editar e gerar nova versão.`);
+      alert(`✅ Proposta carregada com sucesso!\n\nCliente: ${propostaData.cliente?.nome || 'N/A'}\nSistemas válidos: ${orcamentosValidos.length} de ${orcamentosCarregados.length}\n\nVocê pode editar e gerar nova versão.`);
     } catch (error) {
       console.error('❌ Erro ao carregar proposta:', error);
       alert(`❌ Erro ao carregar proposta do cliente ${clienteSlug}.\n\nVerifique se a proposta existe.`);
