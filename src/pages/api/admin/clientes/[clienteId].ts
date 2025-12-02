@@ -24,20 +24,89 @@ function sanitizeId(value: string) {
 }
 
 async function getClienteFromSupabase(clienteId: string) {
+  console.log(`🔍 Buscando cliente no Supabase: "${clienteId}"`);
+  
   const clientes = await getClientesWithPropostas();
-  if (!clientes || clientes.length === 0) return null;
+  if (!clientes || clientes.length === 0) {
+    console.log('⚠️ Nenhum cliente encontrado no Supabase');
+    return null;
+  }
+
+  console.log(`📋 Total de clientes no Supabase: ${clientes.length}`);
 
   const sanitizedId = sanitizeId(clienteId);
+  console.log(`🔧 ID sanitizado: "${sanitizedId}"`);
 
-  const cliente = clientes.find((c) => {
-    const byId = c.id === clienteId;
-    const bySlug = typeof (c as any).slug === 'string' && sanitizeId((c as any).slug) === sanitizedId;
-    const byNome = c.nome && sanitizeId(c.nome) === sanitizedId;
-    const byPasta = (c as any).pasta && sanitizeId((c as any).pasta) === sanitizedId;
-    return byId || bySlug || byNome || byPasta;
-  });
+  // ✅ PRIORIDADE 1: Busca exata por ID (mais preciso)
+  let cliente = clientes.find((c) => c.id === clienteId);
+  if (cliente) {
+    console.log(`✅ Cliente encontrado por ID exato: ${cliente.nome} (ID: ${cliente.id})`);
+  }
 
-  if (!cliente) return null;
+  // ✅ PRIORIDADE 2: Busca por slug exato (se não encontrou por ID)
+  if (!cliente) {
+    cliente = clientes.find((c) => {
+      const slug = (c as any).slug;
+      return slug && (slug === clienteId || sanitizeId(slug) === sanitizedId);
+    });
+    if (cliente) {
+      console.log(`✅ Cliente encontrado por slug: ${cliente.nome} (slug: ${(cliente as any).slug})`);
+    }
+  }
+
+  // ✅ PRIORIDADE 3: Busca por pasta exata (se não encontrou por ID/slug)
+  if (!cliente) {
+    cliente = clientes.find((c) => {
+      const pasta = (c as any).pasta;
+      return pasta && (pasta === clienteId || sanitizeId(pasta) === sanitizedId);
+    });
+    if (cliente) {
+      console.log(`✅ Cliente encontrado por pasta: ${cliente.nome} (pasta: ${(cliente as any).pasta})`);
+    }
+  }
+
+  // ✅ PRIORIDADE 4: Busca por nome exato (case-insensitive)
+  if (!cliente) {
+    cliente = clientes.find((c) => {
+      if (!c.nome) return false;
+      // Comparação exata (case-insensitive)
+      const nomeMatch = c.nome.toLowerCase().trim() === clienteId.toLowerCase().trim();
+      // Comparação sanitizada (fallback)
+      const nomeSanitizedMatch = sanitizeId(c.nome) === sanitizedId;
+      return nomeMatch || nomeSanitizedMatch;
+    });
+    if (cliente) {
+      console.log(`✅ Cliente encontrado por nome: ${cliente.nome}`);
+    }
+  }
+
+  // ⚠️ Se encontrou múltiplos matches, avisar
+  if (cliente) {
+    const matches = clientes.filter((c) => {
+      const byId = c.id === clienteId;
+      const bySlug = (c as any).slug && sanitizeId((c as any).slug) === sanitizedId;
+      const byNome = c.nome && sanitizeId(c.nome) === sanitizedId;
+      const byPasta = (c as any).pasta && sanitizeId((c as any).pasta) === sanitizedId;
+      return byId || bySlug || byNome || byPasta;
+    });
+
+    if (matches.length > 1) {
+      console.warn(`⚠️ ATENÇÃO: Múltiplos clientes encontrados (${matches.length}) para "${clienteId}":`, 
+        matches.map(m => ({ nome: m.nome, id: m.id, slug: (m as any).slug }))
+      );
+    }
+  }
+
+  if (!cliente) {
+    console.log(`❌ Cliente não encontrado no Supabase para: "${clienteId}"`);
+    console.log('📋 Clientes disponíveis:', clientes.map(c => ({ 
+      nome: c.nome, 
+      id: c.id, 
+      slug: (c as any).slug,
+      pasta: (c as any).pasta 
+    })));
+    return null;
+  }
 
   // ✅ USAR SLUG REAL (não sanitizar o nome)
   let pasta = (cliente as any).slug || clienteId;
@@ -45,9 +114,10 @@ async function getClienteFromSupabase(clienteId: string) {
   // Se tem propostas, pegar slug da primeira proposta
   if ((cliente as any).propostas && (cliente as any).propostas.length > 0) {
     pasta = (cliente as any).propostas[0].slug || pasta;
+    console.log(`📄 Usando slug da proposta: ${pasta}`);
   }
 
-  return {
+  const clienteData = {
     id: cliente.id,
     nome: cliente.nome,
     cidade: cliente.cidade,
@@ -58,6 +128,16 @@ async function getClienteFromSupabase(clienteId: string) {
     pasta, // ✅ Usa slug real da proposta
     observacoes: (cliente as any).observacoes
   } satisfies ClienteData & { id: string };
+
+  console.log(`✅ Dados do cliente retornados:`, {
+    nome: clienteData.nome,
+    cidade: clienteData.cidade,
+    consumoKwh: clienteData.consumoKwh,
+    hspLocal: clienteData.hspLocal,
+    pasta: clienteData.pasta
+  });
+
+  return clienteData;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -179,14 +259,89 @@ CONSUMO MENSAL: ${consumoKwh} KWH/MES
   }
   
   else if (req.method === 'DELETE') {
-    // Excluir cliente
+    // ✅ Excluir cliente (Supabase ou filesystem)
     try {
       const clienteSupabase = await getClienteFromSupabase(clienteId);
+      
       if (clienteSupabase?.id) {
-        res.status(405).json({ message: 'Remoção via API não permitida para clientes do Supabase' });
-        return;
+        // ✅ DELETAR DO SUPABASE
+        console.log(`🗑️ Deletando cliente do Supabase: ${clienteSupabase.nome} (ID: ${clienteSupabase.id})`);
+        
+        try {
+          const { supabase } = await import('@/lib/supabase');
+          
+          if (!supabase) {
+            throw new Error('Supabase não configurado');
+          }
+
+          // 1. Deletar propostas do cliente primeiro (cascade)
+          const { error: propostasError } = await supabase
+            .from('propostas')
+            .delete()
+            .eq('cliente_id', clienteSupabase.id);
+
+          if (propostasError) {
+            console.warn('⚠️ Erro ao deletar propostas (pode não existir):', propostasError);
+          } else {
+            console.log('✅ Propostas do cliente deletadas');
+          }
+
+          // 2. Deletar orçamentos do cliente (se existir tabela)
+          try {
+            const { error: orcamentosError } = await supabase
+              .from('orcamentos')
+              .delete()
+              .eq('cliente_id', clienteSupabase.id);
+            
+            if (orcamentosError && orcamentosError.code !== 'PGRST116') {
+              console.warn('⚠️ Erro ao deletar orçamentos:', orcamentosError);
+            } else {
+              console.log('✅ Orçamentos do cliente deletados');
+            }
+          } catch (orcError) {
+            console.warn('⚠️ Tabela orcamentos pode não existir:', orcError);
+          }
+
+          // 3. Deletar o cliente
+          const { error: deleteError } = await supabase
+            .from('clientes')
+            .delete()
+            .eq('id', clienteSupabase.id);
+
+          if (deleteError) {
+            console.error('❌ Erro ao deletar cliente do Supabase:', deleteError);
+            return res.status(500).json({ 
+              message: 'Erro ao excluir cliente do Supabase', 
+              error: deleteError.message 
+            });
+          }
+
+          console.log(`✅ Cliente "${clienteSupabase.nome}" deletado do Supabase com sucesso!`);
+          
+          // Também tentar deletar do filesystem se existir
+          try {
+            await fs.rm(clientePath, { recursive: true, force: true });
+            console.log('✅ Pasta do cliente também removida do filesystem');
+          } catch (fsError) {
+            console.warn('⚠️ Pasta não encontrada no filesystem (ok, cliente estava apenas no Supabase)');
+          }
+
+          return res.status(200).json({ 
+            message: `Cliente "${clienteSupabase.nome}" excluído do Supabase com sucesso!`,
+            deletedFrom: 'Supabase'
+          });
+        } catch (supabaseError: any) {
+          console.error('❌ Erro ao deletar do Supabase:', supabaseError);
+          return res.status(500).json({ 
+            message: 'Erro ao excluir cliente do Supabase', 
+            error: supabaseError.message 
+          });
+        }
       }
 
+      // ✅ DELETAR DO FILESYSTEM (cliente não está no Supabase)
+      console.log(`🗑️ Deletando cliente do filesystem: ${clienteId}`);
+      
       // Verificar se cliente existe
       try {
         await fs.access(clientePath);
@@ -196,11 +351,19 @@ CONSUMO MENSAL: ${consumoKwh} KWH/MES
 
       // Remover pasta do cliente recursivamente
       await fs.rm(clientePath, { recursive: true, force: true });
+      
+      console.log(`✅ Cliente "${clienteId}" deletado do filesystem com sucesso!`);
 
-      res.status(200).json({ message: 'Cliente excluído com sucesso' });
-    } catch (error) {
-      console.error('Erro ao excluir cliente:', error);
-      res.status(500).json({ message: 'Erro interno do servidor' });
+      res.status(200).json({ 
+        message: 'Cliente excluído com sucesso',
+        deletedFrom: 'filesystem'
+      });
+    } catch (error: any) {
+      console.error('❌ Erro ao excluir cliente:', error);
+      res.status(500).json({ 
+        message: 'Erro interno do servidor',
+        error: error.message 
+      });
     }
   }
   

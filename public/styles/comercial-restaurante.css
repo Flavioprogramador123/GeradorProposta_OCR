@@ -1,0 +1,147 @@
+/**
+ * 🍽️ CSS CUSTOMIZADO - RESTAURANTE
+ * Tema: Cores verdes/natureza + foco em AC e cozinha profissional
+ */
+
+.variant-comercial-restaurante {
+  --variant-primary: #16a085;
+  --variant-secondary: #f39c12;
+  --variant-gradient: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  --variant-accent: #1abc9c;
+  --variant-icon: '🍽️';
+}
+
+/* Hero Section - Tema Restaurante */
+.variant-comercial-restaurante .hero-section {
+  background: var(--variant-gradient);
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+    var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(22, 160, 133, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.variant-comercial-restaurante .hero-section::before {
+  content: '🍽️';
+  position: absolute;
+  font-size: 15rem;
+  opacity: 0.1;
+  top: -50px;
+  right: -50px;
+  transform: rotate(-15deg);
+}
+
+/* Seção de Climatização - Destaque para Restaurante */
+.variant-comercial-restaurante .climatization-section {
+  background: linear-gradient(135deg, #16a085 0%, #1abc9c 100%);
+  color: white;
+  padding: 40px;
+  border-radius: 16px;
+  margin: 30px 0;
+  box-shadow: 0 8px 25px rgba(22, 160, 133, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.variant-comercial-restaurante .climatization-section::before {
+  content: '❄️';
+  position: absolute;
+  font-size: 12rem;
+  opacity: 0.1;
+  top: -30px;
+  right: -30px;
+  transform: rotate(15deg);
+}
+
+.variant-comercial-restaurante .climatization-icon {
+  font-size: 5rem;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+/* Custo Operacional - Foco em AC e Cozinha */
+.variant-comercial-restaurante .operational-cost-section {
+  background: white;
+  border: 3px solid var(--variant-primary);
+  border-radius: 16px;
+  padding: 35px;
+  margin: 30px 0;
+  box-shadow: 0 8px 25px rgba(22, 160, 133, 0.15);
+}
+
+.variant-comercial-restaurante .kitchen-ac-cost {
+  background: linear-gradient(135deg, #16a085 0%, #1abc9c 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  margin: 20px 0;
+  box-shadow: 0 5px 15px rgba(22, 160, 133, 0.3);
+}
+
+/* Cards de Sistema - Tema Restaurante */
+.variant-comercial-restaurante .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(22, 160, 133, 0.1);
+}
+
+.variant-comercial-restaurante .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(22, 160, 133, 0.25);
+  transform: translateY(-5px);
+}
+
+/* CTA Button - Tema Restaurante */
+.variant-comercial-restaurante .cta-button {
+  background: var(--variant-gradient);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(22, 160, 133, 0.4);
+  transition: all 0.3s ease;
+}
+
+.variant-comercial-restaurante .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(22, 160, 133, 0.5);
+}
+
+/* Tabelas - Header com tema restaurante */
+.variant-comercial-restaurante th {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 15px;
+  font-weight: 700;
+}
+
+/* Marketing Verde - Selo Restaurante Verde */
+.variant-comercial-restaurante .green-marketing-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 35px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+  position: relative;
+}
+
+.variant-comercial-restaurante .sustainability-badge {
+  font-size: 5rem;
+  margin: 20px 0;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+

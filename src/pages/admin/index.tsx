@@ -268,6 +268,11 @@ export default function AdminIndex() {
                     ✨ Ver Exemplo
                   </a>
                 </Link>
+                <Link href="/admin/configuracoes" legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xl" title="Configurações do Sistema">
+                    ⚙️
+                  </a>
+                </Link>
                 <Link href="/" legacyBehavior><a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                 🏠 Site
               </a></Link>
@@ -334,12 +339,6 @@ export default function AdminIndex() {
                 <div className="text-3xl mb-3">⚡</div>
                 <h3 className="font-semibold mb-1">Gerador Rápido</h3>
                 <p className="text-sm opacity-90">Geração rápida de propostas</p>
-              </a></Link>
-
-              <Link href="/admin/configuracoes" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
-                <div className="text-3xl mb-3">⚙️</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Configurações</h3>
-                <p className="text-sm text-gray-600">Parâmetros do sistema</p>
               </a></Link>
 
               <Link href="/admin/orcamentos" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">

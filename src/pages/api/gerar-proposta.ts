@@ -113,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { cliente, orcamentos, config } = req.body;
+    const { cliente, orcamentos, config, slugExistente } = req.body;
 
     // Debug: mostrar dados recebidos
     console.log('📥 Dados recebidos na API:', {
@@ -126,8 +126,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         geracaoMensal: orc.geracaoMensal,
         paybackMeses: orc.paybackMeses
       })),
-      config: config
+      config: config,
+      slugExistente: slugExistente || 'NOVO'
     });
+    
+    // ✅ Determinar modo: atualizar existente ou criar nova
+    const modoAtualizacao = !!slugExistente;
+    console.log(modoAtualizacao 
+      ? `💾 MODO: Atualizar proposta existente (slug: ${slugExistente})`
+      : '💾 MODO: Criar nova proposta'
+    );
 
     // Validar dados
     if (!cliente || !orcamentos || !config) {
@@ -210,18 +218,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return {ppix, pavista, priscado, p12x, p18x_parcela, p12x_total, p18x_total};
     };
 
-    // Calcular performance usando configurações dinâmicas
-    const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
-      // 🔧 NOVO: Usar performanceRate das configurações do sistema
-      const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
-      const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
-      const cobertura = consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0;
-      const economiaMensal = geracaoMensal * (tarifa || 0);
-      const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
-      const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
-      
-      return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
-    };
+     // Calcular performance usando configurações dinâmicas
+     const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
+       // 🔧 NOVO: Usar performanceRate das configurações do sistema
+       const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
+       const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
+       const cobertura = Math.round(consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0); // ✅ Arredondar para inteiro
+       const economiaMensal = geracaoMensal * (tarifa || 0);
+       const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
+       const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
+       
+       return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
+     };
 
     // Processar orçamentos - USAR DADOS JÁ CALCULADOS DO FRONTEND
     let sistemas;
@@ -270,9 +278,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p12x_total: orc.p12x_total !== undefined ? orc.p12x_total : (precos.p12x_total !== undefined ? precos.p12x_total : 0),
           p18x_parcela: orc.p18x_parcela !== undefined ? orc.p18x_parcela : (precos.p18x_parcela !== undefined ? precos.p18x_parcela : 0),
           p18x_total: orc.p18x_total !== undefined ? orc.p18x_total : (precos.p18x_total !== undefined ? precos.p18x_total : 0),
-          geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
-          cobertura: orc.cobertura !== undefined ? orc.cobertura : (config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0),
-          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
+           geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
+           cobertura: orc.cobertura !== undefined ? Math.round(orc.cobertura) : Math.round(config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0), // ✅ Arredondar para inteiro
+           economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
           paybackMeses: orc.paybackMeses !== undefined ? orc.paybackMeses : 0,
           tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 && orc.paybackMeses !== Infinity ? (12 / orc.paybackMeses) * 100 : 0)
         };
@@ -351,7 +359,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .trim();
     };
 
-    const slug = `${normalizeSlug(cliente.nome)}-${dataAtual.replace(/\//g, '-')}`;
+    // ✅ Usar slug existente se fornecido (atualização), senão gerar novo
+    const slug = slugExistente || `${normalizeSlug(cliente.nome)}-${dataAtual.replace(/\//g, '-')}`;
+    
+    console.log(`📌 Slug final: ${slug} (${modoAtualizacao ? 'ATUALIZAÇÃO' : 'CRIAÇÃO'})`);
     
     const htmlContent = `
 <!DOCTYPE html>
@@ -531,7 +542,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           // Performance (valores numéricos para template engine)
           geracaoMensal: sistema.geracaoMensal,
-          cobertura: (parseFloat(sistema.cobertura) || 0),
+          cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Arredondar para inteiro
           economiaMensal: sistema.economiaMensal,
           paybackMeses: sistema.paybackMeses,
           tirAnual: sistema.tirAnual,
@@ -659,7 +670,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
           preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
           geracao: `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`,
-          cobertura: `${((parseFloat(sistema.cobertura) || 0) || 0).toFixed(0)}%`,
+          cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Número inteiro arredondado
+          coberturaFormatada: `${Math.round(parseFloat(sistema.cobertura) || 0)}%`, // Formatado para exibição
           economia: `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`,
           payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
           tir: `${(sistema.tirAnual || 0).toFixed(1)}%`,
@@ -696,10 +708,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p12x_total: sistema.p12x_total || (sistema.p12x || 0) * 12,
           p18x_parcela: sistema.p18x_parcela || 0,
           p18x_total: sistema.p18x_total || (sistema.p18x_parcela || 0) * 18,
-          // Campos técnicos
-          geracaoMensal: sistema.geracaoMensal || 0,
-          cobertura: sistema.cobertura || 0,
-          economiaMensal: sistema.economiaMensal || 0,
+           // Campos técnicos (valores numéricos)
+           geracaoMensal: sistema.geracaoMensal || 0,
+           cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Valor numérico inteiro arredondado
+           economiaMensal: sistema.economiaMensal || 0,
           paybackMeses: sistema.paybackMeses || 0,
           tirAnual: sistema.tirAnual || 0
         }));
@@ -760,7 +772,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       dataGeracao: dataAtual,
       dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
       slug: slug,
-      bannerUrgencia: "🚀 Oferta especial válida até o final do mês!"
+      bannerUrgencia: "🚀 Oferta especial válida até o final do mês!",
+      // ✅ SALVAR CONFIGURAÇÕES DA PROPOSTA (para edição/consultor)
+      config: {
+        pdespesaFixo: config.pdespesaFixo || configSistema.pdespesaFixo || 3000,
+        pdespesaVariavel: config.pdespesaVariavel || configSistema.pdespesaVariavel || 22,
+        hsp: config.hsp || configSistema.hspPadrao || 5.21,
+        tarifa: config.tarifa || configSistema.tarifaPadrao || 0.982,
+        performanceRate: config.performanceRate || configSistema.performanceRate || 0.75,
+        consumoMensal: config.consumoMensal || cliente.consumo_mensal || 600,
+        metodo: config.metodo || 'variavel',
+        descontoPix: configSistema.descontoPix || 10.0,
+        fatorParcelado: configSistema.fatorParcelado || 1.20,
+        fator12x: configSistema.fator12x || 0.88,
+        fator18x: configSistema.fator18x || 0.83
+      }
     };
 
     // Salvar arquivo JSON para Next.js (apenas em desenvolvimento)
@@ -895,27 +921,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error('Nenhum sistema foi gerado. Verifique os dados dos orçamentos.');
       }
       
-      // Salvar proposta no Supabase (OBRIGATÓRIO)
-      console.log('💾 Salvando proposta no Supabase...');
+      // ✅ Salvar proposta no Supabase (OBRIGATÓRIO)
+      console.log(modoAtualizacao 
+        ? `💾 Atualizando proposta existente no Supabase (slug: ${slug})...`
+        : '💾 Salvando nova proposta no Supabase...'
+      );
       const sistemaPrincipal = sistemas[0];
+      
+      // ✅ Preparar dados para upsert
+      const dadosProposta = {
+        cliente_id: clienteSupabase.id,
+        slug: slug, // ✅ Slug permanece o mesmo se for atualização
+        titulo: `Proposta Solar - ${cliente.nome}`,
+        template_usado: 'pieng_basic',
+        sistema_kwp: sistemaPrincipal?.potTotal || 0,
+        geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
+        geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
+        valor_total: sistemaPrincipal?.ppix || 0,
+        valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
+        payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
+        tir: sistemaPrincipal?.tirAnual || 0,
+        dados_completos: propostaData,
+        html_gerado: htmlGenerated || htmlContent,
+        status: 'ativa',
+        updated_at: new Date().toISOString() // ✅ Sempre atualizar timestamp
+      };
+      
       const { data: propostaSalva, error: propostaError } = await supabase
         .from('propostas')
-        .upsert({
-          cliente_id: clienteSupabase.id,
-          slug: slug,
-          titulo: `Proposta Solar - ${cliente.nome}`,
-          template_usado: 'pieng_basic',
-          sistema_kwp: sistemaPrincipal?.potTotal || 0,
-          geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
-          geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
-          valor_total: sistemaPrincipal?.ppix || 0,
-          valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
-          payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
-          tir: sistemaPrincipal?.tirAnual || 0,
-          dados_completos: propostaData,
-          html_gerado: htmlGenerated || htmlContent,
-          status: 'ativa',
-        }, { onConflict: 'slug' })
+        .upsert(dadosProposta, { 
+          onConflict: 'slug', // ✅ Atualiza se slug existir, cria se não existir
+          ignoreDuplicates: false // ✅ Permite atualização
+        })
         .select()
         .single();
 
@@ -930,7 +967,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       propostaSalvaNoSupabase = true;
       propostaSupabaseId = propostaSalva.id;
-      console.log('✅ Proposta salva no Supabase com sucesso! ID:', propostaSalva.id, 'Slug:', slug);
+      console.log(modoAtualizacao
+        ? `✅ Proposta ATUALIZADA no Supabase com sucesso! ID: ${propostaSalva.id}, Slug: ${slug}`
+        : `✅ Proposta salva no Supabase com sucesso! ID: ${propostaSalva.id}, Slug: ${slug}`
+      );
 
     } catch (supabaseError) {
       console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
@@ -956,7 +996,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 🔧 CORREÇÃO NETLIFY: Se em produção, retornar também o HTML inline
     const response: any = {
       message: propostaSalvaNoSupabase 
-        ? 'Proposta gerada e salva no banco de dados com sucesso!' 
+        ? (modoAtualizacao 
+            ? 'Proposta atualizada no banco de dados com sucesso!' 
+            : 'Proposta gerada e salva no banco de dados com sucesso!')
         : 'Proposta gerada com sucesso!',
       arquivo: arquivo,
       caminho: isServerless ? `/tmp/${slug}/${arquivo}` : arquivoPath,

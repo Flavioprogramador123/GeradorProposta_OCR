@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
+import { loadVariantCss, generateCssTag } from './cssLoader';
 
 interface ClienteData {
   cliente: {
@@ -511,24 +512,29 @@ export class TemplateEnginePadrao {
     );
 
     // 2. Injetar CSS personalizado no head
-    // 🔧 ESTRATÉGIA HÍBRIDA: Tentar inline primeiro, fallback para <link>
+    // 🎨 NOVO: Sistema híbrido (Arquivos locais > Supabase Storage)
     const isProduction = process.env.VERCEL || process.env.NETLIFY || process.env.NODE_ENV === 'production';
-
     let cssInjected = false;
 
-    // TENTATIVA 1: Injetar CSS inline (funciona em dev e produção)
+    // TENTATIVA 1: Carregar CSS de arquivos locais (síncrono, mais rápido)
     try {
-      // Mapear arquivos CSS de variantes
       const cssPathsToTry = [
         path.join(process.cwd(), 'public/styles', config.cssFile),
         path.join(process.cwd(), 'src/styles/variants', config.cssFile),
-        path.join(process.cwd(), 'src/styles', config.cssFile)
-      ];
+        path.join(process.cwd(), 'src/styles', config.cssFile),
+        // Tentar sem "variants/" se necessário
+        config.cssFile.includes('variants/') 
+          ? path.join(process.cwd(), 'public/styles', config.cssFile.replace('variants/', ''))
+          : null,
+        config.cssFile.includes('variants/')
+          ? path.join(process.cwd(), 'src/styles/variants', config.cssFile.replace('variants/', ''))
+          : null,
+      ].filter(Boolean) as string[];
 
       for (const cssPath of cssPathsToTry) {
         if (fs.existsSync(cssPath)) {
           const variantCss = fs.readFileSync(cssPath, 'utf-8');
-          const cssInjection = `<style id="variant-styles-inline">${variantCss}</style>`;
+          const cssInjection = generateCssTag(variantCss, config.cssFile, true);
           html = html.replace('</head>', `${cssInjection}\n</head>`);
           cssInjected = true;
           console.log(`✅ CSS inline injetado: ${cssPath}`);
@@ -536,14 +542,16 @@ export class TemplateEnginePadrao {
         }
       }
     } catch (error) {
-      console.warn(`⚠️ Erro ao injetar CSS inline: ${error instanceof Error ? error.message : 'unknown'}`);
+      console.warn(`⚠️ Erro ao carregar CSS do filesystem: ${error instanceof Error ? error.message : 'unknown'}`);
     }
 
-    // FALLBACK: Se inline falhar, usar <link> (apenas em produção)
-    if (!cssInjected && isProduction) {
-      const cssLink = `<link rel="stylesheet" href="/styles/${config.cssFile}">`;
+    // FALLBACK: Se não encontrou localmente, usar <link> tag (funciona com Supabase Storage ou CDN)
+    if (!cssInjected) {
+      const cssLink = generateCssTag(null, config.cssFile, false);
       html = html.replace('</head>', `${cssLink}\n</head>`);
       console.log(`⚠️ Fallback: CSS via <link> tag: /styles/${config.cssFile}`);
+      // Nota: Em produção, o Supabase Storage pode servir os arquivos CSS via CDN
+      // Configurar bucket 'pieng-templates' como público e mapear /styles/* para storage
     }
 
     // 3. Injetar variáveis CSS customizadas

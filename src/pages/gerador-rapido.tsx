@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 interface Orcamento {
   nome: string;
@@ -18,6 +19,7 @@ interface Orcamento {
 }
 
 export default function GeradorRapido() {
+  const router = useRouter();
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
 
   const [config, setConfig] = useState({
@@ -30,7 +32,11 @@ export default function GeradorRapido() {
     performanceRate: 0.75,
     pdespesaFixo: 3000,
     pdespesaVariavel: 22,
-    metodo: 'variavel'
+    metodo: 'variavel',
+    descontoPix: 10.0,
+    fatorParcelado: 1.20,
+    fator12x: 0.88,
+    fator18x: 0.83
   });
 
   const [resultados, setResultados] = useState<any[]>([]);
@@ -39,6 +45,7 @@ export default function GeradorRapido() {
   const [yamlStatus, setYamlStatus] = useState({ message: '', type: '', show: false });
   const [showYamlInput, setShowYamlInput] = useState(false);
   const [configSistema, setConfigSistema] = useState<any>(null);
+  const [slugAtual, setSlugAtual] = useState<string | null>(null); // ✅ Slug da proposta carregada
 
   // ✅ Função para carregar proposta existente
   const carregarPropostaExistente = async (clienteSlug: string) => {
@@ -74,18 +81,37 @@ export default function GeradorRapido() {
         throw new Error('Dados da proposta incompletos - sistemas não encontrados');
       }
 
-      // Preencher TODOS os dados do cliente da proposta (não hardcoded)
+      // ✅ Preencher TODOS os dados do cliente da proposta (não hardcoded)
       const cliente = propostaData.cliente || {};
+      // ✅ CARREGAR CONFIG DA PROPOSTA (valores usados na geração original)
+      const configProposta = propostaData.config || {};
+      
       setConfig(prev => ({
         ...prev,
         nomeCliente: cliente.nome || prev.nomeCliente,
         cidadeCliente: cliente.cidade || prev.cidadeCliente,
         consumoMensal: cliente.consumoMensal || cliente.consumo || parseFloat(cliente.consumoKwh) || prev.consumoMensal,
         tipoImovel: cliente.tipoImovel || cliente.tipo || prev.tipoImovel,
-        // Carregar HSP e tarifa do cliente se disponíveis
-        hsp: cliente.hsp || parseFloat(cliente.hspLocal?.toString().replace(',', '.')) || prev.hsp,
-        tarifa: cliente.tarifa || parseFloat(cliente.tarifaEnergia?.toString().replace(',', '.')) || prev.tarifa
+        // ✅ Prioridade: Config da Proposta > Cliente > Config Sistema > Default
+        hsp: configProposta.hsp || cliente.hsp || parseFloat(cliente.hspLocal?.toString().replace(',', '.')) || prev.hsp,
+        tarifa: configProposta.tarifa || cliente.tarifa || parseFloat(cliente.tarifaEnergia?.toString().replace(',', '.')) || prev.tarifa,
+        // ✅ CARREGAR PDESPESA DA PROPOSTA (valores originais usados)
+        pdespesaFixo: configProposta.pdespesaFixo || prev.pdespesaFixo,
+        pdespesaVariavel: configProposta.pdespesaVariavel || prev.pdespesaVariavel,
+        performanceRate: configProposta.performanceRate || prev.performanceRate,
+        metodo: configProposta.metodo || prev.metodo,
+        descontoPix: configProposta.descontoPix || prev.descontoPix,
+        fatorParcelado: configProposta.fatorParcelado || prev.fatorParcelado,
+        fator12x: configProposta.fator12x || prev.fator12x,
+        fator18x: configProposta.fator18x || prev.fator18x
       }));
+      
+      console.log('✅ Config da proposta carregada:', {
+        pdespesaFixo: configProposta.pdespesaFixo,
+        pdespesaVariavel: configProposta.pdespesaVariavel,
+        hsp: configProposta.hsp,
+        tarifa: configProposta.tarifa
+      });
 
       console.log('📋 Dados do cliente carregados:', {
         nome: cliente.nome,
@@ -285,12 +311,13 @@ export default function GeradorRapido() {
         }
 
         // Garantir valores mínimos válidos - se ainda for 0, usar valor baseado na potência
+        // Garantir valores mínimos válidos - se ainda for 0, usar valor baseado na potência
         if (pcusto <= 0) {
-            // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
-            pcusto = Math.max(10000, potenciaTotal * 4000);
-            console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
-          }
+          // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
+          pcusto = Math.max(10000, potenciaTotal * 4000);
+          console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
         }
+        
         if (modulos <= 0) modulos = 10;
         if (pot_modulo <= 0) pot_modulo = 605;
 
@@ -304,9 +331,10 @@ export default function GeradorRapido() {
           inversores: inversores || 1,
           pot_inv: pot_inv || 15,
           marca_inversor: sistema.marca_inversor || 'Padrão',
-          pdespesa_fixo: sistema.pdespesa_fixo || sistema.pdespesaFixo || config.pdespesaFixo,
-          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || sistema.pdespesaVariavel || config.pdespesaVariavel,
-          pdespesa_total: sistema.pdespesa_total || sistema.pdespesaTotal || 0
+          // ✅ Prioridade: Sistema > Config da Proposta > Config Atual > Default
+          pdespesa_fixo: parseValue(sistema.pdespesa_fixo) || parseValue(sistema.pdespesaFixo) || (propostaData.config?.pdespesaFixo) || config.pdespesaFixo,
+          pdespesa_variavel_percent: parseValue(sistema.pdespesa_variavel_percent) || parseValue(sistema.pdespesaVariavel) || (propostaData.config?.pdespesaVariavel) || config.pdespesaVariavel,
+          pdespesa_total: parseValue(sistema.pdespesa_total) || parseValue(sistema.pdespesaTotal) || 0
         };
 
         console.log(`✅ Orçamento ${index + 1} convertido:`, {
@@ -371,6 +399,12 @@ export default function GeradorRapido() {
 
       console.log(`✅ ${orcamentosValidos.length} de ${orcamentosCarregados.length} orçamentos válidos`);
       setOrcamentos(orcamentosValidos);
+      
+      // ✅ Definir slug atual quando a proposta é carregada
+      const slugProposta = propostaData.slug || clienteSlug;
+      setSlugAtual(slugProposta);
+      console.log('📌 Slug da proposta carregada:', slugProposta);
+      
       setLoading(false);
 
       alert(`✅ Proposta carregada com sucesso!\n\nCliente: ${propostaData.cliente?.nome || 'N/A'}\nSistemas válidos: ${orcamentosValidos.length} de ${orcamentosCarregados.length}\n\nVocê pode editar e gerar nova versão.`);
@@ -961,7 +995,8 @@ consolidado_orcamentos_distribuidores:
   };
 
   // Gerar proposta HTML
-  const gerarProposta = async () => {
+  // ✅ Função para salvar proposta (atualiza existente ou cria nova)
+  const salvarProposta = async (salvarComo: boolean = false) => {
     const erros = validarDados();
     
     if (erros.length > 0) {
@@ -971,6 +1006,17 @@ consolidado_orcamentos_distribuidores:
 
     setLoading(true);
     try {
+      // ✅ Determinar slug: se "Salvar Como" ou não tem slug atual, criar novo
+      const slugParaUsar = (salvarComo || !slugAtual) ? null : (slugAtual || null);
+      
+      console.log(salvarComo 
+        ? '💾 Modo: Salvar Como (criar nova proposta)'
+        : (slugAtual && typeof slugAtual === 'string' && slugAtual.trim() !== '') 
+          ? '💾 Modo: Salvar (atualizar proposta existente)'
+          : '💾 Modo: Criar nova proposta'
+      );
+      console.log('📌 Slug atual:', slugAtual || '(nenhum)');
+      console.log('📌 Slug que será usado:', slugParaUsar || 'NOVO');
       // Debug: mostrar dados que serão enviados
       console.log('📤 Dados sendo enviados para a API:', {
         cliente: {
@@ -1004,6 +1050,8 @@ consolidado_orcamentos_distribuidores:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          // ✅ Enviar slug existente se for atualização (não "Salvar Como")
+          slugExistente: slugParaUsar,
           cliente: {
             nome: config.nomeCliente,
             cidade: config.cidadeCliente,
@@ -1058,6 +1106,11 @@ consolidado_orcamentos_distribuidores:
           alert(`⚠️ ATENÇÃO: Proposta gerada mas NÃO foi salva no banco de dados!\n\n${data.supabase?.message || 'Erro desconhecido'}\n\nA proposta pode não estar disponível publicamente.`);
         }
 
+        // ✅ ATUALIZAR SLUG ATUAL se foi criada nova proposta
+        if (data.slug) {
+          setSlugAtual(data.slug);
+        }
+
         // ✅ ABRIR PROPOSTA DIRETAMENTE NA URL CORRETA (sem about:blank)
         const propostaUrl = data.slug ? `/proposta/${data.slug}` : null;
 
@@ -1065,15 +1118,23 @@ consolidado_orcamentos_distribuidores:
           // Abrir proposta em nova aba IMEDIATAMENTE com URL correta
           window.open(propostaUrl, '_blank');
 
-          // Mostrar mensagem de sucesso SEM BLOQUEAR (usando console + log visual opcional)
+          // Mostrar mensagem de sucesso SEM BLOQUEAR
+          const modoTexto = salvarComo 
+            ? '✅ NOVA proposta criada e salva no banco de dados!'
+            : slugAtual 
+              ? '✅ Proposta ATUALIZADA no banco de dados!'
+              : '✅ Proposta gerada e salva no banco de dados!';
+          
           const mensagemSucesso = data.supabase?.salva
-            ? `✅ Proposta gerada e salva no banco de dados!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || propostaUrl}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n\n✨ A proposta foi aberta em nova aba!`
+            ? `${modoTexto}\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || propostaUrl}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n${salvarComo ? '✨ Nova proposta criada com novo link!' : slugAtual ? '✨ Proposta atualizada - link permanece o mesmo!' : '✨ A proposta foi aberta em nova aba!'}`
             : `✅ Proposta gerada!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: ${propostaUrl}\n⚠️ Não foi salva no banco de dados\n\n✨ A proposta foi aberta em nova aba!`;
 
           console.log(mensagemSucesso);
-
-          // Opcional: Mostrar toast notification não-bloqueante ao invés de alert
-          // Isso permite que a janela abra sem esperar o usuário clicar OK
+          
+          // Mostrar alert apenas se não foi atualização (para não incomodar)
+          if (!slugAtual || salvarComo) {
+            alert(mensagemSucesso);
+          }
         } else {
           alert('❌ Erro: Slug da proposta não foi gerado');
         }
@@ -1119,9 +1180,13 @@ consolidado_orcamentos_distribuidores:
                 <Link href="/admin" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                   🏠 Admin
                 </Link>
-                <Link href="/admin/orcamentos" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  🎯 Consultor
-                </Link>
+                <button 
+                  onClick={() => router.back()}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  title="Voltar"
+                >
+                  ← Voltar
+                </button>
               </div>
             </div>
 
@@ -1285,7 +1350,7 @@ consolidado_orcamentos_distribuidores:
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Fixo (R$)</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       value={config.pdespesaFixo}
                       onChange={(e) => setConfig({...config, pdespesaFixo: Number(e.target.value)})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1298,7 +1363,7 @@ consolidado_orcamentos_distribuidores:
                     <label className="block text-sm font-medium text-gray-700 mb-1">Percentual Variável (%)</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="1"
                       value={config.pdespesaVariavel}
                       onChange={(e) => setConfig({...config, pdespesaVariavel: Number(e.target.value)})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1661,13 +1726,29 @@ consolidado_orcamentos_distribuidores:
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={gerarProposta}
-                  disabled={loading || orcamentos.length === 0 || resultados.length === 0}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? '⏳ Gerando...' : '🚀 Gerar Proposta HTML'}
-                </button>
+                <div className="flex gap-3">
+                  {/* ✅ Botão Salvar (atualiza proposta existente) */}
+                  {slugAtual && (
+                    <button
+                      onClick={() => salvarProposta(false)}
+                      disabled={loading || orcamentos.length === 0 || resultados.length === 0}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Atualizar proposta existente (mesmo link)"
+                    >
+                      {loading ? '⏳ Salvando...' : '💾 Salvar'}
+                    </button>
+                  )}
+                  
+                  {/* ✅ Botão Salvar Como (cria nova proposta) */}
+                  <button
+                    onClick={() => salvarProposta(true)}
+                    disabled={loading || orcamentos.length === 0 || resultados.length === 0}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={slugAtual ? "Criar nova proposta com novo link" : "Gerar nova proposta"}
+                  >
+                    {loading ? '⏳ Gerando...' : slugAtual ? '📄 Salvar Como' : '🚀 Gerar Proposta HTML'}
+                  </button>
+                </div>
               </div>
 
               {orcamentos.length === 0 ? (

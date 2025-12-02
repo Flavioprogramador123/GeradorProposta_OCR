@@ -120,49 +120,115 @@ export default function ConsultorOrcamentosPage() {
             consumoMensal: proposta.cliente?.consumoMensal || 600
           };
 
-          // Sincronizar configurações do Supabase se disponíveis
-          if (proposta.cliente?.hsp) {
-            updateConfig({ hsp: parseFloat(proposta.cliente.hsp) || config.hsp });
-          }
-          if (proposta.cliente?.tarifa) {
-            updateConfig({ tarifa: parseFloat(proposta.cliente.tarifa) || config.tarifa });
-          }
-          if (proposta.cliente?.consumoMensal) {
-            updateConfig({ consumoMensal: proposta.cliente.consumoMensal });
-          }
+          // ✅ CARREGAR CONFIG DA PROPOSTA (valores originais usados na geração)
+          const configProposta = proposta.config || {};
+          
+          console.log('✅ Config da proposta carregada no consultor:', {
+            pdespesaFixo: configProposta.pdespesaFixo,
+            pdespesaVariavel: configProposta.pdespesaVariavel,
+            hsp: configProposta.hsp,
+            tarifa: configProposta.tarifa
+          });
+          
+          // ✅ Sincronizar configurações da proposta (prioridade: Config Proposta > Cliente > Default)
+          updateConfig({
+            hsp: configProposta.hsp || parseFloat(proposta.cliente?.hsp) || config.hsp,
+            tarifa: configProposta.tarifa || parseFloat(proposta.cliente?.tarifa) || config.tarifa,
+            consumoMensal: proposta.cliente?.consumoMensal || config.consumoMensal,
+            // ✅ CARREGAR PDESPESA DA PROPOSTA (valores originais)
+            pdespesaFixo: configProposta.pdespesaFixo || config.pdespesaFixo,
+            pdespesaVariavel: configProposta.pdespesaVariavel || config.pdespesaVariavel,
+            performanceRate: configProposta.performanceRate || config.performanceRate
+          });
 
-          // Converter sistemas da proposta em orçamentos
+          // ✅ Converter sistemas da proposta em orçamentos usando VALORES EXATOS do Supabase
+          const parseValue = (val: any): number => {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            let str = val.toString().trim().replace(/[^\d,.-]/g, '');
+            if (!str) return 0;
+            if (str.includes(',') && str.includes('.')) {
+              str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes(',')) {
+              const parts = str.split(',');
+              if (parts[1] && parts[1].length <= 2) {
+                str = str.replace(',', '.');
+              } else {
+                str = str.replace(',', '');
+              }
+            }
+            const parsed = parseFloat(str);
+            return isNaN(parsed) ? 0 : parsed;
+          };
+
           const orcamentosData: OrcamentoComparativo[] = proposta.sistemas.map((sistema: any, index: number) => {
-            // Extrair potência de múltiplas fontes
+            // ✅ Extrair potência de múltiplas fontes (preservar valores exatos)
             let potenciaTotal = 0;
-            if (sistema.potTotal) {
-              potenciaTotal = typeof sistema.potTotal === 'number' ? sistema.potTotal : parseFloat(sistema.potTotal) || 0;
+            if (sistema.potTotal !== undefined && sistema.potTotal !== null) {
+              potenciaTotal = typeof sistema.potTotal === 'number' ? sistema.potTotal : parseFloat(sistema.potTotal.toString().replace(',', '.')) || 0;
             } else if (sistema.potencia) {
-              const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
-              potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
+              const potenciaMatch = sistema.potencia?.toString().match(/(\d+[.,]?\d*)/);
+              potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1].replace(',', '.')) : 0;
             } else if (sistema.modulos && sistema.pot_modulo) {
               potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
             }
 
-            // Extrair pcusto de múltiplas fontes
-            const pcusto = sistema.pcusto || sistema.precoCusto || sistema.valorTotal || sistema.ppix || sistema.precoPixDecimal || 0;
+            // ✅ PRIORIDADE: Usar pcusto EXATO do Supabase (não recalcular!)
+            let pcusto = 0;
+            if (sistema.pcusto !== undefined && sistema.pcusto !== null) {
+              pcusto = parseValue(sistema.pcusto);
+              console.log(`✅ Consultor - Sistema ${index + 1}: pcusto EXATO do Supabase = ${pcusto}`);
+            } else if (sistema.precoCusto !== undefined && sistema.precoCusto !== null) {
+              pcusto = parseValue(sistema.precoCusto);
+              console.log(`✅ Consultor - Sistema ${index + 1}: precoCusto EXATO do Supabase = ${pcusto}`);
+            } else {
+              // Fallback apenas se não existir
+              const precoFinal = parseValue(sistema.precoPixDecimal) || parseValue(sistema.ppix) || parseValue(sistema.total_final) || 0;
+              const pdespesaTotal = parseValue(sistema.pdespesa_total) || parseValue(sistema.pdespesaTotal) || 0;
+              if (precoFinal > 0 && pdespesaTotal > 0 && pdespesaTotal < precoFinal) {
+                pcusto = precoFinal - pdespesaTotal;
+                console.log(`⚠️ Consultor - Sistema ${index + 1}: Calculado pcusto (fallback) = ${precoFinal} - ${pdespesaTotal} = ${pcusto}`);
+              } else {
+                pcusto = parseValue(sistema.valorTotal) || parseValue(sistema.ppix) || 0;
+                console.warn(`⚠️ Consultor - Sistema ${index + 1}: Usando fallback para pcusto = ${pcusto}`);
+              }
+            }
 
-            // Calcular módulos e inversores se não estiverem presentes
-            const modulos = sistema.modulos || (potenciaTotal > 0 ? Math.round(potenciaTotal * 1000 / 605) : 20);
-            const inversores = sistema.inversores || (potenciaTotal > 0 ? Math.ceil(potenciaTotal / 15) : 1);
+            // ✅ Usar valores EXATOS do Supabase (não recalcular)
+            const modulos = sistema.modulos !== undefined && sistema.modulos !== null 
+              ? (typeof sistema.modulos === 'number' ? sistema.modulos : parseInt(sistema.modulos.toString()) || 0)
+              : (potenciaTotal > 0 ? Math.round(potenciaTotal * 1000 / 605) : 20);
+            
+            const inversores = sistema.inversores !== undefined && sistema.inversores !== null
+              ? (typeof sistema.inversores === 'number' ? sistema.inversores : parseInt(sistema.inversores.toString()) || 0)
+              : (potenciaTotal > 0 ? Math.ceil(potenciaTotal / 15) : 1);
+
+            console.log(`✅ Consultor - Sistema ${index + 1} convertido:`, {
+              nome: sistema.titulo || sistema.nome,
+              pcusto,
+              modulos,
+              inversores,
+              pot_modulo: sistema.pot_modulo,
+              sistemaOriginal: {
+                pcusto: sistema.pcusto,
+                precoCusto: sistema.precoCusto,
+                modulos: sistema.modulos,
+                inversores: sistema.inversores
+              }
+            });
 
             return {
               id: sistema.id || `sistema-${index}`,
               nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
               fornecedor: sistema.distribuidora || sistema.fornecedor || 'SOOLLAR',
-              pcusto: typeof pcusto === 'number' ? pcusto : parseFloat(pcusto.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0,
-              modulos: typeof modulos === 'number' ? modulos : parseInt(modulos) || 20,
+              pcusto: pcusto, // ✅ Valor exato do Supabase
+              modulos: modulos, // ✅ Valor exato do Supabase
               pot_modulo: sistema.pot_modulo || 605,
               marca_modulo: sistema.marca_modulo || sistema.marcaModulo || 'Padrão',
-              inversores: typeof inversores === 'number' ? inversores : parseInt(inversores) || 1,
+              inversores: inversores, // ✅ Valor exato do Supabase
               pot_inv: sistema.pot_inv || sistema.potInv || 15,
               marca_inversor: sistema.marca_inversor || sistema.marcaInversor || 'Padrão',
-              status: 'aprovado' as const // Propostas geradas são aprovadas
+              status: 'aprovado' as const
             };
           });
 
@@ -352,19 +418,9 @@ export default function ConsultorOrcamentosPage() {
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <div className="flex items-center gap-4 mb-2">
-                  <Link href="/admin" legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                    ← Admin
-                  </a></Link>
-                  <span className="text-gray-400">|</span>
-                  <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                    ← Orçamentos
-                  </a></Link>
-                  <span className="text-gray-400">|</span>
-                  <h1 className="text-3xl font-bold text-gray-800">
-                    🎛️ Sistema do Consultor
-                  </h1>
-                </div>
+                <h1 className="text-3xl font-bold text-gray-800 mb-4">
+                  🎛️ Sistema do Consultor
+                </h1>
                 <div className="bg-white rounded-lg p-4 shadow-sm">
                   <h2 className="text-xl font-semibold text-gray-800 mb-1">
                     {cliente.nome}
@@ -373,6 +429,19 @@ export default function ConsultorOrcamentosPage() {
                     📍 {cliente.cidade} • ⚡ {cliente.consumoMensal} kWh/mês
                   </p>
                 </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                    ← Voltar
+                  </a>
+                </Link>
               </div>
             </div>
 

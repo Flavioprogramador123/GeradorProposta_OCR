@@ -191,7 +191,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_panificadora.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-panificadora.css' // ✅ CSS específico para panificadora
   },
   
   // ========== COMERCIAL - AÇOUGUE ==========
@@ -234,7 +234,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_acougue.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-acougue.css' // ✅ CSS específico para açougue
   },
   
   // ========== COMERCIAL - RESTAURANTE ==========
@@ -277,7 +277,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_restaurante.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-restaurante.css' // ✅ CSS específico para restaurante
   },
   
   // ========== COMERCIAL - MERCADO ==========
@@ -321,7 +321,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_mercado.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-mercado.css' // ✅ CSS específico para mercado
   },
   
   // ========== INDUSTRIAL PREMIUM ==========

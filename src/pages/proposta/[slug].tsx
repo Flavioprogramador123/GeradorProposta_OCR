@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
@@ -21,7 +21,95 @@ interface PropostaPageProps {
   useHtmlDirect?: boolean;
 }
 
-export default function PropostaPage({ proposta, htmlContent, useHtmlDirect }: PropostaPageProps) {
+export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slug }: PropostaPageProps) {
+  // ✅ Tracking de Analytics (para HTML direto também)
+  const trackingRef = useRef({
+    startTime: Date.now(),
+    primeiraVisualizacao: new Date().toISOString(),
+    tempoNaPagina: 0,
+    scrollMax: 0,
+    cliques: 0,
+    intervalId: null as NodeJS.Timeout | null
+  });
+
+  useEffect(() => {
+    const propostaSlug = slug || proposta?.slug;
+    if (!propostaSlug) return;
+
+    const startTime = Date.now();
+
+    // Função para enviar tracking
+    const enviarTracking = async (isFinal = false) => {
+      const tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
+      const scrollPercentage = Math.max(
+        trackingRef.current.scrollMax,
+        Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100)
+      );
+
+      try {
+        await fetch(`/api/propostas/${propostaSlug}/track`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tempoNaPagina: isFinal ? trackingRef.current.tempoNaPagina + tempoNaPagina : tempoNaPagina,
+            scrollPercentage,
+            cliques: trackingRef.current.cliques,
+            primeiraVisualizacao: trackingRef.current.primeiraVisualizacao
+          })
+        });
+      } catch (error) {
+        console.error('Erro ao enviar tracking:', error);
+      }
+    };
+
+    // Rastrear scroll
+    const handleScroll = () => {
+      const scrollPercent = Math.round(
+        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+      );
+      trackingRef.current.scrollMax = Math.max(trackingRef.current.scrollMax, scrollPercent);
+    };
+
+    // Rastrear cliques
+    const handleClick = () => {
+      trackingRef.current.cliques++;
+    };
+
+    // Enviar tracking a cada 30 segundos
+    trackingRef.current.intervalId = setInterval(() => {
+      trackingRef.current.tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
+      enviarTracking(false);
+    }, 30000);
+
+    // Enviar tracking inicial
+    enviarTracking(false);
+
+    // Event listeners
+    window.addEventListener('scroll', handleScroll);
+    document.addEventListener('click', handleClick);
+
+    // Enviar tracking final ao sair
+    const handleBeforeUnload = () => {
+      trackingRef.current.tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
+      enviarTracking(true);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup
+    return () => {
+      if (trackingRef.current.intervalId) {
+        clearInterval(trackingRef.current.intervalId);
+      }
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('click', handleClick);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Enviar tracking final
+      trackingRef.current.tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
+      enviarTracking(true);
+    };
+  }, [slug, proposta?.slug]);
+
   // Se temos HTML direto, renderizar diretamente
   if (useHtmlDirect && htmlContent) {
     return (
@@ -160,11 +248,12 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     console.log('🔍 Buscando proposta no Supabase:', slug);
     const propostaSupabase = await getPropostaBySlug(slug);
 
-    if (propostaSupabase && propostaSupabase.dados_completos) {
+      if (propostaSupabase && propostaSupabase.dados_completos) {
       console.log('✅ Proposta encontrada no Supabase:', slug);
       return {
         props: {
           proposta: propostaSupabase.dados_completos as PropostaData,
+          slug: slug,
         },
       };
     }
@@ -180,7 +269,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
         const proposta = await response.json();
         console.log('✅ Proposta carregada da API:', slug);
         return {
-          props: { proposta },
+          props: { proposta, slug },
         };
       }
     } catch (apiError) {
@@ -199,7 +288,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       
       console.log('✅ Proposta carregada do filesystem:', slug);
       return {
-        props: { proposta },
+        props: { proposta, slug },
       };
     }
 
@@ -211,7 +300,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       return {
         props: {
           htmlContent,
-          slug,
+          slug: slug,
           useHtmlDirect: true
         },
       };

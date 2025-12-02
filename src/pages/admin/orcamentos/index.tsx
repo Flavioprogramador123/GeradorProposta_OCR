@@ -376,8 +376,31 @@ export default function TodosOrcamentos() {
                               <span className="text-gray-600 font-medium">Valor:</span>
                               <span className="font-bold text-green-600">
                                 R$ {(() => {
-                                  const valor = sistema.valorTotal ?? sistema.total_final ?? sistema.ppix ?? sistema.precoPixDecimal ?? 0;
-                                  return typeof valor === 'number' && !isNaN(valor) 
+                                  // Função para converter valor para número
+                                  const converterValor = (val: any): number => {
+                                    if (val === null || val === undefined) return 0;
+                                    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+                                    if (typeof val === 'string') {
+                                      const limpo = val.replace(/[R$\s\.]/g, '').replace(',', '.');
+                                      const num = parseFloat(limpo);
+                                      return isNaN(num) ? 0 : num;
+                                    }
+                                    return 0;
+                                  };
+
+                                  // Tentar múltiplos campos
+                                  const valor = converterValor(
+                                    sistema.valorTotal ?? 
+                                    sistema.total_final ?? 
+                                    sistema.ppix ?? 
+                                    sistema.precoPixDecimal ??
+                                    sistema.precoPix ??
+                                    sistema.valor ??
+                                    sistema.preco ??
+                                    0
+                                  );
+
+                                  return valor > 0 
                                     ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
                                     : '0,00';
                                 })()}

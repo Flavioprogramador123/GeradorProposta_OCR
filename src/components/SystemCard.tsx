@@ -11,7 +11,7 @@ interface SystemCardProps {
   preco12x: string;
   preco18x: string;
   geracao: string;
-  cobertura: string;
+  cobertura: string | number;
   economia: string;
   payback: string;
   tir: string;
@@ -87,7 +87,11 @@ export const SystemCard: React.FC<SystemCardProps> = ({
 
         <div className="pieng-performance-box">
           <strong>Performance Mensal</strong><br />
-          Geração: {geracao} | Cobertura: {cobertura}<br />
+          Geração: {geracao} | Cobertura: {typeof cobertura === 'number' 
+            ? `${Math.round(cobertura)}%` 
+            : (typeof cobertura === 'string' && cobertura.includes('%') 
+              ? cobertura 
+              : `${Math.round(parseFloat(String(cobertura)) || 0)}%`)}<br />
           Economia: {economia} | Payback: {payback}<br />
           TIR: {tir} ao ano
         </div>

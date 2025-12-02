@@ -74,13 +74,40 @@ export default function GerenciarOrcamentos() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBuscarModal, setShowBuscarModal] = useState(false);
   const [todosOrcamentosDisponiveis, setTodosOrcamentosDisponiveis] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   useEffect(() => {
     if (clienteId) {
       loadClienteData();
       loadOrcamentos();
+      loadAnalytics();
     }
   }, [clienteId]);
+
+  const loadAnalytics = async () => {
+    if (!clienteId || typeof clienteId !== 'string') return;
+    
+    setLoadingAnalytics(true);
+    try {
+      // Buscar proposta do cliente para obter o slug
+      const propostaResponse = await fetch(`/api/admin/propostas-cliente/${clienteId}`);
+      if (propostaResponse.ok) {
+        const propostaData = await propostaResponse.json();
+        if (propostaData.slug) {
+          const analyticsResponse = await fetch(`/api/admin/analytics/${propostaData.slug}`);
+          if (analyticsResponse.ok) {
+            const analyticsData = await analyticsResponse.json();
+            setAnalytics(analyticsData);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar analytics:', error);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
 
   const loadClienteData = async () => {
     try {
@@ -355,15 +382,9 @@ export default function GerenciarOrcamentos() {
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <div className="flex items-center gap-4 mb-2">
-                  <Link href="/admin" legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                    ← Admin
-                  </a></Link>
-                  <span className="text-gray-400">|</span>
-                  <h1 className="text-3xl font-bold text-gray-800">
-                    📋 Orçamentos
-                  </h1>
-                </div>
+                <h1 className="text-3xl font-bold text-gray-800 mb-4">
+                  📋 Orçamentos
+                </h1>
                 <div className="bg-white rounded-lg p-4 shadow-sm">
                   <h2 className="text-xl font-semibold text-gray-800 mb-1">
                     {cliente.nome}
@@ -373,7 +394,104 @@ export default function GerenciarOrcamentos() {
                   </p>
                 </div>
               </div>
+              
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <button 
+                  onClick={() => router.back()}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  title="Voltar"
+                >
+                  ← Voltar
+                </button>
+              </div>
             </div>
+
+            {/* Analytics e Alertas */}
+            {analytics && analytics.estatisticas && (
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">📊 Analytics da Proposta</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 mb-1">Total de Visualizações</div>
+                    <div className="text-2xl font-bold text-blue-600">{analytics.estatisticas.totalVisualizacoes}</div>
+                    <div className="text-xs text-gray-500 mt-1">{analytics.estatisticas.visualizacoesUnicas} visualizações únicas</div>
+                  </div>
+                  
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 mb-1">Tempo Médio</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {Math.floor(analytics.estatisticas.tempoMedioSegundos / 60)}min {analytics.estatisticas.tempoMedioSegundos % 60}s
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">Tempo médio na página</div>
+                  </div>
+                  
+                  <div className={`rounded-lg p-4 ${analytics.estatisticas.compartilhado ? 'bg-yellow-50' : 'bg-gray-50'}`}>
+                    <div className="text-sm text-gray-600 mb-1">Status</div>
+                    <div className={`text-2xl font-bold ${analytics.estatisticas.compartilhado ? 'text-yellow-600' : 'text-gray-600'}`}>
+                      {analytics.estatisticas.compartilhado ? '🔗 Compartilhado' : '👤 Individual'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {analytics.estatisticas.compartilhado ? 'Múltiplos IPs detectados' : 'Acesso único'}
+                    </div>
+                  </div>
+                  
+                  <div className={`rounded-lg p-4 ${analytics.estatisticas.precisaContato ? 'bg-red-50' : 'bg-gray-50'}`}>
+                    <div className="text-sm text-gray-600 mb-1">Última Visualização</div>
+                    <div className={`text-lg font-bold ${analytics.estatisticas.precisaContato ? 'text-red-600' : 'text-gray-600'}`}>
+                      {analytics.estatisticas.diasSemVisualizar !== null 
+                        ? `${analytics.estatisticas.diasSemVisualizar} dias atrás`
+                        : 'Nunca'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {analytics.estatisticas.precisaContato ? '⚠️ Precisa contato' : '✅ Ativo'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alertas */}
+                {analytics.estatisticas.alertas && analytics.estatisticas.alertas.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h4 className="font-semibold text-gray-800 mb-2">⚠️ Alertas e Recomendações:</h4>
+                    {analytics.estatisticas.alertas.map((alerta: any, index: number) => (
+                      <div key={index} className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                        <div className="flex items-start">
+                          <span className="text-yellow-600 mr-2">⚠️</span>
+                          <div>
+                            <div className="font-medium text-yellow-800">{alerta.mensagem}</div>
+                            <div className="text-xs text-yellow-600 mt-1">
+                              {alerta.data ? new Date(alerta.data).toLocaleString('pt-BR') : ''}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Detalhes de IPs (se compartilhado) */}
+                {analytics.estatisticas.compartilhado && analytics.analytics && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 mb-2">🔍 Detalhes de Acesso:</h4>
+                    <div className="space-y-2">
+                      {analytics.analytics.map((item: any, index: number) => (
+                        <div key={index} className="text-sm text-gray-600">
+                          <span className="font-medium">IP:</span> {item.ip_address} • 
+                          <span className="font-medium ml-2">Dispositivo:</span> {item.device_type} • 
+                          <span className="font-medium ml-2">Visualizações:</span> {item.visualizacoes_count} • 
+                          <span className="font-medium ml-2">Tempo:</span> {Math.floor((item.tempo_total_segundos || 0) / 60)}min
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Ações Principais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">

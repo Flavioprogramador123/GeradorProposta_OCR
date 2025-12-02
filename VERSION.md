@@ -1,13 +1,71 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.3.3** (01/12/2025)
+## 🎯 **VERSÃO ATUAL: v2.4.0** (02/12/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.3.3** - 01/12/2025 ✅ **ATUAL**
+### **v2.4.0** - 02/12/2025 ✅ **ATUAL**
 **Status**: 🟢 Em Produção (Vercel)
+
+**🎨 Sistema de CSS por Template:**
+- ✅ **CSS Específicos por Subtipo Comercial**: Cada ramo (Panificadora, Açougue, Restaurante, Mercado) tem seu próprio CSS
+- ✅ **Sistema Híbrido de Carregamento**: CSS carregado de arquivos locais com fallback para Supabase Storage
+- ✅ **4 Novos Arquivos CSS**: `comercial-panificadora.css`, `comercial-acougue.css`, `comercial-restaurante.css`, `comercial-mercado.css`
+- ✅ **Helper cssLoader.ts**: Função para carregar CSS de múltiplas fontes
+- ✅ **Template Engine Atualizado**: Suporta CSS específicos automaticamente baseado no template selecionado
+
+**📊 Sistema de Analytics:**
+- ✅ **Tabela proposta_analytics**: Rastreamento completo de visualizações de propostas
+- ✅ **Tracking Automático**: Tempo na página, scroll, cliques, IP, user agent
+- ✅ **Detecção de Compartilhamento**: Identifica quando link foi compartilhado (múltiplos IPs)
+- ✅ **Sistema de Alertas**: Alertas automáticos para follow-up com clientes
+- ✅ **Dashboard de Analytics**: Visualização de estatísticas em `/admin/orcamentos/[clienteId]`
+
+**🎨 Melhorias UI/UX:**
+- ✅ **Padrão de Navegação**: Headers padronizados com botões à direita (Admin, Voltar)
+- ✅ **Botão Voltar**: Implementado em todas as páginas (gerador-rapido, consultor, orcamentos)
+- ✅ **Removido Card Consultor**: Substituído por botão "Voltar" no gerador-rapido
+- ✅ **Configurações no Header**: Ícone de engrenagem (⚙️) no header do admin ao invés de card
+
+**🔧 Correções:**
+- ✅ **Cobertura como Inteiro**: Exibição de cobertura sempre como número inteiro (107% ao invés de 107.22536000000001%)
+- ✅ **Step de pdespesa**: Ajustado de 0.01/0.1 para 1.0 para ajuste mais rápido
+- ✅ **Salvar e Salvar Como**: Implementado sistema de versionamento de propostas
+- ✅ **Carregamento de Config**: Prioriza config da proposta > cliente > sistema > default
+
+**📦 Arquivos Criados:**
+- `src/lib/cssLoader.ts` - Helper para carregar CSS
+- `public/styles/comercial-panificadora.css` - CSS Panificadora
+- `public/styles/comercial-acougue.css` - CSS Açougue
+- `public/styles/comercial-restaurante.css` - CSS Restaurante
+- `public/styles/comercial-mercado.css` - CSS Mercado
+- `src/pages/api/propostas/[slug]/track.ts` - API de tracking
+- `src/pages/api/admin/analytics/[slug].ts` - API de analytics
+- `src/pages/api/admin/propostas-cliente/[clienteId].ts` - API de propostas com analytics
+- `criar_tabela_proposta_analytics.sql` - Script SQL para tabela de analytics
+- `SISTEMA_CSS_TEMPLATES.md` - Documentação do sistema de CSS
+
+**📦 Arquivos Modificados:**
+- `src/lib/variantConfig.ts` - CSS específicos por subtipo
+- `src/lib/templateEngine.ts` - Suporte a CSS específicos
+- `src/pages/gerador-rapido.tsx` - Botão voltar, step pdespesa, cobertura inteiro
+- `src/pages/admin/orcamentos/[clienteId].tsx` - Analytics dashboard, header padronizado
+- `src/pages/admin/orcamentos/[clienteId]/consultor.tsx` - Header padronizado
+- `src/pages/admin/index.tsx` - Configurações no header
+- `src/pages/proposta/[slug].tsx` - Tracking automático
+- `src/components/SystemCard.tsx` - Cobertura como inteiro
+
+**📦 Deploy:**
+- Commits: (a definir após commit)
+- Branch: `clean-main`
+- URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.3.3** - 01/12/2025
+**Status**: 🟡 Substituído
 
 **🔧 Correções Críticas:**
 - ✅ **TypeError Fix**: Corrigido erro `Cannot read properties of undefined (reading 'toLocaleString')` em `/admin/orcamentos`
