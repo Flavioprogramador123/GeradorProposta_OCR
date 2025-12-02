@@ -119,10 +119,10 @@ export async function getPropostaBySlug(slug: string) {
   }
 
   try {
-    // Buscar apenas campos essenciais (sem JOIN com clientes para melhor performance)
+    // Buscar campos essenciais incluindo cliente_id para buscar dados atualizados
     const { data, error } = await supabase
       .from('propostas')
-      .select('id, slug, titulo, status, dados_completos, created_at, updated_at')
+      .select('id, cliente_id, slug, titulo, status, dados_completos, created_at, updated_at')
       .eq('slug', slug)
       .maybeSingle();
 

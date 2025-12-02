@@ -20,6 +20,11 @@ interface SistemaItem {
   total_final?: number;
   ppix?: number;
   precoPixDecimal?: number;
+  precoPix?: number;
+  pavista?: number;
+  valor?: number;
+  preco?: number;
+  preco_final?: number;
   geracaoMensal?: number;
   paybackMeses?: number;
   cobertura?: number;
@@ -312,6 +317,7 @@ export default function TodosOrcamentos() {
                     <div className="flex gap-2 flex-wrap">
                       {orc.clientePasta ? (
                         <>
+                          {/* ✅ Botão "Editar" - Busca dados do Supabase via /api/propostas/[slug] */}
                           <Link href={`/gerador-rapido?cliente=${orc.clientePasta}`} legacyBehavior>
                             <a className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
                               ✏️ Editar
@@ -376,9 +382,49 @@ export default function TodosOrcamentos() {
                               <span className="text-gray-600 font-medium">Valor:</span>
                               <span className="font-bold text-green-600">
                                 R$ {(() => {
-                                  const valor = sistema.valorTotal ?? sistema.total_final ?? sistema.ppix ?? sistema.precoPixDecimal ?? 0;
-                                  return typeof valor === 'number' && !isNaN(valor) 
-                                    ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                                  // Função para converter valor para número
+                                  const converterValor = (val: any): number => {
+                                    if (val === null || val === undefined) return 0;
+                                    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+                                    if (typeof val === 'string') {
+                                      const limpo = val.replace(/[R$\s\.]/g, '').replace(',', '.');
+                                      const num = parseFloat(limpo);
+                                      return isNaN(num) ? 0 : num;
+                                    }
+                                    return 0;
+                                  };
+
+                                  // Tentar múltiplos campos na ordem de prioridade
+                                  const valor = converterValor(
+                                    sistema.valorTotal ?? 
+                                    sistema.ppix ?? 
+                                    sistema.total_final ?? 
+                                    sistema.precoPixDecimal ??
+                                    sistema.precoPix ??
+                                    sistema.pavista ??
+                                    sistema.valor ??
+                                    sistema.preco ??
+                                    sistema.preco_final ??
+                                    0
+                                  );
+
+                                  // Log para debug se valor for 0
+                                  if (valor === 0 && sIndex === 0) {
+                                    console.warn('⚠️ Sistema sem valor no frontend:', {
+                                      sistema: sistema.titulo,
+                                      campos: {
+                                        valorTotal: sistema.valorTotal,
+                                        ppix: sistema.ppix,
+                                        total_final: sistema.total_final,
+                                        precoPixDecimal: sistema.precoPixDecimal,
+                                        precoPix: sistema.precoPix,
+                                        pavista: sistema.pavista
+                                      }
+                                    });
+                                  }
+
+                                  return valor > 0 
+                                    ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                     : '0,00';
                                 })()}
                               </span>

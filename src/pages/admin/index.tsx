@@ -422,6 +422,7 @@ export default function AdminIndex() {
                             <div className="flex gap-2 flex-wrap">
                               {cliente.temProposta ? (
                                 <>
+                                  {/* ✅ Botão "Editar Proposta" - Busca dados do Supabase via /api/propostas/[slug] */}
                                   <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior><a className="text-orange-600 hover:text-orange-900 px-2 py-1 rounded bg-orange-50 hover:bg-orange-100">
                                     ✏️ Editar Proposta
                                   </a></Link>

@@ -91,6 +91,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           propostas.forEach((proposta: any) => {
             const dados = proposta.dados_completos;
 
+            // Log detalhado para debug
+            console.log('📋 Processando proposta:', {
+              id: proposta.id,
+              slug: proposta.slug,
+              valor_total: proposta.valor_total,
+              temDadosCompletos: !!dados,
+              temSistemas: !!(dados && dados.sistemas),
+              quantidadeSistemas: dados?.sistemas?.length || 0,
+              primeiroSistema: dados?.sistemas?.[0] ? {
+                titulo: dados.sistemas[0].titulo || dados.sistemas[0].nome,
+                ppix: dados.sistemas[0].ppix,
+                valorTotal: dados.sistemas[0].valorTotal,
+                precoPixDecimal: dados.sistemas[0].precoPixDecimal,
+                camposDisponiveis: Object.keys(dados.sistemas[0])
+              } : null
+            });
+
             if (dados && dados.sistemas && Array.isArray(dados.sistemas)) {
               // Status baseado na data
               const dataCriacao = new Date(proposta.created_at);
@@ -108,15 +125,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const potencia = potenciaMatch ? parseFloat(potenciaMatch[1]) : sistema.potTotal || 0;
 
                 // Calcular módulos e inversores
-                const modulos = Math.round(potencia * 1000 / 605);
-                const inversores = Math.ceil(potencia / 15);
+                const modulos = sistema.modulos || Math.round(potencia * 1000 / 605);
+                const inversores = sistema.inversores || Math.ceil(potencia / 15);
+
+                // Extrair valor total - tentar múltiplos campos e converter para número
+                const extrairValor = (val: any): number => {
+                  if (val === null || val === undefined) return 0;
+                  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+                  if (typeof val === 'string') {
+                    // Remover formatação (R$, espaços, pontos, vírgulas)
+                    const limpo = val.replace(/[R$\s\.]/g, '').replace(',', '.');
+                    const num = parseFloat(limpo);
+                    return isNaN(num) ? 0 : num;
+                  }
+                  return 0;
+                };
+
+                // Tentar múltiplos campos para encontrar o valor
+                let valorTotal = extrairValor(
+                  sistema.ppix || 
+                  sistema.valorTotal || 
+                  sistema.total_final || 
+                  sistema.precoPixDecimal ||
+                  sistema.precoPix ||
+                  sistema.valor ||
+                  sistema.preco ||
+                  sistema.preco_final ||
+                  sistema.pavista ||
+                  0
+                );
+
+                // Se ainda for 0 e for o primeiro sistema, tentar usar valor_total da proposta
+                if (valorTotal === 0 && index === 0 && proposta.valor_total) {
+                  valorTotal = extrairValor(proposta.valor_total);
+                  console.log('✅ Usando valor_total da proposta como fallback:', valorTotal);
+                }
+
+                // Log para debug se valor for 0
+                if (valorTotal === 0) {
+                  console.log('⚠️ Sistema sem valor encontrado:', {
+                    cliente: proposta.clientes?.nome || dados.cliente?.nome,
+                    titulo: sistema.titulo || sistema.nome,
+                    index,
+                    campos: {
+                      ppix: sistema.ppix,
+                      valorTotal: sistema.valorTotal,
+                      total_final: sistema.total_final,
+                      precoPixDecimal: sistema.precoPixDecimal,
+                      precoPix: sistema.precoPix,
+                      valor: sistema.valor,
+                      preco: sistema.preco,
+                      preco_final: sistema.preco_final,
+                      pavista: sistema.pavista,
+                      proposta_valor_total: proposta.valor_total
+                    },
+                    sistemaCompleto: JSON.stringify(sistema).substring(0, 500)
+                  });
+                } else {
+                  console.log('✅ Valor encontrado para sistema:', {
+                    cliente: proposta.clientes?.nome || dados.cliente?.nome,
+                    titulo: sistema.titulo || sistema.nome,
+                    valorTotal
+                  });
+                }
 
                 return {
                   titulo: sistema.titulo || `Sistema ${index + 1}`,
                   potencia,
                   modulos,
                   inversores,
-                  valorTotal: sistema.ppix || sistema.valorTotal || sistema.total_final || sistema.precoPixDecimal || 0,
+                  valorTotal,
                   geracaoMensal: sistema.geracaoMensal,
                   paybackMeses: sistema.paybackMeses,
                   cobertura: sistema.cobertura || sistema.coberturaPercent

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 interface Orcamento {
   nome: string;
@@ -18,6 +19,7 @@ interface Orcamento {
 }
 
 export default function GeradorRapido() {
+  const router = useRouter();
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
 
   const [config, setConfig] = useState({
@@ -74,25 +76,57 @@ export default function GeradorRapido() {
         throw new Error('Dados da proposta incompletos - sistemas não encontrados');
       }
 
-      // Preencher TODOS os dados do cliente da proposta (não hardcoded)
+      // ✅ BUSCAR DADOS DO CLIENTE DO SUPABASE (não usar hardcode)
       const cliente = propostaData.cliente || {};
-      setConfig(prev => ({
-        ...prev,
-        nomeCliente: cliente.nome || prev.nomeCliente,
-        cidadeCliente: cliente.cidade || prev.cidadeCliente,
-        consumoMensal: cliente.consumoMensal || cliente.consumo || parseFloat(cliente.consumoKwh) || prev.consumoMensal,
-        tipoImovel: cliente.tipoImovel || cliente.tipo || prev.tipoImovel,
-        // Carregar HSP e tarifa do cliente se disponíveis
-        hsp: cliente.hsp || parseFloat(cliente.hspLocal?.toString().replace(',', '.')) || prev.hsp,
-        tarifa: cliente.tarifa || parseFloat(cliente.tarifaEnergia?.toString().replace(',', '.')) || prev.tarifa
-      }));
+      
+      // Buscar configurações do sistema do Supabase para pdespesa
+      let configSistemaData = null;
+      try {
+        const configResponse = await fetch('/api/admin/config');
+        if (configResponse.ok) {
+          configSistemaData = await configResponse.json();
+          console.log('✅ Configurações do sistema carregadas do Supabase:', configSistemaData);
+        }
+      } catch (error) {
+        console.warn('⚠️ Não foi possível carregar configurações do Supabase, usando valores da proposta');
+      }
+      
+      // Preencher TODOS os dados do cliente da proposta (prioridade: Supabase > proposta > fallback mínimo)
+      setConfig(prev => {
+        // Extrair valores do cliente da proposta
+        const hspProposta = cliente.hsp || parseFloat(cliente.hspLocal?.toString().replace(',', '.')) || null;
+        const tarifaProposta = cliente.tarifa || parseFloat(cliente.tarifaEnergia?.toString().replace(',', '.')) || null;
+        const consumoProposta = cliente.consumoMensal || cliente.consumo || parseFloat(cliente.consumoKwh) || null;
+        
+        // Usar valores do Supabase se disponíveis, senão usar da proposta, senão usar mínimo necessário
+        return {
+          ...prev,
+          nomeCliente: cliente.nome || prev.nomeCliente,
+          cidadeCliente: cliente.cidade || prev.cidadeCliente,
+          consumoMensal: consumoProposta || prev.consumoMensal,
+          tipoImovel: cliente.tipoImovel || cliente.tipo || prev.tipoImovel,
+          // ✅ Prioridade: Supabase > Proposta > Config Sistema > Fallback mínimo
+          hsp: hspProposta || (configSistemaData?.hspPadrao ? parseFloat(configSistemaData.hspPadrao) : prev.hsp),
+          tarifa: tarifaProposta || (configSistemaData?.tarifaEnergia ? parseFloat(configSistemaData.tarifaEnergia) : prev.tarifa),
+          // ✅ Carregar pdespesa das configurações do Supabase
+          pdespesaFixo: configSistemaData?.pdespesaFixo ? parseFloat(configSistemaData.pdespesaFixo) : prev.pdespesaFixo,
+          pdespesaVariavel: configSistemaData?.pdespesaVariavel ? parseFloat(configSistemaData.pdespesaVariavel) : prev.pdespesaVariavel,
+          performanceRate: configSistemaData?.performanceRate ? parseFloat(configSistemaData.performanceRate) : prev.performanceRate
+        };
+      });
 
-      console.log('📋 Dados do cliente carregados:', {
+      console.log('📋 Dados do cliente carregados do Supabase:', {
         nome: cliente.nome,
         cidade: cliente.cidade,
         consumo: cliente.consumoMensal || cliente.consumo,
         hsp: cliente.hsp || cliente.hspLocal,
-        tarifa: cliente.tarifa || cliente.tarifaEnergia
+        tarifa: cliente.tarifa || cliente.tarifaEnergia,
+        configSistema: configSistemaData ? {
+          hspPadrao: configSistemaData.hspPadrao,
+          tarifaEnergia: configSistemaData.tarifaEnergia,
+          pdespesaFixo: configSistemaData.pdespesaFixo,
+          pdespesaVariavel: configSistemaData.pdespesaVariavel
+        } : 'Não carregado'
       });
 
       // Converter sistemas em orçamentos com validação robusta
@@ -286,11 +320,11 @@ export default function GeradorRapido() {
 
         // Garantir valores mínimos válidos - se ainda for 0, usar valor baseado na potência
         if (pcusto <= 0) {
-            // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
-            pcusto = Math.max(10000, potenciaTotal * 4000);
-            console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
-          }
+          // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
+          pcusto = Math.max(10000, potenciaTotal * 4000);
+          console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
         }
+        
         if (modulos <= 0) modulos = 10;
         if (pot_modulo <= 0) pot_modulo = 605;
 
@@ -413,17 +447,23 @@ export default function GeradorRapido() {
     };
 
     carregarConfigSistema();
+  }, []);
 
-    // Verificar parâmetros da URL
-    const params = new URLSearchParams(window.location.search);
+  // ✅ CARREGAR PROPOSTA EXISTENTE quando há parâmetro 'cliente' na URL
+  // Esta função é usada tanto pelo botão "Editar" em /admin quanto em /admin/orcamentos
+  // Ambos buscam dados do Supabase através da API /api/propostas/[slug]
+  useEffect(() => {
+    if (!router.isReady) return;
 
-    // ✅ CARREGAR PROPOSTA EXISTENTE (novo fluxo)
-    const clienteSlug = params.get('cliente');
+    const clienteSlug = router.query.cliente as string;
     if (clienteSlug) {
+      console.log('📥 Parâmetro cliente detectado na URL:', clienteSlug);
       carregarPropostaExistente(clienteSlug);
+      return; // Não processar outros modos se cliente foi detectado
     }
+
     // Verificar se está no modo "reaproveitar" (um único orçamento)
-    else if (params.get('modo') === 'reaproveitar') {
+    if (router.query.modo === 'reaproveitar') {
       const dadosReaproveitamento = localStorage.getItem('orcamento-reaproveitar');
       if (dadosReaproveitamento) {
         try {
@@ -463,7 +503,7 @@ export default function GeradorRapido() {
     }
     
     // Verificar se está no modo "reaproveitar-todos" (múltiplos orçamentos)
-    if (params.get('modo') === 'reaproveitar-todos') {
+    if (router.query.modo === 'reaproveitar-todos') {
       const dadosReaproveitamento = localStorage.getItem('orcamentos-reaproveitar-todos');
       if (dadosReaproveitamento) {
         try {
@@ -500,7 +540,7 @@ export default function GeradorRapido() {
         }
       }
     }
-  }, []);
+  }, [router.isReady, router.query.cliente, router.query.modo]);
 
   // Função para calcular preços usando configurações dinâmicas do sistema
   const calcularPrecos = (totalFinalTabela: number) => {
