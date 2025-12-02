@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
+import { useRouter } from 'next/router';
 import Header from '@/components/Header';
 import { UrgencyBanner } from '@/components/UrgencyBanner';
 import { SystemCard } from '@/components/SystemCard';
@@ -22,6 +23,9 @@ interface PropostaPageProps {
 }
 
 export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slug }: PropostaPageProps) {
+  const router = useRouter();
+  const [templateCss, setTemplateCss] = useState<string | null>(null);
+  
   // ✅ Tracking de Analytics (para HTML direto também)
   const trackingRef = useRef({
     startTime: Date.now(),
@@ -31,6 +35,59 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
     cliques: 0,
     intervalId: null as NodeJS.Timeout | null
   });
+
+  // 🎨 Carregar CSS do template selecionado
+  useEffect(() => {
+    const template = router.query.template as string;
+    if (!template || template === 'padrao') {
+      setTemplateCss(null);
+      return;
+    }
+
+    // Mapear template para arquivo CSS (usando os mesmos nomes do variantConfig)
+    const cssMap: Record<string, string> = {
+      'residencial': '/styles/residencial.css',
+      'residencial-premium': '/styles/residencial.css', // Alias
+      'rural': '/styles/rural.css',
+      'rural-agro': '/styles/rural.css', // Alias
+      'comercial-panificadora': '/styles/comercial-panificadora.css',
+      'comercial-acougue': '/styles/comercial-acougue.css',
+      'comercial-restaurante': '/styles/comercial-restaurante.css',
+      'comercial-mercado': '/styles/comercial-mercado.css',
+      'industrial': '/styles/industrial.css',
+      'industrial-premium': '/styles/industrial.css', // Alias
+    };
+
+    const cssFile = cssMap[template];
+    if (cssFile) {
+      // Carregar CSS dinamicamente
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = cssFile;
+      link.id = 'template-css-dynamic';
+      
+      // Remover CSS anterior se existir
+      const existing = document.getElementById('template-css-dynamic');
+      if (existing) {
+        existing.remove();
+      }
+      
+      document.head.appendChild(link);
+      setTemplateCss(cssFile);
+      
+      // Adicionar classe ao body para aplicar variantes
+      document.body.classList.add(`variant-${template}`);
+      
+      return () => {
+        // Cleanup
+        const linkToRemove = document.getElementById('template-css-dynamic');
+        if (linkToRemove) {
+          linkToRemove.remove();
+        }
+        document.body.classList.remove(`variant-${template}`);
+      };
+    }
+  }, [router.query.template]);
 
   useEffect(() => {
     const propostaSlug = slug || proposta?.slug;

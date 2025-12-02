@@ -1,8 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { getPropostaBySlug } from '@/lib/supabase';
 
 /**
  * 📧 API DE ENVIO DE PROPOSTAS PARA CLIENTES
  * Integração com Netlify Functions para envio automático
+ * Busca dados da proposta original quando não fornecidos
  */
 
 interface SendProposalRequest {
@@ -70,17 +72,43 @@ export default async function handler(
             });
         }
 
+        // ✅ Buscar dados da proposta original se não fornecidos
+        let cidadeFinal = cidade;
+        let consumoMensalFinal = consumoMensal;
+        let tipoInstalacaoFinal = tipoInstalacao;
+
+        if (!cidade || !consumoMensal || !tipoInstalacao) {
+            try {
+                const proposta = await getPropostaBySlug(propostaSlug);
+                if (proposta && proposta.dados_completos) {
+                    const dadosCompletos = proposta.dados_completos as any;
+                    cidadeFinal = cidade || dadosCompletos.cliente?.cidade || 'Anápolis/GO';
+                    consumoMensalFinal = consumoMensal || dadosCompletos.cliente?.consumoMensal || dadosCompletos.cliente?.consumo || 2500;
+                    tipoInstalacaoFinal = tipoInstalacao || dadosCompletos.cliente?.tipoImovel || dadosCompletos.cliente?.tipo || 'Telhado Fibrocimento';
+                }
+            } catch (error) {
+                console.warn('⚠️ Erro ao buscar dados da proposta, usando valores padrão:', error);
+                // Usar valores padrão se não conseguir buscar
+                cidadeFinal = cidade || 'Anápolis/GO';
+                consumoMensalFinal = consumoMensal || 2500;
+                tipoInstalacaoFinal = tipoInstalacao || 'Telhado Fibrocimento';
+            }
+        }
+
         // Construir URL da proposta
-        const propostaUrl = `https://pieng-propostas-solares.netlify.app/proposta/${propostaSlug}`;
+        const baseUrl = process.env.VERCEL_URL 
+            ? `https://${process.env.VERCEL_URL}` 
+            : process.env.NEXT_PUBLIC_APP_URL || 'https://pieng-propostas.vercel.app';
+        const propostaUrl = `${baseUrl}/proposta/${propostaSlug}`;
 
         // Dados para envio
         const emailData = {
             clienteNome,
             clienteEmail,
             clienteTelefone,
-            cidade: cidade || 'Anápolis/GO',
-            consumoMensal: consumoMensal || 2500,
-            tipoInstalacao: tipoInstalacao || 'Telhado Fibrocimento',
+            cidade: cidadeFinal || 'Anápolis/GO',
+            consumoMensal: consumoMensalFinal || 2500,
+            tipoInstalacao: tipoInstalacaoFinal || 'Telhado Fibrocimento',
             propostaUrl
         };
 

@@ -27,12 +27,10 @@ export default function AdminIndex() {
     clienteNome: '',
     clienteEmail: '',
     clienteTelefone: '',
-    propostaSlug: '',
-    cidade: 'Anápolis/GO',
-    consumoMensal: 2500,
-    tipoInstalacao: 'Telhado Fibrocimento'
+    propostaSlug: ''
   });
   const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [limpandoTestes, setLimpandoTestes] = useState(false);
 
   useEffect(() => {
     loadClientesData();
@@ -152,12 +150,9 @@ export default function AdminIndex() {
       // Preencher formulário com dados do cliente
       setEnviarForm({
         clienteNome: cliente.nome,
-        clienteEmail: '',
-        clienteTelefone: '',
-        propostaSlug: cliente.pasta,
-        cidade: cliente.cidade,
-        consumoMensal: 2500,
-        tipoInstalacao: 'Telhado Fibrocimento'
+        clienteEmail: cliente.email || '',
+        clienteTelefone: cliente.telefone || '',
+        propostaSlug: cliente.pasta || ''
       });
     } else {
       // Limpar formulário para novo envio
@@ -165,10 +160,7 @@ export default function AdminIndex() {
         clienteNome: '',
         clienteEmail: '',
         clienteTelefone: '',
-        propostaSlug: '',
-        cidade: 'Anápolis/GO',
-        consumoMensal: 2500,
-        tipoInstalacao: 'Telhado Fibrocimento'
+        propostaSlug: ''
       });
     }
     setShowEnviarModal(true);
@@ -180,11 +172,58 @@ export default function AdminIndex() {
       clienteNome: '',
       clienteEmail: '',
       clienteTelefone: '',
-      propostaSlug: '',
-      cidade: 'Anápolis/GO',
-      consumoMensal: 2500,
-      tipoInstalacao: 'Telhado Fibrocimento'
+      propostaSlug: ''
     });
+  };
+
+  const handleLimpezaTestes = async () => {
+    const confirmacao = window.confirm(
+      `⚠️ ATENÇÃO: Você realmente deseja deletar TODOS os clientes de teste?\n\n` +
+      `Esta ação irá remover:\n` +
+      `• Clientes que começam com "Cliente Padrão"\n` +
+      `• Clientes com "teste", "test", "exemplo", "demo" no nome\n` +
+      `• Todas as propostas relacionadas\n` +
+      `• Todos os analytics relacionados\n` +
+      `• Todos os orçamentos relacionados\n\n` +
+      `Esta ação NÃO pode ser desfeita!\n\n` +
+      `Deseja continuar?`
+    );
+
+    if (!confirmacao) {
+      return;
+    }
+
+    try {
+      setLimpandoTestes(true);
+      
+      const response = await fetch('/api/admin/limpeza-clientes-teste', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Erro ao fazer limpeza');
+      }
+
+      const result = await response.json();
+      
+      alert(
+        `✅ Limpeza concluída com sucesso!\n\n` +
+        `Clientes deletados: ${result.result.clientesDeletados}\n` +
+        `Propostas deletadas: ${result.result.propostasDeletadas}\n` +
+        `Analytics deletados: ${result.result.analyticsDeletados}\n` +
+        `Orçamentos deletados: ${result.result.orcamentosDeletados}`
+      );
+
+      // Recarregar lista de clientes
+      await loadClientesData();
+      
+    } catch (error) {
+      console.error('❌ Erro ao fazer limpeza:', error);
+      alert(`❌ Erro ao fazer limpeza: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setLimpandoTestes(false);
+    }
   };
 
   const handleEnviarFormChange = (field: string, value: string | number) => {
@@ -212,10 +251,8 @@ export default function AdminIndex() {
           clienteNome: enviarForm.clienteNome,
           clienteEmail: enviarForm.clienteEmail,
           clienteTelefone: enviarForm.clienteTelefone,
-          cidade: enviarForm.cidade,
-          consumoMensal: enviarForm.consumoMensal,
-          tipoInstalacao: enviarForm.tipoInstalacao,
           propostaSlug: enviarForm.propostaSlug
+          // cidade, consumoMensal e tipoInstalacao serão buscados da proposta original
         })
       });
 
@@ -567,49 +604,6 @@ export default function AdminIndex() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cidade
-                </label>
-                <input
-                  type="text"
-                  value={enviarForm.cidade}
-                  onChange={(e) => handleEnviarFormChange('cidade', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Anápolis/GO"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Consumo Mensal (kWh)
-                </label>
-                <input
-                  type="number"
-                  value={enviarForm.consumoMensal}
-                  onChange={(e) => handleEnviarFormChange('consumoMensal', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="2500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Instalação
-                </label>
-                <select
-                  value={enviarForm.tipoInstalacao}
-                  onChange={(e) => handleEnviarFormChange('tipoInstalacao', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  title="Tipo de instalação"
-                >
-                  <option value="Telhado Fibrocimento">Telhado Fibrocimento</option>
-                  <option value="Telhado Cerâmico">Telhado Cerâmico</option>
-                  <option value="Telhado Metálico">Telhado Metálico</option>
-                  <option value="Solo">Solo</option>
-                  <option value="Laje">Laje</option>
-                </select>
-              </div>
             </div>
 
             <div className="flex justify-end space-x-3 mt-6">

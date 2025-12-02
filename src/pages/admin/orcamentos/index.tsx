@@ -38,6 +38,9 @@ interface OrcamentoItem {
 
 export default function TodosOrcamentos() {
   const router = useRouter();
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [selectedProposta, setSelectedProposta] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('padrao');
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [orcamentos, setOrcamentos] = useState<OrcamentoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,8 +110,13 @@ export default function TodosOrcamentos() {
   const handleExcluirProposta = async (clientePasta: string, clienteNome: string) => {
     // Primeira confirmação
     const primeiraConfirmacao = window.confirm(
-      `⚠️ ATENÇÃO: Você realmente deseja excluir a proposta do cliente "${clienteNome}"?\n\n` +
-      `Esta ação marcará a proposta como inativa no sistema.`
+      `⚠️ ATENÇÃO: Você realmente deseja excluir TODOS os dados do cliente "${clienteNome}"?\n\n` +
+      `Esta ação irá deletar:\n` +
+      `• Cliente\n` +
+      `• Todas as propostas\n` +
+      `• Todos os orçamentos\n` +
+      `• Todos os analytics\n\n` +
+      `Esta ação NÃO pode ser desfeita!`
     );
 
     if (!primeiraConfirmacao) {
@@ -118,8 +126,8 @@ export default function TodosOrcamentos() {
     // Segunda confirmação
     const segundaConfirmacao = window.confirm(
       `🔴 CONFIRMAÇÃO FINAL\n\n` +
-      `Você tem CERTEZA que deseja excluir a proposta de "${clienteNome}"?\n\n` +
-      `Esta ação não pode ser desfeita facilmente.\n\n` +
+      `Você tem CERTEZA ABSOLUTA que deseja excluir TUDO relacionado a "${clienteNome}"?\n\n` +
+      `Todos os dados serão PERMANENTEMENTE removidos do Supabase.\n\n` +
       `Clique em "OK" para confirmar ou "Cancelar" para abortar.`
     );
 
@@ -130,22 +138,40 @@ export default function TodosOrcamentos() {
     try {
       setLoading(true);
       
-      const response = await fetch(`/api/admin/propostas/${clientePasta}`, {
+      console.log(`🗑️ Iniciando exclusão completa do cliente: ${clienteNome} (${clientePasta})`);
+      
+      // Tentar primeiro pela pasta, se falhar tentar pelo nome
+      let response = await fetch(`/api/admin/clientes/${encodeURIComponent(clientePasta)}`, {
         method: 'DELETE',
       });
+      
+      // Se não encontrou pela pasta, tentar pelo nome
+      if (!response.ok && response.status === 404) {
+        console.log(`⚠️ Cliente não encontrado pela pasta "${clientePasta}", tentando pelo nome "${clienteNome}"`);
+        response = await fetch(`/api/admin/clientes/${encodeURIComponent(clienteNome)}`, {
+          method: 'DELETE',
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao excluir proposta');
+        throw new Error(errorData.error || errorData.details || 'Erro ao excluir cliente');
       }
+
+      const result = await response.json();
+      console.log('✅ Exclusão completa:', result);
 
       // Recarregar lista após exclusão
       await loadData();
       
-      alert('✅ Proposta excluída com sucesso!');
+      alert(`✅ Cliente "${clienteNome}" e todos os dados relacionados foram excluídos com sucesso!\n\n` +
+            `Deletado:\n` +
+            `• Cliente\n` +
+            `• ${result.deleted?.propostas || 0} proposta(s)\n` +
+            `• ${result.deleted?.analytics || 0} registro(s) de analytics`);
     } catch (error) {
-      console.error('❌ Erro ao excluir proposta:', error);
-      alert(`❌ Erro ao excluir proposta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      console.error('❌ Erro ao excluir cliente:', error);
+      alert(`❌ Erro ao excluir cliente: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -327,11 +353,16 @@ export default function TodosOrcamentos() {
                               🎛️ Consultor
                             </a>
                           </Link>
-                          <Link href={`/proposta/${orc.clientePasta}`} legacyBehavior>
-                            <a className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2" target="_blank">
-                              🔗 Ver Proposta
-                            </a>
-                          </Link>
+                          <button
+                            onClick={() => {
+                              setSelectedProposta(orc.clientePasta);
+                              setShowTemplateSelector(true);
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                            title="Ver proposta com diferentes templates CSS"
+                          >
+                            🔗 Ver Proposta
+                          </button>
                           <button
                             onClick={() => handleExcluirProposta(orc.clientePasta, orc.cliente)}
                             disabled={loading}
@@ -434,6 +465,139 @@ export default function TodosOrcamentos() {
             </div>
           )}
         </div>
+
+        {/* Modal de Seleção de Template */}
+        {showTemplateSelector && selectedProposta && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  🎨 Escolher Template CSS
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Selecione um template para visualizar a proposta com diferentes estilos
+                </p>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Template Padrão */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">📄</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Template Padrão</h4>
+                    <p className="text-sm text-gray-600">Visualização padrão universal</p>
+                  </button>
+
+                  {/* Residencial */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=residencial`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🏠</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Residencial Premium</h4>
+                    <p className="text-sm text-gray-600">Foco em economia doméstica</p>
+                  </button>
+
+                  {/* Rural */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=rural`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🌾</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Rural Agro</h4>
+                    <p className="text-sm text-gray-600">Análise de irrigação e safra</p>
+                  </button>
+
+                  {/* Panificadora */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=comercial-panificadora`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🥖</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Panificadora</h4>
+                    <p className="text-sm text-gray-600">Foco em margem por produto</p>
+                  </button>
+
+                  {/* Açougue */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=comercial-acougue`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🥩</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Açougue</h4>
+                    <p className="text-sm text-gray-600">Economia em refrigeração</p>
+                  </button>
+
+                  {/* Restaurante */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=comercial-restaurante`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-teal-500 hover:bg-teal-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🍽️</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Restaurante</h4>
+                    <p className="text-sm text-gray-600">AC e cozinha profissional</p>
+                  </button>
+
+                  {/* Mercado */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=comercial-mercado`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🛒</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Mercado</h4>
+                    <p className="text-sm text-gray-600">Economia completa (iluminação + refrigeração + AC)</p>
+                  </button>
+
+                  {/* Industrial */}
+                  <button
+                    onClick={() => {
+                      window.open(`/proposta/${selectedProposta}?template=industrial`, '_blank');
+                      setShowTemplateSelector(false);
+                    }}
+                    className="p-4 border-2 border-gray-300 rounded-lg hover:border-gray-600 hover:bg-gray-50 transition-all text-left"
+                  >
+                    <div className="text-2xl mb-2">🏭</div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Industrial Premium</h4>
+                    <p className="text-sm text-gray-600">Demanda contratada e créditos</p>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => setShowTemplateSelector(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -104,7 +104,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/residencial_premium.html',
-    cssFile: 'variants/residencial.css'
+    cssFile: 'residencial.css'  // ✅ Mesmo padrão dos comerciais (sem 'variants/')
   },
   
   // ========== RURAL AGRO ==========

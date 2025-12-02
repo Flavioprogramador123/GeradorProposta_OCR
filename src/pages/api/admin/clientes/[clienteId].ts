@@ -80,6 +80,20 @@ async function getClienteFromSupabase(clienteId: string) {
     }
   }
 
+  // ✅ PRIORIDADE 5: Busca parcial por nome (se ainda não encontrou)
+  if (!cliente) {
+    cliente = clientes.find((c) => {
+      if (!c.nome) return false;
+      const nomeLower = c.nome.toLowerCase().trim();
+      const buscaLower = clienteId.toLowerCase().trim();
+      // Busca parcial: se o nome contém a busca ou vice-versa
+      return nomeLower.includes(buscaLower) || buscaLower.includes(nomeLower);
+    });
+    if (cliente) {
+      console.log(`✅ Cliente encontrado por busca parcial de nome: ${cliente.nome}`);
+    }
+  }
+
   // ⚠️ Se encontrou múltiplos matches, avisar
   if (cliente) {
     const matches = clientes.filter((c) => {
@@ -274,16 +288,46 @@ CONSUMO MENSAL: ${consumoKwh} KWH/MES
             throw new Error('Supabase não configurado');
           }
 
-          // 1. Deletar propostas do cliente primeiro (cascade)
-          const { error: propostasError } = await supabase
+          // 1. Buscar todas as propostas do cliente para deletar analytics primeiro
+          const { data: propostas, error: propostasFetchError } = await supabase
             .from('propostas')
-            .delete()
+            .select('id, slug')
             .eq('cliente_id', clienteSupabase.id);
 
-          if (propostasError) {
-            console.warn('⚠️ Erro ao deletar propostas (pode não existir):', propostasError);
+          if (propostas && propostas.length > 0) {
+            console.log(`📊 Encontradas ${propostas.length} proposta(s) do cliente`);
+
+            // 1.1. Deletar analytics de todas as propostas
+            for (const proposta of propostas) {
+              const { error: analyticsError } = await supabase
+                .from('proposta_analytics')
+                .delete()
+                .eq('proposta_slug', proposta.slug);
+
+              if (analyticsError && analyticsError.code !== 'PGRST116') {
+                console.warn(`⚠️ Erro ao deletar analytics da proposta ${proposta.slug}:`, analyticsError);
+              } else {
+                console.log(`✅ Analytics deletados para proposta: ${proposta.slug}`);
+              }
+            }
+
+            // 1.2. Deletar todas as propostas do cliente
+            const { error: propostasError } = await supabase
+              .from('propostas')
+              .delete()
+              .eq('cliente_id', clienteSupabase.id);
+
+            if (propostasError) {
+              console.warn('⚠️ Erro ao deletar propostas:', propostasError);
+            } else {
+              console.log(`✅ ${propostas.length} proposta(s) deletada(s)`);
+            }
           } else {
-            console.log('✅ Propostas do cliente deletadas');
+            if (propostasFetchError) {
+              console.warn('⚠️ Erro ao buscar propostas (pode não existir):', propostasFetchError);
+            } else {
+              console.log('ℹ️ Nenhuma proposta encontrada para este cliente');
+            }
           }
 
           // 2. Deletar orçamentos do cliente (se existir tabela)
