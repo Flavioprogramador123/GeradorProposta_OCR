@@ -477,6 +477,7 @@ export class TemplateEnginePadrao {
         <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
         <li>Cabeamento CC/CA completo</li>
         <li>String box DC/AC + proteções</li>
+        <li>Garantia de instalação de 1 ano, garantia dos módulos e inversores por 10 anos contra defeitos funcionais fornecida pelo fabricante, e garantia de desempenho linear de 25 anos para a produção de energia</li>
       `;
     });
 

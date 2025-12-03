@@ -46,6 +46,9 @@ export default function GeradorRapido() {
   const [showYamlInput, setShowYamlInput] = useState(false);
   const [configSistema, setConfigSistema] = useState<any>(null);
   const [slugAtual, setSlugAtual] = useState<string | null>(null); // ✅ Slug da proposta carregada
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateSelecionado, setTemplateSelecionado] = useState<string>('padrao');
+  const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
 
   // ✅ Função para carregar proposta existente
   const carregarPropostaExistente = async (clienteSlug: string) => {
@@ -1005,8 +1008,8 @@ consolidado_orcamentos_distribuidores:
   };
 
   // Gerar proposta HTML
-  // ✅ Função para salvar proposta (atualiza existente ou cria nova)
-  const salvarProposta = async (salvarComo: boolean = false) => {
+  // ✅ Função para abrir modal de seleção de template
+  const abrirModalTemplate = (salvarComo: boolean = false) => {
     const erros = validarDados();
     
     if (erros.length > 0) {
@@ -1014,6 +1017,44 @@ consolidado_orcamentos_distribuidores:
       return;
     }
 
+    // Se já tem template selecionado no config, usar ele como padrão
+    const templateAtual = mapearTipoImovelParaTemplate(config.tipoImovel);
+    setTemplateSelecionado(templateAtual);
+    setSalvarComoPendente(salvarComo);
+    setShowTemplateModal(true);
+  };
+
+  // Função para mapear tipo de imóvel para template CSS
+  const mapearTipoImovelParaTemplate = (tipoImovel: string): string => {
+    const tipoLower = tipoImovel.toLowerCase();
+    
+    if (tipoLower.includes('residencial')) {
+      return 'residencial';
+    }
+    if (tipoLower.includes('rural')) {
+      return 'rural';
+    }
+    if (tipoLower.includes('panificadora')) {
+      return 'comercial-panificadora';
+    }
+    if (tipoLower.includes('açougue') || tipoLower.includes('acougue')) {
+      return 'comercial-acougue';
+    }
+    if (tipoLower.includes('restaurante')) {
+      return 'comercial-restaurante';
+    }
+    if (tipoLower.includes('mercado')) {
+      return 'comercial-mercado';
+    }
+    if (tipoLower.includes('industrial')) {
+      return 'industrial';
+    }
+    
+    return 'padrao';
+  };
+
+  // ✅ Função para salvar proposta (atualiza existente ou cria nova)
+  const salvarProposta = async (salvarComo: boolean = false, templateEscolhido: string = 'padrao') => {
     setLoading(true);
     try {
       // ✅ Determinar slug: se "Salvar Como" ou não tem slug atual, criar novo
@@ -1068,7 +1109,8 @@ consolidado_orcamentos_distribuidores:
             consumo_mensal: config.consumoMensal,
             tipo_imovel: config.tipoImovel,
             hsp: config.hsp,
-            tarifa: config.tarifa
+            tarifa: config.tarifa,
+            template: templateEscolhido // ✅ Enviar template escolhido
           },
           orcamentos: resultados.map(resultado => {
             // USAR DADOS DOS RESULTADOS FINANCEIROS (já calculados)
@@ -1328,6 +1370,24 @@ consolidado_orcamentos_distribuidores:
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">🎨 Template da Proposta</label>
+                  <select
+                    value={config.tipoImovel}
+                    onChange={(e) => setConfig({...config, tipoImovel: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="Residencial">🏠 Residencial</option>
+                    <option value="Rural">🌾 Rural</option>
+                    <option value="Comercial - Panificadora">🥖 Comercial - Panificadora</option>
+                    <option value="Comercial - Açougue">🥩 Comercial - Açougue</option>
+                    <option value="Comercial - Restaurante">🍽️ Comercial - Restaurante</option>
+                    <option value="Comercial - Mercado">🛒 Comercial - Mercado</option>
+                    <option value="Industrial">🏭 Industrial</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Escolha o template visual da proposta</p>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">HSP</label>
                   <input
                     type="number"
@@ -1566,7 +1626,7 @@ consolidado_orcamentos_distribuidores:
                                 value={orc.pcusto}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pcusto = Number(e.target.value);
+                                  novosOrc[index].pcusto = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
                                   // Recalcular Pdespesa total
                                   const pdVar = novosOrc[index].pcusto * (novosOrc[index].pdespesa_variavel_percent / 100);
                                   novosOrc[index].pdespesa_total = novosOrc[index].pdespesa_fixo + pdVar;
@@ -1594,10 +1654,11 @@ consolidado_orcamentos_distribuidores:
                             <td className="border border-gray-300 px-1 py-1">
                               <input
                                 type="number"
+                                step="0.01"
                                 value={orc.pot_modulo}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pot_modulo = Number(e.target.value);
+                                  novosOrc[index].pot_modulo = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
                                   setOrcamentos(novosOrc);
                                 }}
                                 className="w-16 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
@@ -1636,11 +1697,11 @@ consolidado_orcamentos_distribuidores:
                             <td className="border border-gray-300 px-1 py-1">
                               <input
                                 type="number"
-                                step="0.1"
+                                step="0.01"
                                 value={orc.pot_inv}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pot_inv = Number(e.target.value);
+                                  novosOrc[index].pot_inv = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
                                   setOrcamentos(novosOrc);
                                 }}
                                 className="w-16 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
@@ -1740,7 +1801,7 @@ consolidado_orcamentos_distribuidores:
                   {/* ✅ Botão Salvar (atualiza proposta existente) */}
                   {slugAtual && (
                     <button
-                      onClick={() => salvarProposta(false)}
+                      onClick={() => abrirModalTemplate(false)}
                       disabled={loading || orcamentos.length === 0 || resultados.length === 0}
                       className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Atualizar proposta existente (mesmo link)"
@@ -1751,7 +1812,7 @@ consolidado_orcamentos_distribuidores:
                   
                   {/* ✅ Botão Salvar Como (cria nova proposta) */}
                   <button
-                    onClick={() => salvarProposta(true)}
+                    onClick={() => abrirModalTemplate(true)}
                     disabled={loading || orcamentos.length === 0 || resultados.length === 0}
                     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     title={slugAtual ? "Criar nova proposta com novo link" : "Gerar nova proposta"}
@@ -1811,7 +1872,7 @@ consolidado_orcamentos_distribuidores:
                             <strong>{resultado.potTotal.toFixed(2)} kWp</strong>
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                            R$ {resultado.ppix.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            R$ {resultado.ppix.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div className="flex flex-col">
@@ -1820,7 +1881,7 @@ consolidado_orcamentos_distribuidores:
                             </div>
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">
-                            R$ {resultado.p12x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            R$ {resultado.p12x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div className="flex flex-col">
@@ -1829,7 +1890,7 @@ consolidado_orcamentos_distribuidores:
                             </div>
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">
-                            R$ {resultado.p18x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            R$ {resultado.p18x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                             {resultado.geracaoMensal.toFixed(0)} kWh
@@ -1874,6 +1935,172 @@ consolidado_orcamentos_distribuidores:
           </div>
         </div>
       </div>
+
+      {/* Modal de Seleção de Template */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-800">
+                🎨 Escolher Template CSS
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Selecione um template para a proposta. O template será salvo junto com os dados.
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Template Padrão */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('padrao');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'padrao' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">📄</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Template Padrão</h4>
+                  <p className="text-sm text-gray-600">Visualização padrão universal</p>
+                </button>
+
+                {/* Residencial */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('residencial');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'residencial' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🏠</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Residencial Premium</h4>
+                  <p className="text-sm text-gray-600">Foco em economia doméstica</p>
+                </button>
+
+                {/* Rural */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('rural');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'rural' 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🌾</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Rural Agro</h4>
+                  <p className="text-sm text-gray-600">Análise de irrigação e safra</p>
+                </button>
+
+                {/* Panificadora */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-panificadora');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-panificadora' 
+                      ? 'border-orange-500 bg-orange-50' 
+                      : 'border-gray-300 hover:border-orange-500 hover:bg-orange-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🥖</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Panificadora</h4>
+                  <p className="text-sm text-gray-600">Foco em margem por produto</p>
+                </button>
+
+                {/* Açougue */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-acougue');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-acougue' 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-gray-300 hover:border-red-500 hover:bg-red-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🥩</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Açougue</h4>
+                  <p className="text-sm text-gray-600">Economia em refrigeração</p>
+                </button>
+
+                {/* Restaurante */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-restaurante');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-restaurante' 
+                      ? 'border-teal-500 bg-teal-50' 
+                      : 'border-gray-300 hover:border-teal-500 hover:bg-teal-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🍽️</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Restaurante</h4>
+                  <p className="text-sm text-gray-600">AC e cozinha profissional</p>
+                </button>
+
+                {/* Mercado */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-mercado');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-mercado' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🛒</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Mercado</h4>
+                  <p className="text-sm text-gray-600">Economia completa (iluminação + refrigeração + AC)</p>
+                </button>
+
+                {/* Industrial */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('industrial');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'industrial' 
+                      ? 'border-gray-600 bg-gray-50' 
+                      : 'border-gray-300 hover:border-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🏭</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Industrial Premium</h4>
+                  <p className="text-sm text-gray-600">Demanda contratada e créditos</p>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setShowTemplateModal(false);
+                  await salvarProposta(salvarComoPendente, templateSelecionado);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                ✅ Confirmar e Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

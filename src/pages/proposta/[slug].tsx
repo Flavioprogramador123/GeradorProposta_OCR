@@ -20,9 +20,10 @@ interface PropostaPageProps {
   htmlContent?: string;
   slug?: string;
   useHtmlDirect?: boolean;
+  templateUsado?: string; // ✅ Template salvo na proposta
 }
 
-export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slug }: PropostaPageProps) {
+export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slug, templateUsado }: PropostaPageProps) {
   const router = useRouter();
   const [templateCss, setTemplateCss] = useState<string | null>(null);
   
@@ -38,7 +39,8 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
 
   // 🎨 Carregar CSS do template selecionado
   useEffect(() => {
-    const template = router.query.template as string;
+    // ✅ Prioridade: query parameter > template salvo > padrão
+    const template = (router.query.template as string) || templateUsado || 'padrao';
     if (!template || template === 'padrao') {
       setTemplateCss(null);
       return;
@@ -311,6 +313,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
         props: {
           proposta: propostaSupabase.dados_completos as PropostaData,
           slug: slug,
+          templateUsado: propostaSupabase.template_usado || 'padrao', // ✅ Passar template salvo
         },
       };
     }
