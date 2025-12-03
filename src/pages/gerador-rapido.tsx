@@ -81,7 +81,6 @@ export default function GeradorRapido() {
         throw new Error('Dados da proposta incompletos - sistemas não encontrados');
       }
 
-<<<<<<< HEAD
       // ✅ Preencher TODOS os dados do cliente da proposta (não hardcoded)
       const cliente = propostaData.cliente || {};
       // ✅ CARREGAR CONFIG DA PROPOSTA (valores usados na geração original)
@@ -114,18 +113,12 @@ export default function GeradorRapido() {
         tarifa: configProposta.tarifa
       });
 
-      console.log('📋 Dados do cliente carregados do Supabase:', {
+      console.log('📋 Dados do cliente carregados:', {
         nome: cliente.nome,
         cidade: cliente.cidade,
         consumo: cliente.consumoMensal || cliente.consumo,
         hsp: cliente.hsp || cliente.hspLocal,
-        tarifa: cliente.tarifa || cliente.tarifaEnergia,
-        configSistema: configSistemaData ? {
-          hspPadrao: configSistemaData.hspPadrao,
-          tarifaEnergia: configSistemaData.tarifaEnergia,
-          pdespesaFixo: configSistemaData.pdespesaFixo,
-          pdespesaVariavel: configSistemaData.pdespesaVariavel
-        } : 'Não carregado'
+        tarifa: cliente.tarifa || cliente.tarifaEnergia
       });
 
       // Converter sistemas em orçamentos com validação robusta
@@ -986,7 +979,11 @@ consolidado_orcamentos_distribuidores:
       performanceRate: 0.75,
       pdespesaFixo: 3000,
       pdespesaVariavel: 22,
-      metodo: 'variavel'
+      metodo: 'variavel',
+      descontoPix: 0,
+      fatorParcelado: 1,
+      fator12x: 1.15,
+      fator18x: 1.25
     });
     mostrarYamlStatus('🗑️ Histórico limpo! Dados padrão restaurados.', 'info');
   };
