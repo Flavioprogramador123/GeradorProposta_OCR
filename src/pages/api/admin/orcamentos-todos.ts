@@ -189,48 +189,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   });
                 }
 
-                // Extrair valor total - tentar múltiplos campos e converter para número
-                const extrairValor = (val: any): number => {
-                  if (val === null || val === undefined) return 0;
-                  if (typeof val === 'number') return isNaN(val) ? 0 : val;
-                  if (typeof val === 'string') {
-                    // Remover formatação (R$, espaços, pontos, vírgulas)
-                    const limpo = val.replace(/[R$\s\.]/g, '').replace(',', '.');
-                    const num = parseFloat(limpo);
-                    return isNaN(num) ? 0 : num;
-                  }
-                  return 0;
-                };
-
-                const valorTotal = extrairValor(
-                  sistema.ppix || 
-                  sistema.valorTotal || 
-                  sistema.total_final || 
-                  sistema.precoPixDecimal ||
-                  sistema.precoPix ||
-                  sistema.valor ||
-                  sistema.preco ||
-                  sistema.preco_final ||
-                  0
-                );
-
-                // Log para debug se valor for 0
-                if (valorTotal === 0 && index === 0) {
-                  console.log('⚠️ Sistema sem valor encontrado:', {
-                    titulo: sistema.titulo,
-                    campos: {
-                      ppix: sistema.ppix,
-                      valorTotal: sistema.valorTotal,
-                      total_final: sistema.total_final,
-                      precoPixDecimal: sistema.precoPixDecimal,
-                      precoPix: sistema.precoPix,
-                      valor: sistema.valor,
-                      preco: sistema.preco,
-                      preco_final: sistema.preco_final
-                    }
-                  });
-                }
-
                 return {
                   titulo: sistema.titulo || `Sistema ${index + 1}`,
                   potencia,
