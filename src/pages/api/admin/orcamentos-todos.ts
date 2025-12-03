@@ -63,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseKey) {
+    if (supabaseUrl && supabaseKey && supabase) {
       try {
         console.log('🔍 Buscando propostas no Supabase...');
 
