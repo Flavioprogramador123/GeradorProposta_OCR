@@ -20,6 +20,11 @@ interface SistemaItem {
   total_final?: number;
   ppix?: number;
   precoPixDecimal?: number;
+  precoPix?: number;
+  pavista?: number;
+  valor?: number;
+  preco?: number;
+  preco_final?: number;
   geracaoMensal?: number;
   paybackMeses?: number;
   cobertura?: number;
@@ -338,6 +343,7 @@ export default function TodosOrcamentos() {
                     <div className="flex gap-2 flex-wrap">
                       {orc.clientePasta ? (
                         <>
+                          {/* ✅ Botão "Editar" - Busca dados do Supabase via /api/propostas/[slug] */}
                           <Link href={`/gerador-rapido?cliente=${orc.clientePasta}`} legacyBehavior>
                             <a className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
                               ✏️ Editar
@@ -419,20 +425,37 @@ export default function TodosOrcamentos() {
                                     return 0;
                                   };
 
-                                  // Tentar múltiplos campos
+                                  // Tentar múltiplos campos na ordem de prioridade
                                   const valor = converterValor(
                                     sistema.valorTotal ?? 
-                                    sistema.total_final ?? 
                                     sistema.ppix ?? 
+                                    sistema.total_final ?? 
                                     sistema.precoPixDecimal ??
                                     sistema.precoPix ??
+                                    sistema.pavista ??
                                     sistema.valor ??
                                     sistema.preco ??
+                                    sistema.preco_final ??
                                     0
                                   );
 
+                                  // Log para debug se valor for 0
+                                  if (valor === 0 && sIndex === 0) {
+                                    console.warn('⚠️ Sistema sem valor no frontend:', {
+                                      sistema: sistema.titulo,
+                                      campos: {
+                                        valorTotal: sistema.valorTotal,
+                                        ppix: sistema.ppix,
+                                        total_final: sistema.total_final,
+                                        precoPixDecimal: sistema.precoPixDecimal,
+                                        precoPix: sistema.precoPix,
+                                        pavista: sistema.pavista
+                                      }
+                                    });
+                                  }
+
                                   return valor > 0 
-                                    ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                                    ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                     : '0,00';
                                 })()}
                               </span>

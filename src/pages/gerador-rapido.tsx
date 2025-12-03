@@ -81,6 +81,7 @@ export default function GeradorRapido() {
         throw new Error('Dados da proposta incompletos - sistemas não encontrados');
       }
 
+<<<<<<< HEAD
       // ✅ Preencher TODOS os dados do cliente da proposta (não hardcoded)
       const cliente = propostaData.cliente || {};
       // ✅ CARREGAR CONFIG DA PROPOSTA (valores usados na geração original)
@@ -113,12 +114,18 @@ export default function GeradorRapido() {
         tarifa: configProposta.tarifa
       });
 
-      console.log('📋 Dados do cliente carregados:', {
+      console.log('📋 Dados do cliente carregados do Supabase:', {
         nome: cliente.nome,
         cidade: cliente.cidade,
         consumo: cliente.consumoMensal || cliente.consumo,
         hsp: cliente.hsp || cliente.hspLocal,
-        tarifa: cliente.tarifa || cliente.tarifaEnergia
+        tarifa: cliente.tarifa || cliente.tarifaEnergia,
+        configSistema: configSistemaData ? {
+          hspPadrao: configSistemaData.hspPadrao,
+          tarifaEnergia: configSistemaData.tarifaEnergia,
+          pdespesaFixo: configSistemaData.pdespesaFixo,
+          pdespesaVariavel: configSistemaData.pdespesaVariavel
+        } : 'Não carregado'
       });
 
       // Converter sistemas em orçamentos com validação robusta
@@ -447,17 +454,23 @@ export default function GeradorRapido() {
     };
 
     carregarConfigSistema();
+  }, []);
 
-    // Verificar parâmetros da URL
-    const params = new URLSearchParams(window.location.search);
+  // ✅ CARREGAR PROPOSTA EXISTENTE quando há parâmetro 'cliente' na URL
+  // Esta função é usada tanto pelo botão "Editar" em /admin quanto em /admin/orcamentos
+  // Ambos buscam dados do Supabase através da API /api/propostas/[slug]
+  useEffect(() => {
+    if (!router.isReady) return;
 
-    // ✅ CARREGAR PROPOSTA EXISTENTE (novo fluxo)
-    const clienteSlug = params.get('cliente');
+    const clienteSlug = router.query.cliente as string;
     if (clienteSlug) {
+      console.log('📥 Parâmetro cliente detectado na URL:', clienteSlug);
       carregarPropostaExistente(clienteSlug);
+      return; // Não processar outros modos se cliente foi detectado
     }
+
     // Verificar se está no modo "reaproveitar" (um único orçamento)
-    else if (params.get('modo') === 'reaproveitar') {
+    if (router.query.modo === 'reaproveitar') {
       const dadosReaproveitamento = localStorage.getItem('orcamento-reaproveitar');
       if (dadosReaproveitamento) {
         try {
@@ -497,7 +510,7 @@ export default function GeradorRapido() {
     }
     
     // Verificar se está no modo "reaproveitar-todos" (múltiplos orçamentos)
-    if (params.get('modo') === 'reaproveitar-todos') {
+    if (router.query.modo === 'reaproveitar-todos') {
       const dadosReaproveitamento = localStorage.getItem('orcamentos-reaproveitar-todos');
       if (dadosReaproveitamento) {
         try {
@@ -534,7 +547,7 @@ export default function GeradorRapido() {
         }
       }
     }
-  }, []);
+  }, [router.isReady, router.query.cliente, router.query.modo]);
 
   // Função para calcular preços usando configurações dinâmicas do sistema
   const calcularPrecos = (totalFinalTabela: number) => {

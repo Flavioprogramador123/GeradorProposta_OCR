@@ -37,10 +37,45 @@ export default async function handler(
     if (propostaSupabase && propostaSupabase.dados_completos) {
       console.log('✅ API: Proposta encontrada no Supabase:', slug);
       
+      // ✅ BUSCAR DADOS ATUALIZADOS DO CLIENTE DO SUPABASE
+      // Isso garante que temos os valores mais recentes (hsp, tarifa, etc.)
+      let dadosCompletos = propostaSupabase.dados_completos;
+      
+      if (propostaSupabase.cliente_id) {
+        try {
+          const { getClientById } = await import('@/lib/supabase');
+          const clienteAtualizado = await getClientById(propostaSupabase.cliente_id);
+          
+          if (clienteAtualizado && dadosCompletos.cliente) {
+            // Atualizar dados do cliente com valores do Supabase
+            dadosCompletos.cliente = {
+              ...dadosCompletos.cliente,
+              // ✅ Prioridade: Supabase > dados_completos
+              hsp: clienteAtualizado.hsp_local || dadosCompletos.cliente.hsp || dadosCompletos.cliente.hspLocal,
+              hspLocal: clienteAtualizado.hsp_local || dadosCompletos.cliente.hspLocal,
+              consumoMensal: clienteAtualizado.consumo_mensal || dadosCompletos.cliente.consumoMensal,
+              tipoImovel: clienteAtualizado.tipo_imovel || dadosCompletos.cliente.tipoImovel,
+              cidade: clienteAtualizado.cidade || dadosCompletos.cliente.cidade,
+              estado: clienteAtualizado.estado || dadosCompletos.cliente.estado,
+              email: clienteAtualizado.email || dadosCompletos.cliente.email,
+              telefone: clienteAtualizado.telefone || dadosCompletos.cliente.telefone
+            };
+            
+            console.log('✅ Dados do cliente atualizados do Supabase:', {
+              hsp: dadosCompletos.cliente.hsp,
+              consumoMensal: dadosCompletos.cliente.consumoMensal,
+              cidade: dadosCompletos.cliente.cidade
+            });
+          }
+        } catch (error) {
+          console.warn('⚠️ Não foi possível buscar cliente atualizado, usando dados da proposta:', error);
+        }
+      }
+      
       // Adicionar headers de cache para melhor performance
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       
-      return res.status(200).json(propostaSupabase.dados_completos);
+      return res.status(200).json(dadosCompletos);
     }
 
     // DESENVOLVIMENTO: Fallback para filesystem

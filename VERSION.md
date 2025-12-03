@@ -68,24 +68,52 @@
 **Status**: 🟡 Substituído
 
 **🔧 Correções Críticas:**
-- ✅ **TypeError Fix**: Corrigido erro `Cannot read properties of undefined (reading 'toLocaleString')` em `/admin/orcamentos`
-  - Adicionada verificação robusta de tipo antes de chamar `toLocaleString()`
-  - Fallback seguro para valores undefined/null
-  - Uso de nullish coalescing (`??`) para preservar valores `0`
+- ✅ **Busca de Dados do Supabase**: Removido uso de valores hardcode ao carregar propostas existentes
+  - Função `carregarPropostaExistente` agora busca dados atualizados do cliente do Supabase
+  - API `/api/propostas/[slug]` busca dados atualizados do cliente usando `cliente_id`
+  - Carrega configurações do sistema (`pdespesaFixo`, `pdespesaVariavel`) do Supabase
+  - Prioridade: Supabase > Proposta > Config Sistema > Fallback mínimo
+
+- ✅ **Correção de Sintaxe**: Corrigido erro de sintaxe em `gerador-rapido.tsx`
+  - Removido `}` extra que causava erro de compilação
+  - Ajustada indentação do bloco `if (pcusto <= 0)`
+
+- ✅ **Valores de Orçamentos**: Melhorada extração de valores dos sistemas
+  - Adicionado fallback usando `valor_total` da proposta quando sistemas não têm valor
+  - Logs detalhados para debug quando valores não são encontrados
+  - Suporte a múltiplos campos: `ppix`, `valorTotal`, `total_final`, `precoPixDecimal`, `pavista`
 
 **🎨 Melhorias UI/UX:**
-- ✅ Removido card "Enviar Proposta" da tela principal do admin
-- ✅ Integrado botão "Email" na linha de ações da lista de clientes
-- ✅ Modal de envio de proposta pré-preenchido com dados do cliente
+- ✅ Botões "Editar" unificados: `/admin` e `/admin/orcamentos` usam mesma função
+  - Ambos buscam dados do Supabase através de `/api/propostas/[slug]`
+  - Migrado de `window.location.search` para `useRouter` do Next.js
+  - Logs melhorados para rastreamento
+
+**🛠️ Ferramentas Criadas:**
+- ✅ `test-supabase-monitor.ps1` - Script de teste automático para verificar busca do Supabase
+- ✅ `GUIA_TESTE_SUPABASE.md` - Guia completo de testes e troubleshooting
+- ✅ `diagnostico-erro.ps1` - Script de diagnóstico completo
 
 **📦 Arquivos Modificados:**
-- `src/pages/admin/orcamentos/index.tsx` - Fix TypeError com verificação de tipo
-- `src/pages/admin/index.tsx` - Removido card "Enviar Proposta", adicionado botão Email na lista
+- `src/pages/gerador-rapido.tsx` - Busca dados do Supabase, correção sintaxe, useRouter
+- `src/pages/api/propostas/[slug].ts` - Busca dados atualizados do cliente do Supabase
+- `src/pages/api/admin/orcamentos-todos.ts` - Melhorada extração de valores, logs detalhados
+- `src/pages/admin/orcamentos/index.tsx` - Melhorada exibição de valores, interface atualizada
+- `src/pages/admin/index.tsx` - Comentários adicionados nos botões
+- `src/lib/supabase.ts` - `getPropostaBySlug` agora retorna `cliente_id`
 
 **📦 Deploy:**
-- Commits: `25ee551`
 - Branch: `clean-main`
 - URL: https://pieng-propostas.vercel.app
+
+---
+
+### **v2.3.2** - 01/12/2025
+**Status**: 🟡 Substituído
+
+**🔧 Correções:**
+- ✅ Removido card "Novo Cliente" do admin
+- ✅ Melhorias no carregamento de propostas existentes
 
 ---
 
