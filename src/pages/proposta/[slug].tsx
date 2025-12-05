@@ -172,7 +172,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
   // Se temos HTML direto, renderizar diretamente
   if (useHtmlDirect && htmlContent) {
     const baseUrl = 'https://pieng-propostas.vercel.app';
-    const ogImage = `${baseUrl}/assets/logos/logo-pieng-oficial.png`;
+    const ogImage = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
     const pageUrl = `${baseUrl}/proposta/${slug}`;
     const pageTitle = `PIENG | Proposta Solar Personalizada`;
     const pageDescription = `Proposta solar personalizada. Economia de até 95% na conta de energia com sistema fotovoltaico.`;
@@ -190,7 +190,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           <meta property="og:description" content={pageDescription} />
           <meta property="og:image" content={ogImage} />
           <meta property="og:image:secure_url" content={ogImage} />
-          <meta property="og:image:type" content="image/png" />
+          <meta property="og:image:type" content="image/jpeg" />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
           <meta property="og:image:alt" content="PIENG Soluções Energéticas - Logo" />
@@ -259,9 +259,8 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
   // URL base para meta tags (Open Graph) - SEMPRE usar URL de produção
   const baseUrl = 'https://pieng-propostas.vercel.app';
   
-  // Tentar múltiplas opções de logo (PNG geralmente funciona melhor para OG)
-  const ogImage = `${baseUrl}/assets/logos/logo-pieng-oficial.png`;
-  const ogImageFallback = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
+  // Logo principal da PIENG (mesmo usado no favicon)
+  const ogImage = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
   const pageUrl = `${baseUrl}/proposta/${slug || proposta?.slug}`;
   const pageTitle = `PIENG | Proposta Solar Personalizada - ${cliente.nome}`;
   const pageDescription = `Proposta solar personalizada para ${cliente.nome} em ${cliente.cidade}. Economia de até 95% na conta de energia com sistema fotovoltaico.`;
@@ -280,7 +279,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         <meta property="og:description" content={pageDescription} />
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:secure_url" content={ogImage} />
-        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="PIENG Soluções Energéticas - Logo" />
