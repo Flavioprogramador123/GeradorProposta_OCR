@@ -1,6 +1,6 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.3.3-blue.svg)](CLAUDE.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.1-blue.svg)](CHANGELOG_v2.4.1.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
@@ -8,8 +8,18 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.3.3` (01/12/2025) ✅ **PRODUÇÃO**
-**📖** [Ver Changelog Completo](CLAUDE.md) | [Documentação PWA](PWA.md)
+**📌 Versão Atual**: `v2.4.1` (05/12/2025) ✅ **PRODUÇÃO**
+**📖** [Ver Changelog Completo](CHANGELOG_v2.4.1.md) | [Documentação PWA](PWA.md)
+
+## 🆕 Novidades v2.4.1 (05/12/2025)
+
+**🖼️ Sistema de Logos Profissional:**
+- ✅ Sistema centralizado de configuração de logos (`logoConfig.ts`)
+- ✅ Logos adicionados em Header, Footer, Favicon e Meta Tags
+- ✅ Configuração via variáveis de ambiente (sem alterar código)
+- ✅ Suporte a múltiplos formatos (JPG, PNG, SVG)
+- ✅ Logo configurável para WhatsApp/Facebook (Open Graph)
+- ✅ Documentação completa: `GUIA_CONFIGURAR_LOGO.md`
 
 ## 🆕 Novidades v2.3.3 (01/12/2025)
 

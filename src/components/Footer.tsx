@@ -1,4 +1,6 @@
 import React from 'react';
+import Image from 'next/image';
+import { getFaviconLogo } from '@/lib/logoConfig';
 
 interface FooterProps {
   empresaContato: string;
@@ -23,11 +25,23 @@ export const Footer: React.FC<FooterProps> = ({
   dataValidade,
   dataGeracao
 }) => {
+  const logoPath = getFaviconLogo();
+  
   return (
     <footer className="pieng-footer">
       <div className="pieng-footer-grid text-left">
         <div>
-          <strong className="block text-lg mb-3">PIENG Soluções Energéticas</strong>
+          <div className="flex items-center space-x-2 mb-3">
+            <div className="relative w-12 h-12 flex-shrink-0">
+              <Image
+                src={logoPath}
+                alt="PIENG Soluções Energéticas"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <strong className="block text-lg">PIENG Soluções Energéticas</strong>
+          </div>
           <div className="text-sm space-y-1 opacity-90">
             <div>35+ anos de experiência</div>
             <div>Especialistas em sistemas elétricos de potência</div>

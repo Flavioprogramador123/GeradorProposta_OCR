@@ -118,9 +118,10 @@ const IndexRedesign = () => {
               <div className="relative w-12 h-12">
                 <Image
                   src="/assets/logos/logo-pieng-principal.jpg"
-                  alt="PIENG Logo"
+                  alt="PIENG Soluções Energéticas"
                   fill
                   className="object-contain"
+                  priority
                 />
               </div>
               <div>

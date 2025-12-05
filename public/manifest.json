@@ -9,6 +9,18 @@
   "orientation": "portrait-primary",
   "icons": [
     {
+      "src": "/assets/logos/logo-pieng-principal.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/logos/logo-pieng-oficial.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
