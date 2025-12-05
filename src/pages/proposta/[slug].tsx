@@ -171,10 +171,41 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
 
   // Se temos HTML direto, renderizar diretamente
   if (useHtmlDirect && htmlContent) {
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'https://pieng-propostas.vercel.app';
+    
+    const ogImage = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
+    const pageUrl = `${baseUrl}/proposta/${slug}`;
+    const pageTitle = `PIENG | Proposta Solar Personalizada`;
+    const pageDescription = `Proposta solar personalizada. Economia de até 95% na conta de energia com sistema fotovoltaico.`;
+    
     return (
       <>
         <Head>
-          <title>PIENG | Proposta Solar</title>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={pageUrl} />
+          <meta property="og:title" content={pageTitle} />
+          <meta property="og:description" content={pageDescription} />
+          <meta property="og:image" content={ogImage} />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:image:alt" content="PIENG Soluções Energéticas - Logo" />
+          <meta property="og:site_name" content="PIENG Soluções Energéticas" />
+          
+          {/* Twitter Card */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:url" content={pageUrl} />
+          <meta name="twitter:title" content={pageTitle} />
+          <meta name="twitter:description" content={pageDescription} />
+          <meta name="twitter:image" content={ogImage} />
+          <meta name="twitter:image:alt" content="PIENG Soluções Energéticas - Logo" />
         </Head>
         <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       </>
@@ -224,12 +255,43 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
   const bestSystem = findBestSystem(sistemas);
   const insights = calculateInsights(sistemas);
 
+  // URL base para meta tags (Open Graph)
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'https://pieng-propostas.vercel.app';
+  
+  const ogImage = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
+  const pageUrl = `${baseUrl}/proposta/${slug || proposta?.slug}`;
+  const pageTitle = `PIENG | Proposta Solar Personalizada - ${cliente.nome}`;
+  const pageDescription = `Proposta solar personalizada para ${cliente.nome} em ${cliente.cidade}. Economia de até 95% na conta de energia com sistema fotovoltaico.`;
+
   return (
     <>
       <Head>
-        <title>PIENG | Proposta Solar Personalizada - {cliente.nome}</title>
-        <meta name="description" content={`Proposta solar personalizada para ${cliente.nome} em ${cliente.cidade}`} />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
         <meta name="robots" content="noindex" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="PIENG Soluções Energéticas - Logo" />
+        <meta property="og:site_name" content="PIENG Soluções Energéticas" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={ogImage} />
+        <meta name="twitter:image:alt" content="PIENG Soluções Energéticas - Logo" />
       </Head>
 
       <div className="pieng-container">
