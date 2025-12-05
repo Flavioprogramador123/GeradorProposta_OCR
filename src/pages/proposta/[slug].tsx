@@ -171,13 +171,8 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
 
   // Se temos HTML direto, renderizar diretamente
   if (useHtmlDirect && htmlContent) {
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}` 
-        : 'https://pieng-propostas.vercel.app';
-    
-    const ogImage = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
+    const baseUrl = 'https://pieng-propostas.vercel.app';
+    const ogImage = `${baseUrl}/assets/logos/logo-pieng-oficial.png`;
     const pageUrl = `${baseUrl}/proposta/${slug}`;
     const pageTitle = `PIENG | Proposta Solar Personalizada`;
     const pageDescription = `Proposta solar personalizada. Economia de até 95% na conta de energia com sistema fotovoltaico.`;
@@ -194,10 +189,13 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           <meta property="og:title" content={pageTitle} />
           <meta property="og:description" content={pageDescription} />
           <meta property="og:image" content={ogImage} />
+          <meta property="og:image:secure_url" content={ogImage} />
+          <meta property="og:image:type" content="image/png" />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
           <meta property="og:image:alt" content="PIENG Soluções Energéticas - Logo" />
           <meta property="og:site_name" content="PIENG Soluções Energéticas" />
+          <meta property="og:locale" content="pt_BR" />
           
           {/* Twitter Card */}
           <meta name="twitter:card" content="summary_large_image" />
@@ -206,6 +204,9 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           <meta name="twitter:description" content={pageDescription} />
           <meta name="twitter:image" content={ogImage} />
           <meta name="twitter:image:alt" content="PIENG Soluções Energéticas - Logo" />
+          
+          {/* Fallback image para compatibilidade */}
+          <link rel="image_src" href={ogImage} />
         </Head>
         <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       </>
@@ -255,14 +256,12 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
   const bestSystem = findBestSystem(sistemas);
   const insights = calculateInsights(sistemas);
 
-  // URL base para meta tags (Open Graph)
-  const baseUrl = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'https://pieng-propostas.vercel.app';
+  // URL base para meta tags (Open Graph) - SEMPRE usar URL de produção
+  const baseUrl = 'https://pieng-propostas.vercel.app';
   
-  const ogImage = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
+  // Tentar múltiplas opções de logo (PNG geralmente funciona melhor para OG)
+  const ogImage = `${baseUrl}/assets/logos/logo-pieng-oficial.png`;
+  const ogImageFallback = `${baseUrl}/assets/logos/logo-pieng-principal.jpg`;
   const pageUrl = `${baseUrl}/proposta/${slug || proposta?.slug}`;
   const pageTitle = `PIENG | Proposta Solar Personalizada - ${cliente.nome}`;
   const pageDescription = `Proposta solar personalizada para ${cliente.nome} em ${cliente.cidade}. Economia de até 95% na conta de energia com sistema fotovoltaico.`;
@@ -280,10 +279,13 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:image" content={ogImage} />
+        <meta property="og:image:secure_url" content={ogImage} />
+        <meta property="og:image:type" content="image/png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="PIENG Soluções Energéticas - Logo" />
         <meta property="og:site_name" content="PIENG Soluções Energéticas" />
+        <meta property="og:locale" content="pt_BR" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -292,6 +294,9 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={ogImage} />
         <meta name="twitter:image:alt" content="PIENG Soluções Energéticas - Logo" />
+        
+        {/* Fallback image para compatibilidade */}
+        <link rel="image_src" href={ogImage} />
       </Head>
 
       <div className="pieng-container">
