@@ -61,6 +61,21 @@
             height: auto;
             margin-bottom: 15px;
             filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+            display: block;
+            margin: 0 auto;
+        }
+
+        .pieng-logo-real img:not([src]),
+        .pieng-logo-real img[src=""],
+        .pieng-logo-real img[src="#"] {
+            display: none;
+        }
+
+        .logo-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
         .company-tagline {
@@ -463,7 +478,17 @@
         <!-- HEADER -->
         <header class="header">
             <div class="pieng-logo-real">
-                <img src="/assets/logos/logo.png" alt="PIENG Soluções Energéticas" />
+                <!-- Logo da PIENG - Tentar múltiplos caminhos para garantir funcionamento -->
+                <img src="/assets/logos/logo.png" 
+                     alt="PIENG Soluções Energéticas" 
+                     onerror="this.onerror=null; this.src='/assets/logos/logo-pieng.png'; this.onerror=function(){this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';};"
+                     style="max-width: 250px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;" />
+                <div id="logo-fallback" class="logo-fallback" style="display: none; flex-direction: column; align-items: center; margin-bottom: 15px;">
+                    <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #3366CC 0%, #FF6B35 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                        <span style="color: white; font-size: 3rem; font-weight: 900;">π</span>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary); letter-spacing: 2px;">PIENG</div>
+                </div>
                 <div class="company-tagline">Soluções Energéticas</div>
             </div>
             <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
