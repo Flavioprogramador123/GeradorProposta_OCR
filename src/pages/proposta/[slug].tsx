@@ -240,7 +240,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           clienteTipo={cliente.tipo}
         />
 
-        <UrgencyBanner message={proposta?.bannerUrgencia || "🚀 Oferta especial válida até o final do mês!"} />
+        <UrgencyBanner message={proposta?.bannerUrgencia || "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque."} />
 
         <section className="pieng-system-grid">
           {sistemas.map((sistema, index) => (

@@ -612,7 +612,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           email: "contato@piengsolucoes.com.br",
           site: "www.piengsolucoes.com.br"
         },
-        bannerUrgencia: "🚀 Oferta especial válida até o final do mês!",
+        bannerUrgencia: "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
         dataGeracao: dataAtual,
         dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
       };

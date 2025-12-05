@@ -405,7 +405,7 @@ export class TemplateEnginePadrao {
       HSP_LOCAL: (data.cliente.hsp || 5.21).toString(),
 
       // Datas
-      BANNER_URGENCIA: data.bannerUrgencia || "🚀 Oferta especial válida até o final do mês!",
+      BANNER_URGENCIA: data.bannerUrgencia || "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
       DATA_GERACAO: data.dataGeracao || currentDate.toLocaleDateString('pt-BR'),
       DATA_VALIDADE: data.dataValidade || validityDate.toLocaleDateString('pt-BR'),
       ANO_ATUAL: currentDate.getFullYear().toString(),
