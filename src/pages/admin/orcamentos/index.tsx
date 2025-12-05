@@ -465,7 +465,7 @@ export default function TodosOrcamentos() {
                             {sistema.paybackMeses && typeof sistema.paybackMeses === 'number' && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Payback:</span>
-                                <span className="font-medium text-purple-600">{sistema.paybackMeses.toFixed(0)} meses</span>
+                                <span className="font-medium text-purple-600">{sistema.paybackMeses.toFixed(1)} meses</span>
                               </div>
                             )}
                             {sistema.cobertura && typeof sistema.cobertura === 'number' && (
