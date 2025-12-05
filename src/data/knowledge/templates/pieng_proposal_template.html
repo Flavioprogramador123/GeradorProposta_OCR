@@ -472,16 +472,60 @@
             .urgency-banner { animation: none !important; }
         }
     </style>
+    <script>
+        // ✅ Script para garantir que a logo seja carregada corretamente
+        (function() {
+            document.addEventListener('DOMContentLoaded', function() {
+                var logoImg = document.getElementById('pieng-logo-img');
+                if (!logoImg) return;
+                
+                var logoPaths = [
+                    '/assets/logos/logo.png',
+                    '/assets/logos/logo-pieng.png',
+                    '/assets/logos/logo-pieng-oficial.png',
+                    'assets/logos/logo.png',
+                    '../assets/logos/logo.png',
+                    '../../assets/logos/logo.png'
+                ];
+                
+                var currentPathIndex = 0;
+                
+                function tryNextPath() {
+                    if (currentPathIndex < logoPaths.length) {
+                        logoImg.src = logoPaths[currentPathIndex];
+                        currentPathIndex++;
+                    } else {
+                        // Todas as tentativas falharam, mostrar fallback
+                        logoImg.style.display = 'none';
+                        var fallback = document.getElementById('logo-fallback');
+                        if (fallback) {
+                            fallback.style.display = 'flex';
+                        }
+                    }
+                }
+                
+                logoImg.onerror = tryNextPath;
+                
+                // Verificar se a imagem carregou após 1 segundo
+                setTimeout(function() {
+                    if (!logoImg.complete || logoImg.naturalHeight === 0) {
+                        tryNextPath();
+                    }
+                }, 1000);
+            });
+        })();
+    </script>
 </head>
 <body>
     <div class="container">
         <!-- HEADER -->
         <header class="header">
             <div class="pieng-logo-real">
-                <!-- Logo da PIENG - Tentar múltiplos caminhos para garantir funcionamento -->
-                <img src="/assets/logos/logo.png" 
+                <!-- Logo da PIENG - Caminho absoluto que funciona em qualquer contexto -->
+                <img id="pieng-logo-img" 
+                     src="/assets/logos/logo.png" 
                      alt="PIENG Soluções Energéticas" 
-                     onerror="this.onerror=null; this.src='/assets/logos/logo-pieng.png'; this.onerror=function(){this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';};"
+                     onerror="(function(){var img=document.getElementById('pieng-logo-img'); var fallback=document.getElementById('logo-fallback'); if(img.src.indexOf('logo-pieng.png')===-1){img.src='/assets/logos/logo-pieng.png';}else if(img.src.indexOf('logo-pieng-oficial.png')===-1){img.src='/assets/logos/logo-pieng-oficial.png';}else{img.style.display='none';if(fallback)fallback.style.display='flex';}})();"
                      style="max-width: 250px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;" />
                 <div id="logo-fallback" class="logo-fallback" style="display: none; flex-direction: column; align-items: center; margin-bottom: 15px;">
                     <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #3366CC 0%, #FF6B35 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
