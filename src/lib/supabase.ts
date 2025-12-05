@@ -9,7 +9,28 @@ let supabaseInstance: SupabaseClient | null = null;
 
 if (supabaseUrl && supabaseAnonKey) {
   try {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+    // ✅ Configurações adicionais para evitar problemas com Cloudflare
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false, // Não persistir sessão em server-side
+        autoRefreshToken: false, // Não fazer refresh automático
+      },
+      db: {
+        schema: 'public',
+      },
+      global: {
+        headers: {
+          'x-client-info': 'pieng-propostas@1.0.0',
+        },
+      },
+      // ✅ Configurações para evitar timeout e problemas de rede
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    });
+    console.log('✅ Cliente Supabase criado com sucesso');
   } catch (error) {
     console.warn('⚠️ Erro ao criar cliente Supabase:', error);
   }

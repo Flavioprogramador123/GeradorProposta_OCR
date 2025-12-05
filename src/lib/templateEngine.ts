@@ -435,7 +435,7 @@ export class TemplateEnginePadrao {
       variables[`SISTEMA_${num}_12X`] = `R$ ${(sistema.p12x || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_18X`] = `R$ ${(sistema.p18x_parcela || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_GERACAO`] = `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`;
-      variables[`SISTEMA_${num}_COBERTURA`] = `${(Number(sistema.cobertura) || 0).toFixed(0)}%`;
+      variables[`SISTEMA_${num}_COBERTURA`] = `${Math.round(Number(sistema.cobertura) || 0)}%`;
       variables[`SISTEMA_${num}_ECONOMIA`] = `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_PAYBACK`] = `${(sistema.paybackMeses || 0).toFixed(1)} meses`;
       variables[`SISTEMA_${num}_TIR`] = `${(sistema.tirAnual || 0).toFixed(1)}%`;
@@ -637,7 +637,7 @@ export class TemplateEnginePadrao {
   private getMaxCoverage(sistemas: Sistema[]): string {
     if (sistemas.length === 0) return "0%";
     const max = Math.max(...sistemas.map(s => Number(s.cobertura) || 0));
-    return `${max.toFixed(0)}%`;
+    return `${Math.round(max)}%`;
   }
 
   private getMaxTir(sistemas: Sistema[]): string {
@@ -753,7 +753,7 @@ export class TemplateEnginePadrao {
 
             <div class="performance-box">
               <strong>Performance Mensal</strong><br>
-              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${(Number(sistema.cobertura) || 0).toFixed(0)}%<br>
+              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${Math.round(Number(sistema.cobertura) || 0)}%<br>
               Economia: R$ ${(sistema.economiaMensal || 0).toFixed(2)} | Payback: ${(sistema.paybackMeses || 0).toFixed(1)} meses<br>
               TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
             </div>

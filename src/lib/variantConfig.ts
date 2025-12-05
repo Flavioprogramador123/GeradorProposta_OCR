@@ -177,16 +177,16 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     copy: {
-      tituloHero: 'Padaria 100% Solar',
-      subtituloHero: 'Reduza custos e aumente suas margens de lucro',
-      ctaTexto: 'Reduzir Custos Agora',
+      tituloHero: '🥖 Sua Padaria 100% Solar',
+      subtituloHero: 'Reduza custos de energia e aumente suas margens de lucro. Fornos, freezers e iluminação com energia solar!',
+      ctaTexto: 'Quero Economizar na Minha Padaria',
       beneficios: [
-        'Economia de até 85% em energia',
-        'Redução de custo operacional',
-        'Maior margem por produto',
-        'Marketing verde (Padaria Sustentável)',
-        'Certificado de energia limpa',
-        'Diferenciação competitiva'
+        '🥖 Economia de até 85% na conta de energia',
+        '🔥 Fornos e freezers funcionando com energia solar',
+        '💰 Maior margem de lucro por produto vendido',
+        '🌱 Marketing verde: "Padaria Sustentável"',
+        '🏆 Certificado de energia limpa para exibir',
+        '⭐ Diferenciação competitiva no mercado'
       ]
     },
     

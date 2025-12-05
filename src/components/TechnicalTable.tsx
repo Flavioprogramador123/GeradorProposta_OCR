@@ -104,7 +104,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
                           : 'bg-yellow-100 text-yellow-700'
                       }`}
                     >
-                      {sistema.cobertura}
+                      {Math.round(parseFloat(sistema.cobertura) || 0)}%
                     </span>
                   </td>
                   <td className="p-3 text-center text-sm font-medium">{sistema.payback}</td>

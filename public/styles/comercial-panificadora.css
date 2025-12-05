@@ -28,6 +28,7 @@
   overflow: hidden;
 }
 
+/* Decoração temática no Hero - Múltiplos ícones de padaria */
 .variant-comercial-panificadora .hero-section::before {
   content: '🥖';
   position: absolute;
@@ -36,6 +37,24 @@
   top: -50px;
   right: -50px;
   transform: rotate(-15deg);
+}
+
+.variant-comercial-panificadora .hero-section::after {
+  content: '🔥';
+  position: absolute;
+  font-size: 8rem;
+  opacity: 0.08;
+  bottom: -30px;
+  left: 10%;
+  transform: rotate(25deg);
+}
+
+/* Ícone no título do Hero */
+.variant-comercial-panificadora .hero-title::before {
+  content: '🥖';
+  margin-right: 15px;
+  font-size: 3rem;
+  vertical-align: middle;
 }
 
 /* Impacto no Produto - Destaque para Panificadora */
@@ -57,9 +76,32 @@
   gap: 10px;
 }
 
+/* Ícones temáticos nas seções */
 .variant-comercial-panificadora .product-impact h3::before {
   content: '🥖';
   font-size: 2rem;
+}
+
+/* Ícone de forno na seção de custo operacional */
+.variant-comercial-panificadora .operational-cost-section h3::before {
+  content: '🔥';
+  margin-right: 10px;
+  font-size: 1.8rem;
+}
+
+/* Ícone de freezer na seção de economia */
+.variant-comercial-panificadora .economy-section h3::before {
+  content: '❄️';
+  margin-right: 10px;
+  font-size: 1.8rem;
+}
+
+/* Ícone de dinheiro na seção de margem */
+.variant-comercial-panificadora .margin-highlight::before {
+  content: '💰';
+  font-size: 2.5rem;
+  margin-right: 10px;
+  vertical-align: middle;
 }
 
 .variant-comercial-panificadora .product-value {
@@ -145,5 +187,91 @@
   font-size: 5rem;
   margin: 20px 0;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+
+/* Ícones temáticos nos cards de sistema */
+.variant-comercial-panificadora .system-card-header::before {
+  content: '🥖';
+  font-size: 2rem;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* Decoração temática nas tabelas */
+.variant-comercial-panificadora th::before {
+  content: '🥖';
+  margin-right: 8px;
+  opacity: 0.8;
+}
+
+/* Badge de recomendação com tema padaria */
+.variant-comercial-panificadora .recommended-badge::before {
+  content: '⭐';
+  margin-right: 5px;
+}
+
+/* Seção de benefícios com ícones */
+.variant-comercial-panificadora .benefit-item::before {
+  content: '✓';
+  color: var(--variant-primary);
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+/* CTA Button com ícone */
+.variant-comercial-panificadora .cta-button::before {
+  content: '🥖';
+  margin-right: 10px;
+  font-size: 1.5rem;
+  vertical-align: middle;
+}
+
+/* Cards de preço com tema padaria */
+.variant-comercial-panificadora .price-card {
+  background: linear-gradient(135deg, #FFF9F0 0%, #FFE8D6 100%);
+  border: 2px solid var(--variant-primary);
+  border-radius: 12px;
+  padding: 25px;
+  position: relative;
+  overflow: hidden;
+}
+
+.variant-comercial-panificadora .price-card::before {
+  content: '🥖';
+  position: absolute;
+  font-size: 8rem;
+  opacity: 0.05;
+  top: -20px;
+  right: -20px;
+  transform: rotate(-20deg);
+}
+
+/* Seção de economia mensal com ícone */
+.variant-comercial-panificadora .monthly-savings::before {
+  content: '💰';
+  font-size: 2rem;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* Footer temático */
+.variant-comercial-panificadora .footer-section {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  padding: 40px;
+  border-radius: 20px;
+  margin-top: 40px;
+  text-align: center;
+}
+
+.variant-comercial-panificadora .footer-section::before {
+  content: '🥖';
+  font-size: 3rem;
+  opacity: 0.3;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 

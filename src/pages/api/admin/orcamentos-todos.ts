@@ -66,22 +66,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (supabaseUrl && supabaseKey && supabase) {
       try {
         console.log('🔍 Buscando propostas no Supabase...');
+        console.log('📋 Configuração:', {
+          temUrl: !!supabaseUrl,
+          temKey: !!supabaseKey,
+          temSupabase: !!supabase,
+          urlPreview: supabaseUrl?.substring(0, 30) + '...'
+        });
 
         // Buscar todas as propostas do Supabase
-        const { data: propostas, error } = await supabase
+        // ✅ CORREÇÃO: Remover join com clientes se causar erro 500
+        // Tentar primeiro sem join, depois com join se necessário
+        let propostas: any[] = [];
+        let error: any = null;
+
+        // Tentativa 1: Buscar sem join (mais simples)
+        const { data: propostasSimples, error: errorSimples } = await supabase
           .from('propostas')
-          .select('*, clientes(nome)')
+          .select('id, slug, created_at, valor_total, dados_completos, status')
           .eq('status', 'ativa')
           .order('created_at', { ascending: false });
 
+        if (errorSimples) {
+          console.error('❌ Erro ao buscar propostas simples:', errorSimples);
+          
+          // Tentativa 2: Buscar sem filtro de status
+          const { data: propostasSemStatus, error: errorSemStatus } = await supabase
+            .from('propostas')
+            .select('id, slug, created_at, valor_total, dados_completos, status')
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+          if (errorSemStatus) {
+            console.error('❌ Erro ao buscar propostas sem status:', errorSemStatus);
+            error = errorSemStatus;
+          } else {
+            propostas = propostasSemStatus || [];
+            console.log(`✅ ${propostas.length} propostas encontradas (sem filtro status)`);
+          }
+        } else {
+          propostas = propostasSimples || [];
+          console.log(`✅ ${propostas.length} propostas encontradas (com filtro status)`);
+          
+          // Tentar buscar nomes dos clientes separadamente se necessário
+          if (propostas.length > 0) {
+            // Buscar clientes relacionados
+            const clienteIds = propostas
+              .map(p => p.dados_completos?.cliente?.id)
+              .filter(Boolean);
+            
+            if (clienteIds.length > 0) {
+              const { data: clientes } = await supabase
+                .from('clientes')
+                .select('id, nome')
+                .in('id', clienteIds);
+              
+              // Mapear nomes aos clientes
+              const clientesMap = new Map((clientes || []).map((c: any) => [c.id, c.nome]));
+              propostas = propostas.map(p => ({
+                ...p,
+                clienteNome: clientesMap.get(p.dados_completos?.cliente?.id) || 
+                            p.dados_completos?.cliente?.nome || 
+                            'Cliente'
+              }));
+            }
+          }
+        }
+
         if (error) {
           console.error('❌ Erro ao buscar do Supabase:', error);
-          // Retornar vazio em caso de erro
-          return res.status(200).json({ 
-            orcamentos: [], 
-            stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
-            source: 'supabase-error'
-          });
+          // Retornar vazio em caso de erro, mas continuar para fallback
+          throw error;
         }
 
         if (propostas && propostas.length > 0) {
@@ -91,22 +145,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           propostas.forEach((proposta: any) => {
             const dados = proposta.dados_completos;
 
-            // Log detalhado para debug
-            console.log('📋 Processando proposta:', {
-              id: proposta.id,
-              slug: proposta.slug,
-              valor_total: proposta.valor_total,
-              temDadosCompletos: !!dados,
-              temSistemas: !!(dados && dados.sistemas),
-              quantidadeSistemas: dados?.sistemas?.length || 0,
-              primeiroSistema: dados?.sistemas?.[0] ? {
-                titulo: dados.sistemas[0].titulo || dados.sistemas[0].nome,
-                ppix: dados.sistemas[0].ppix,
-                valorTotal: dados.sistemas[0].valorTotal,
-                precoPixDecimal: dados.sistemas[0].precoPixDecimal,
-                camposDisponiveis: Object.keys(dados.sistemas[0])
-              } : null
-            });
+            // Log detalhado para debug (apenas primeira proposta para não poluir logs)
+            if (propostas.indexOf(proposta) === 0) {
+              console.log('📋 Processando primeira proposta (exemplo):', {
+                id: proposta.id,
+                slug: proposta.slug,
+                valor_total: proposta.valor_total,
+                temDadosCompletos: !!dados,
+                temSistemas: !!(dados && dados.sistemas),
+                quantidadeSistemas: dados?.sistemas?.length || 0
+              });
+            }
 
             if (dados && dados.sistemas && Array.isArray(dados.sistemas)) {
               // Status baseado na data
@@ -205,7 +254,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               const orcamento: OrcamentoItem = {
                 id: proposta.slug,
                 propostaId: proposta.id, // ✅ ID do banco Supabase
-                cliente: proposta.clientes?.nome || dados.cliente?.nome || 'Cliente',
+                cliente: proposta.clienteNome || proposta.clientes?.nome || dados.cliente?.nome || 'Cliente',
                 clientePasta: proposta.slug,
                 sistemas, // ✅ Array com todas as propostas do cliente
                 status,
@@ -240,9 +289,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             source: 'supabase-empty'
           });
         }
-      } catch (supabaseError) {
-        console.error('⚠️ Erro ao buscar do Supabase, usando fallback filesystem:', supabaseError);
-        // Continuar para fallback filesystem
+      } catch (supabaseError: any) {
+        const errorMessage = supabaseError?.message || String(supabaseError);
+        const isCloudflareError = errorMessage.includes('500') || errorMessage.includes('cloudflare') || errorMessage.includes('Internal Server Error');
+        
+        console.error('⚠️ Erro ao buscar do Supabase:', {
+          message: errorMessage,
+          isCloudflareError,
+          error: supabaseError
+        });
+        
+        // Se for erro do Cloudflare/Supabase, retornar vazio ao invés de tentar filesystem
+        // (em produção não há filesystem)
+        if (isCloudflareError && (process.env.VERCEL || process.env.NETLIFY)) {
+          console.log('⚠️ Erro do Cloudflare detectado em produção, retornando vazio');
+          return res.status(200).json({ 
+            orcamentos: [], 
+            stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
+            source: 'supabase-error',
+            error: 'Erro ao conectar com Supabase (Cloudflare 500)'
+          });
+        }
+        
+        // Continuar para fallback filesystem apenas em desenvolvimento
+        console.log('⚠️ Continuando para fallback filesystem...');
       }
     }
 
