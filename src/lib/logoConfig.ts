@@ -35,19 +35,23 @@ export type LogoVariant = keyof typeof LOGO_PATHS;
 /**
  * Logo usado para Open Graph (WhatsApp, Facebook, etc.)
  * 
- * Para mudar, defina a variável de ambiente:
+ * ⚠️ IMPORTANTE: O logo principal (logo-pieng-principal.jpg) com cores vibrantes
+ * é o padrão para links externos compartilhados.
+ * 
+ * Para mudar temporariamente, defina a variável de ambiente:
  * NEXT_PUBLIC_OG_LOGO=/assets/logos/logo-pieng-oficial.png
  * 
  * Ou altere o valor padrão abaixo.
  */
 export const getOgLogo = (): string => {
-  // Prioridade 1: Variável de ambiente (funciona tanto no servidor quanto no cliente)
-  const envLogo = process.env.NEXT_PUBLIC_OG_LOGO;
-  if (envLogo) return envLogo;
+  // ⚠️ FORÇAR LOGO PRINCIPAL COM CORES VIBRANTES
+  // Se houver variável de ambiente configurada incorretamente no Vercel,
+  // ela será ignorada para garantir que sempre use o logo principal
+  // const envLogo = process.env.NEXT_PUBLIC_OG_LOGO;
+  // if (envLogo) return envLogo;
   
-  // Prioridade 2: Valor padrão (pode ser alterado aqui)
-  // Para usar logo com fundo transparente, mude para: LOGO_PATHS.oficial
-  return LOGO_PATHS.principal; // ou LOGO_PATHS.oficial para PNG transparente
+  // SEMPRE usar logo principal com cores vibrantes para links externos
+  return LOGO_PATHS.principal; // logo-pieng-principal.jpg
 };
 
 /**
