@@ -54,108 +54,103 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return melhor;
     }, null);
 
-    // Preparar dados usando MESMA ESTRUTURA do Gerador Rápido
+    // Preparar dados usando estrutura PropostaData (compatível com templateEngine)
+    const sistemasProcessados = orcamentosAprovados.map((orc: any, index: number) => {
+      const potenciaTotal = (orc.modulos * orc.pot_modulo) / 1000;
+      const pdespesaTotal = config.pdespesaVariavel === 0
+        ? config.pdespesaFixo
+        : config.pdespesaFixo === 0
+          ? (orc.pcusto * config.pdespesaVariavel / 100)
+          : config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
+
+      const valorTotal = orc.pcusto + pdespesaTotal;
+      const ppix = valorTotal * (1 - config.descontoPix);
+      const priscado = ppix * config.fatorParcelado;
+      const p12x_total = ppix / config.fator12x;
+      const p12x = p12x_total / 12;
+      const p18x_total = ppix / config.fator18x;
+      const p18x_parcela = p18x_total / 18;
+
+      const geracaoMensal = potenciaTotal * config.hsp * 30.4 * config.performanceRate;
+      const economiaMensal = geracaoMensal * config.tarifa;
+      const cobertura = (geracaoMensal / (config.consumoMensal || 600)) * 100;
+      const paybackMeses = economiaMensal > 0 ? ppix / economiaMensal : Infinity;
+      const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
+
+      return {
+        titulo: `Sistema ${String(index + 1).padStart(2, '0')}`,
+        potencia: `${potenciaTotal.toFixed(2)} kWp`,
+        especificacoes: [
+          `${orc.modulos}x ${orc.marca_modulo || 'N/A'} ${orc.pot_modulo}W`,
+          `${orc.inversores}x ${orc.marca_inversor || 'N/A'} ${orc.pot_inv}kW`
+        ],
+        precoRiscado: `R$ ${priscado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        precoAtual: `R$ ${ppix.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        tagDesconto: `${(config.descontoPix * 100).toFixed(0)}% OFF`,
+        precoPixDecimal: ppix,
+        preco12x: `12x R$ ${p12x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        preco18x: `18x R$ ${p18x_parcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        geracao: `${geracaoMensal.toFixed(0)} kWh/mês`,
+        cobertura: `${Math.round(cobertura)}%`,
+        economia: `R$ ${economiaMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês`,
+        payback: `${paybackMeses.toFixed(1)} meses`,
+        tir: `${tirAnual.toFixed(1)}%`,
+        isRecommended: false,
+        // Dados extras para cálculo posterior
+        _ppix: ppix,
+        _paybackMeses: paybackMeses,
+        _tirAnual: tirAnual,
+        _potenciaTotal: potenciaTotal,
+        _geracaoMensal: geracaoMensal,
+        _cobertura: cobertura
+      };
+    });
+
+    // Identificar melhor sistema
+    const melhorSistemaIdx = sistemasProcessados.reduce((melhorIdx, sistema, idx) => {
+      if (sistema._paybackMeses < sistemasProcessados[melhorIdx]._paybackMeses) {
+        return idx;
+      }
+      return melhorIdx;
+    }, 0);
+
+    if (sistemasProcessados[melhorSistemaIdx]) {
+      sistemasProcessados[melhorSistemaIdx].isRecommended = true;
+      sistemasProcessados[melhorSistemaIdx].badge = '⭐ RECOMENDADO';
+    }
+
+    const paybacks = sistemasProcessados.map(s => s._paybackMeses).filter(p => p !== Infinity);
+    const geracoes = sistemasProcessados.map(s => s._geracaoMensal);
+    const coberturas = sistemasProcessados.map(s => s._cobertura);
+    const tirs = sistemasProcessados.map(s => s._tirAnual);
+    const melhorSistema = sistemasProcessados[melhorSistemaIdx];
+
     const clienteData = {
       cliente: {
         nome: `Cliente ${clienteId}`,
         cidade: 'São Paulo',
-        consumoMensal: config.consumoMensal || 600,
-        tipo: 'residencial',
-        hsp: config.hsp
+        consumoKwh: `${config.consumoMensal || 600} kWh/mês`,
+        tipo: clientType || 'residencial',
+        hspLocal: `${config.hsp} h/dia`
       },
-      sistemas: orcamentosAprovados.map((orc: any, index: number) => {
-        const potenciaTotal = (orc.modulos * orc.pot_modulo) / 1000;
-        const pdespesaTotal = config.pdespesaVariavel === 0
-          ? config.pdespesaFixo
-          : config.pdespesaFixo === 0
-            ? (orc.pcusto * config.pdespesaVariavel / 100)
-            : config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
-
-        const valorTotal = orc.pcusto + pdespesaTotal;
-        const ppix = valorTotal; // PIX = Total sem desconto adicional
-        const pavista = ppix; // À vista = PIX (sem diferença)
-        const priscado = ppix * config.fatorParcelado;
-        const p12x_total = ppix / config.fator12x;
-        const p12x = p12x_total / 12;
-        const p18x_total = ppix / config.fator18x;
-        const p18x_parcela = p18x_total / 18;
-
-        const geracaoMensal = potenciaTotal * config.hsp * 30.4 * config.performanceRate;
-        const economiaMensal = geracaoMensal * config.tarifa;
-        const cobertura = (geracaoMensal / (config.consumoMensal || 600)) * 100;
-        const paybackMeses = economiaMensal > 0 ? ppix / economiaMensal : Infinity;
-        const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
-
-        return {
-          nome: `Opção ${index + 1}`,
-          potTotal: potenciaTotal,
-          modulos: orc.modulos,
-          pot_modulo: orc.pot_modulo,
-          marca_modulo: orc.marca_modulo || 'N/A',
-          inversores: orc.inversores,
-          pot_inv: orc.pot_inv,
-          marca_inversor: orc.marca_inversor || 'N/A',
-
-          // Preços (mesma estrutura do Gerador Rápido)
-          ppix,
-          pavista,
-          priscado,
-          p12x,
-          p12x_total,
-          p18x_parcela,
-          p18x_total,
-
-          // Performance
-          geracaoMensal,
-          cobertura,
-          economiaMensal,
-          paybackMeses,
-          tirAnual
-        };
-      }),
-      analise: (() => {
-        const sistemasProcessados = orcamentosAprovados.map((orc: any, index: number) => {
-          const potenciaTotal = (orc.modulos * orc.pot_modulo) / 1000;
-          const pdespesaTotal = config.pdespesaVariavel === 0
-            ? config.pdespesaFixo
-            : config.pdespesaFixo === 0
-              ? (orc.pcusto * config.pdespesaVariavel / 100)
-              : config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
-          const valorTotal = orc.pcusto + pdespesaTotal;
-          const ppix = valorTotal;
-          const geracaoMensal = potenciaTotal * config.hsp * 30.4 * config.performanceRate;
-          const economiaMensal = geracaoMensal * config.tarifa;
-          const cobertura = (geracaoMensal / (config.consumoMensal || 600)) * 100;
-          const paybackMeses = economiaMensal > 0 ? ppix / economiaMensal : Infinity;
-          const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
-          return { potenciaTotal, ppix, geracaoMensal, cobertura, paybackMeses, tirAnual, nome: `Opção ${index + 1}` };
-        });
-
-        const paybacks = sistemasProcessados.map(s => s.paybackMeses).filter(p => p !== Infinity);
-        const geracoes = sistemasProcessados.map(s => s.geracaoMensal);
-        const coberturas = sistemasProcessados.map(s => s.cobertura);
-        const tirs = sistemasProcessados.map(s => s.tirAnual);
-        const melhorSistema = sistemasProcessados.reduce((best, current) =>
-          current.paybackMeses < best.paybackMeses ? current : best
-        );
-
-        return {
-          paybackMin: paybacks.length > 0 ? Math.min(...paybacks).toFixed(1) : '0',
-          paybackMax: paybacks.length > 0 ? Math.max(...paybacks).toFixed(1) : '0',
-          melhorSistemaNome: melhorSistema.nome,
-          melhorSistemaPotencia: `${melhorSistema.potenciaTotal.toFixed(2)} kWp`,
-          melhorSistemaPix: `R$ ${melhorSistema.ppix.toFixed(2)}`,
-          melhorSistemaPayback: `${melhorSistema.paybackMeses.toFixed(1)} meses`,
-          geracaoMax: Math.max(...geracoes).toFixed(0),
-          coberturaMax: `${Math.max(...coberturas).toFixed(0)}%`,
-          tirMax: `${Math.max(...tirs).toFixed(1)}%`,
-          economiaTarifa: `R$ ${(config.tarifa || 0.982).toFixed(3)}`
-        };
-      })(),
+      sistemas: sistemasProcessados,
+      analise: {
+        paybackMin: paybacks.length > 0 ? Math.min(...paybacks).toFixed(1) : '0',
+        paybackMax: paybacks.length > 0 ? Math.max(...paybacks).toFixed(1) : '0',
+        melhorSistemaNome: melhorSistema.titulo,
+        melhorSistemaPotencia: melhorSistema.potencia,
+        melhorSistemaPix: `R$ ${melhorSistema._ppix.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        melhorSistemaPayback: `${melhorSistema._paybackMeses.toFixed(1)} meses`,
+        geracaoMax: Math.max(...geracoes).toFixed(0),
+        coberturaMax: `${Math.max(...coberturas).toFixed(0)}%`,
+        tirMax: `${Math.max(...tirs).toFixed(1)}%`,
+        economiaTarifa: `R$ ${(config.tarifa || 0.982).toFixed(3)}`
+      },
       empresa: {
         contato: '(62) 99167-0536',
         email: 'contato@piengsolucoes.com.br',
-        site: 'www.piengsolucoes.com.br'
+        site: 'www.piengsolucoes.com.br',
+        whatsapp: '5562991670536'
       },
       bannerUrgencia: '🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.',
       dataGeracao: new Date().toLocaleDateString('pt-BR'),

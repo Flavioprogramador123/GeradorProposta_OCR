@@ -1,13 +1,41 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.0** (02/12/2025)
+## 🎯 **VERSÃO ATUAL: v2.4.1** (11/12/2025)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.0** - 02/12/2025 ✅ **ATUAL**
+### **v2.4.1** - 11/12/2025 ✅ **ATUAL**
 **Status**: 🟢 Em Produção (Vercel)
+
+**🔧 Correções Críticas:**
+- ✅ **API Consultor**: Corrigido erro 500 em `/api/consultor/gerar-proposta`
+  - Mapeamento correto para interface `PropostaData` do template engine
+  - Estrutura de dados compatível com `generateTemplateHtmlResultados`
+  - Cálculo de melhor sistema baseado em payback
+  - Identificação automática de sistema recomendado com badge ⭐
+
+**🎨 Melhorias Open Graph:**
+- ✅ **Logo Colorido**: Forçar uso do logo principal com cores vibrantes (`logo-pieng-principal.jpg`)
+  - Garantia de que links compartilhados (WhatsApp, Facebook) usam logo com cores
+  - Configuração centralizada em `logoConfig.ts` já estava correta
+  - Meta tags de Open Graph validadas
+
+**📦 Arquivos Modificados:**
+- `src/pages/api/consultor/gerar-proposta.ts` - Correção da estrutura de dados
+- `VERSION.md` - Atualização para v2.4.1
+- `package.json` - Bump de versão
+
+**✅ Testes:**
+- Build do projeto validado
+- Estrutura de dados compatível com template engine
+- Logo colorido configurado corretamente
+
+---
+
+### **v2.4.0** - 02/12/2025
+**Status**: 🔴 Substituída (Vercel)
 
 **🎨 Sistema de CSS por Template:**
 - ✅ **CSS Específicos por Subtipo Comercial**: Cada ramo (Panificadora, Açougue, Restaurante, Mercado) tem seu próprio CSS
