@@ -221,7 +221,7 @@ export default function TodosOrcamentos() {
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="text-lg font-bold text-gray-800">{orc.cliente}</h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           orc.status === 'aprovado' 
@@ -232,6 +232,22 @@ export default function TodosOrcamentos() {
                         }`}>
                           {orc.status === 'aprovado' ? '✅ Aprovado' : orc.status === 'rejeitado' ? '❌ Rejeitado' : '⏳ Pendente'}
                         </span>
+                        {/* ✅ Indicador de armazenamento local */}
+                        {(orc as any).storageType === 'local' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-300 flex items-center gap-1">
+                            💾 {(orc as any).storageLocation || 'Máquina Local'}
+                          </span>
+                        )}
+                        {(orc as any).storageType === 'supabase' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-300 flex items-center gap-1">
+                            ☁️ {(orc as any).storageLocation || 'Supabase (Nuvem)'}
+                          </span>
+                        )}
+                        {(orc as any).storageType === 'filesystem' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300 flex items-center gap-1">
+                            📁 {(orc as any).storageLocation || 'Arquivo Local'}
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                         <div>

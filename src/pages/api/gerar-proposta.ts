@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 import { pythonCalculator } from '@/lib/python-calculator';
+import { getOrCreateCliente, savePropostaLocal } from '@/lib/local-db';
 
 // Interface para dados de extração de PDFs
 interface ExtractedData {
@@ -728,9 +729,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await fs.writeFile(jsonPath, JSON.stringify(propostaData, null, 2), 'utf8');
     }
 
-    // 🚀 OBRIGATÓRIO: SALVAR NO SUPABASE ANTES DE RETORNAR (PRODUÇÃO E DESENVOLVIMENTO)
+    // 🚀 SALVAR NO BANCO: Tentar Supabase primeiro, depois banco local como fallback
     let propostaSalvaNoSupabase = false;
+    let propostaSalvaLocal = false;
     let propostaSupabaseId: string | null = null;
+    let propostaLocalId: string | null = null;
     
     try {
       const { createClient } = await import('@supabase/supabase-js');
@@ -753,9 +756,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
           throw new Error('Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.');
         } else {
-          // Em desenvolvimento, apenas avisar
+          // Em desenvolvimento, apenas avisar e continuar sem salvar no Supabase
           console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
-          throw new Error('Variáveis Supabase não configuradas');
+          // Não lançar erro, apenas pular o salvamento no Supabase
+          throw new Error('SKIP_SUPABASE'); // Erro especial que será tratado abaixo
         }
       }
 
@@ -892,30 +896,167 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('✅ Proposta salva no Supabase com sucesso! ID:', propostaSalva.id, 'Slug:', slug);
 
     } catch (supabaseError) {
-      console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
-      console.error('  Tipo:', typeof supabaseError);
-      console.error('  Mensagem:', supabaseError instanceof Error ? supabaseError.message : String(supabaseError));
+      const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
       
-      // Em produção, retornar erro mais informativo
-      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-        const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
+      // Se for o erro especial de pular Supabase em desenvolvimento, tentar salvar localmente
+      if (errorMessage === 'SKIP_SUPABASE') {
+        // ⚠️ Em produção, não tentar salvar localmente (SQLite não funciona em serverless)
+        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+          console.error('❌ ERRO: Supabase não configurado em produção e banco local não disponível em serverless');
+          throw new Error('Supabase não configurado. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.');
+        }
+
+        console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento - variáveis não configuradas)');
+        console.log('💾 Tentando salvar no banco de dados local...');
         
-        // Se for erro de variáveis não configuradas, retornar erro específico
-        if (errorMessage.includes('Variáveis Supabase não configuradas')) {
-          throw new Error(`Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel. Detalhes: ${errorMessage}`);
+        // Tentar salvar no banco local (apenas em desenvolvimento)
+        try {
+          const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
+          
+          // Buscar ou criar cliente local
+          const clienteLocal = await getOrCreateCliente({
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            estado: estadoCliente,
+            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+            consumo_mensal: cliente.consumo_mensal || 0,
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            email: cliente.email,
+            telefone: cliente.telefone,
+            pdespesa: cliente.pdespesa
+          });
+
+          // Ler HTML gerado
+          let htmlGenerated = '';
+          try {
+            if (!isServerless && arquivoPath) {
+              htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
+            }
+          } catch (readError) {
+            console.log('⚠️ Não foi possível ler HTML do arquivo, usando htmlContent gerado');
+          }
+          
+          if (!htmlGenerated && htmlContent) {
+            htmlGenerated = htmlContent;
+          }
+
+          // Salvar proposta localmente
+          const sistemaPrincipal = sistemas[0];
+          const propostaLocal = await savePropostaLocal({
+            cliente_id: clienteLocal.id,
+            slug: slug,
+            titulo: `Proposta Solar - ${cliente.nome}`,
+            template_usado: 'pieng_basic',
+            sistema_kwp: sistemaPrincipal?.potTotal || 0,
+            geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
+            geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
+            valor_total: sistemaPrincipal?.ppix || 0,
+            valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
+            payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
+            tir: sistemaPrincipal?.tirAnual || 0,
+            dados_completos: propostaData,
+            html_gerado: htmlGenerated || htmlContent,
+            status: 'ativa'
+          });
+
+          propostaSalvaLocal = true;
+          propostaLocalId = propostaLocal.id;
+          console.log('✅ Proposta salva no banco local com sucesso! ID:', propostaLocal.id, 'Slug:', slug);
+        } catch (localError) {
+          console.error('❌ Erro ao salvar no banco local:', localError);
+          console.warn('⚠️ Proposta será gerada mas não será salva em nenhum banco');
+        }
+      } else {
+        console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
+        console.error('  Tipo:', typeof supabaseError);
+        console.error('  Mensagem:', errorMessage);
+        
+        // Tentar salvar localmente como fallback (apenas em desenvolvimento)
+        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+          console.log('💾 Tentando salvar no banco de dados local como fallback...');
+          try {
+          const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
+          
+          const clienteLocal = await getOrCreateCliente({
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            estado: estadoCliente,
+            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+            consumo_mensal: cliente.consumo_mensal || 0,
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            email: cliente.email,
+            telefone: cliente.telefone,
+            pdespesa: cliente.pdespesa
+          });
+
+          let htmlGenerated = '';
+          try {
+            if (!isServerless && arquivoPath) {
+              htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
+            }
+          } catch (readError) {
+            // Ignorar
+          }
+          
+          if (!htmlGenerated && htmlContent) {
+            htmlGenerated = htmlContent;
+          }
+
+          const sistemaPrincipal = sistemas[0];
+          const propostaLocal = await savePropostaLocal({
+            cliente_id: clienteLocal.id,
+            slug: slug,
+            titulo: `Proposta Solar - ${cliente.nome}`,
+            template_usado: 'pieng_basic',
+            sistema_kwp: sistemaPrincipal?.potTotal || 0,
+            geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
+            geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
+            valor_total: sistemaPrincipal?.ppix || 0,
+            valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
+            payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
+            tir: sistemaPrincipal?.tirAnual || 0,
+            dados_completos: propostaData,
+            html_gerado: htmlGenerated || htmlContent,
+            status: 'ativa'
+          });
+
+            propostaSalvaLocal = true;
+            propostaLocalId = propostaLocal.id;
+            console.log('✅ Proposta salva no banco local (fallback)! ID:', propostaLocal.id);
+          } catch (localError) {
+            console.error('❌ Erro ao salvar no banco local também:', localError);
+          }
+        } else {
+          // Em produção, não podemos usar banco local
+          console.error('❌ ERRO: Não foi possível salvar no Supabase e banco local não está disponível em produção');
         }
         
-        throw new Error(`Falha ao persistir proposta no banco de dados: ${errorMessage}`);
-      } else {
-        // Em desenvolvimento, avisar mas permitir continuar
-        console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
+        // Em produção, retornar erro mais informativo
+        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+          // Se conseguiu salvar localmente, não lançar erro (mas isso não deve acontecer em produção)
+          if (propostaSalvaLocal) {
+            console.log('✅ Proposta salva localmente, continuando...');
+          } else {
+            // Se for erro de variáveis não configuradas, retornar erro específico
+            if (errorMessage.includes('Variáveis Supabase não configuradas')) {
+              throw new Error(`Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel. Detalhes: ${errorMessage}`);
+            }
+            
+            throw new Error(`Falha ao persistir proposta no banco de dados: ${errorMessage}`);
+          }
+        } else {
+          // Em desenvolvimento, avisar mas permitir continuar
+          console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
+        }
       }
     }
 
     // 🔧 CORREÇÃO NETLIFY: Se em produção, retornar também o HTML inline
     const response: any = {
       message: propostaSalvaNoSupabase 
-        ? 'Proposta gerada e salva no banco de dados com sucesso!' 
+        ? 'Proposta gerada e salva no banco de dados (Supabase) com sucesso!' 
+        : propostaSalvaLocal
+        ? 'Proposta gerada e salva no banco de dados local com sucesso!'
         : 'Proposta gerada com sucesso!',
       arquivo: arquivo,
       caminho: isServerless ? `/tmp/${slug}/${arquivo}` : arquivoPath,
@@ -926,8 +1067,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         propostaId: propostaSupabaseId,
         url: propostaSalvaNoSupabase ? `/proposta/${slug}` : null,
         message: propostaSalvaNoSupabase 
-          ? '✅ Proposta persistida no banco de dados e disponível publicamente' 
-          : '⚠️ Proposta não foi salva no banco de dados'
+          ? '✅ Proposta persistida no banco de dados (Supabase) e disponível publicamente' 
+          : '⚠️ Proposta não foi salva no Supabase'
+      },
+      // 💾 Status do salvamento local
+      local: {
+        salva: propostaSalvaLocal,
+        propostaId: propostaLocalId,
+        url: propostaSalvaLocal ? `/proposta/${slug}` : null,
+        message: propostaSalvaLocal
+          ? '💾 Proposta salva no banco de dados local (máquina local)'
+          : '⚠️ Proposta não foi salva no banco local'
       },
       // 🔧 NOVO: Dados secundários incorporados
       metadata: {
