@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -49,6 +49,25 @@ export default function GeradorRapido() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState<string>('padrao');
   const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
+  const lastTemplateTapRef = useRef<{ template: string; time: number }>({ template: '', time: 0 });
+
+  // Duplo clique / duplo toque no template = confirmar e salvar com esse template
+  const confirmarComTemplate = (template: string) => {
+    setShowTemplateModal(false);
+    salvarProposta(salvarComoPendente, template);
+  };
+
+  const handleTemplateClick = (template: string) => {
+    const now = Date.now();
+    const last = lastTemplateTapRef.current;
+    if (last.template === template && now - last.time < 400) {
+      lastTemplateTapRef.current = { template: '', time: 0 };
+      confirmarComTemplate(template);
+      return;
+    }
+    lastTemplateTapRef.current = { template, time: now };
+    setTemplateSelecionado(template);
+  };
 
   // ✅ Função para carregar proposta existente
   const carregarPropostaExistente = async (clienteSlug: string) => {
@@ -1936,26 +1955,26 @@ consolidado_orcamentos_distribuidores:
         </div>
       </div>
 
-      {/* Modal de Seleção de Template */}
+      {/* Modal de Seleção de Template - responsivo para celular */}
       {showTemplateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-800">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col flex-shrink-0 my-auto sm:my-0">
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
                 🎨 Escolher Template CSS
               </h3>
               <p className="text-sm text-gray-600 mt-1">
                 Selecione um template para a proposta. O template será salvo junto com os dados.
+                <span className="block mt-1 text-gray-500">Toque duas vezes no template para confirmar e salvar direto.</span>
               </p>
             </div>
             
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* Template Padrão */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('padrao');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('padrao')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'padrao' 
                       ? 'border-blue-500 bg-blue-50' 
@@ -1969,9 +1988,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Residencial */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('residencial');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('residencial')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'residencial' 
                       ? 'border-blue-500 bg-blue-50' 
@@ -1985,9 +2003,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Rural */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('rural');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('rural')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'rural' 
                       ? 'border-green-500 bg-green-50' 
@@ -2001,9 +2018,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Panificadora */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('comercial-panificadora');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('comercial-panificadora')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'comercial-panificadora' 
                       ? 'border-orange-500 bg-orange-50' 
@@ -2017,9 +2033,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Açougue */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('comercial-acougue');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('comercial-acougue')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'comercial-acougue' 
                       ? 'border-red-500 bg-red-50' 
@@ -2033,9 +2048,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Restaurante */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('comercial-restaurante');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('comercial-restaurante')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'comercial-restaurante' 
                       ? 'border-teal-500 bg-teal-50' 
@@ -2049,9 +2063,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Mercado */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('comercial-mercado');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('comercial-mercado')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'comercial-mercado' 
                       ? 'border-blue-500 bg-blue-50' 
@@ -2065,9 +2078,8 @@ consolidado_orcamentos_distribuidores:
 
                 {/* Industrial */}
                 <button
-                  onClick={() => {
-                    setTemplateSelecionado('industrial');
-                  }}
+                  type="button"
+                  onClick={() => handleTemplateClick('industrial')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'industrial' 
                       ? 'border-gray-600 bg-gray-50' 
@@ -2081,19 +2093,21 @@ consolidado_orcamentos_distribuidores:
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-3 flex-shrink-0">
               <button
+                type="button"
                 onClick={() => setShowTemplateModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                className="w-full sm:w-auto px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-xl sm:rounded-lg hover:bg-gray-50 active:bg-gray-100 min-h-[44px] touch-manipulation"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={async () => {
                   setShowTemplateModal(false);
                   await salvarProposta(salvarComoPendente, templateSelecionado);
                 }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-green-600 text-white rounded-xl sm:rounded-lg hover:bg-green-700 active:bg-green-800 min-h-[44px] touch-manipulation"
               >
                 ✅ Confirmar e Salvar
               </button>
