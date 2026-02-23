@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIENG | Proposta Solar - Exemplo para o Cliente</title>
+    <style>
+        :root {
+            --primary: #3366CC;
+            --secondary: #FF6B35;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --muted: #6c757d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .company-tagline { font-size: 16px; font-weight: 600; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; }
+        .subtitle { font-size: 16px; color: var(--muted); margin-bottom: 20px; }
+        .client-info { background: var(--light); padding: 15px; border-radius: 8px; font-size: 14px; margin-top: 15px; }
+        .urgency-banner {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 18px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .system-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .system-card.recommended { border: 3px solid var(--success); }
+        .card-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f39c12;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 2;
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .card-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .card-power { font-size: 16px; opacity: 0.9; }
+        .card-body { padding: 25px; }
+        .specs-list { list-style: none; margin-bottom: 20px; }
+        .specs-list li { padding: 5px 0; padding-left: 20px; position: relative; }
+        .specs-list li:before { content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: 700; }
+        .pricing-section {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .original-price {
+            color: #c0392b;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .original-price .valor-riscado {
+            text-decoration: line-through;
+            color: #c0392b;
+        }
+        .current-price { font-size: 24px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+        .discount-tag {
+            background: var(--danger);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        .payment-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .payment-option {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            border: 2px solid transparent;
+        }
+        .payment-option.pix-highlight { border-color: var(--success); background: rgba(46, 204, 113, 0.1); }
+        .pix-price { color: var(--success); font-weight: 800; }
+        .performance-box {
+            background: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .cta-button {
+            background: linear-gradient(135deg, var(--secondary), #e55039);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        .comparison-table {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin: 30px 0;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        .table { width: 100%; min-width: 500px; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { padding: 12px; text-align: center; border: 1px solid #ddd; font-size: 14px; }
+        .table th { background: var(--primary); color: white; }
+        .table .recommended-row { background: rgba(46, 204, 113, 0.2); font-weight: 700; }
+        .footer {
+            background: var(--dark);
+            color: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="company-tagline">Soluções Energéticas</div>
+            <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
+            <div class="client-info">
+                <strong>Cliente:</strong> João da Silva | 
+                <strong>Cidade:</strong> Anápolis/GO | 
+                <strong>Consumo:</strong> 550 kWh/mês | 
+                <strong>Tipo:</strong> Residencial
+            </div>
+        </header>
+
+        <div class="urgency-banner">
+            Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.
+        </div>
+
+        <section class="systems-grid">
+            <!-- CARTÃO 1 - RECOMENDADO -->
+            <div class="system-card recommended">
+                <div class="card-badge">⭐ RECOMENDADO</div>
+                <div class="card-header">
+                    <div class="card-title">SISTEMA 1 ⭐ RECOMENDADO</div>
+                    <div class="card-power">Potência: 4.64 kWp</div>
+                </div>
+                <div class="card-body">
+                    <ul class="specs-list">
+                        <li>8 módulos 580W monocristalino</li>
+                        <li>1 inversor string 5kW</li>
+                        <li>Estrutura de alumínio para telhado fibrocimento</li>
+                        <li>Cabeamento CC/CA completo</li>
+                        <li>String box DC/AC</li>
+                    </ul>
+                    <div class="pricing-section">
+                        <div class="original-price">Promoção de <span class="valor-riscado">R$ 12.634,92</span></div>
+                        <div class="current-price">para R$ 11.699,00</div>
+                        <div class="discount-tag">ECONOMIA DE 10%</div>
+                        <div class="pix-price"><strong>PIX: R$ 10.529,10</strong></div>
+                        <div class="payment-options">
+                            <div class="payment-option pix-highlight">
+                                <strong>12× no cartão</strong><br>
+                                R$ 1008.53
+                            </div>
+                            <div class="payment-option">
+                                <strong>18× cartão</strong><br>
+                                R$ 704.76
+                            </div>
+                        </div>
+                    </div>
+                    <div class="performance-box">
+                        <strong>Performance Mensal</strong><br>
+                        Geração: 520 kWh | Cobertura: 95%<br>
+                        Economia: R$ 510,64 | Payback: 20,6 meses<br>
+                        TIR: 58,3% ao ano
+                    </div>
+                    <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+                </div>
+            </div>
+
+            <!-- CARTÃO 2 -->
+            <div class="system-card">
+                <div class="card-header">
+                    <div class="card-title">SISTEMA 2</div>
+                    <div class="card-power">Potência: 5.22 kWp</div>
+                </div>
+                <div class="card-body">
+                    <ul class="specs-list">
+                        <li>9 módulos 580W monocristalino</li>
+                        <li>1 inversor string 6kW</li>
+                        <li>Estrutura de alumínio para telhado fibrocimento</li>
+                        <li>Cabeamento CC/CA completo</li>
+                        <li>String box DC/AC</li>
+                    </ul>
+                    <div class="pricing-section">
+                        <div class="original-price">Promoção de <span class="valor-riscado">R$ 14.215,78</span></div>
+                        <div class="current-price">para R$ 13.163,00</div>
+                        <div class="discount-tag">ECONOMIA DE 10%</div>
+                        <div class="pix-price"><strong>PIX: R$ 11.846,70</strong></div>
+                        <div class="payment-options">
+                            <div class="payment-option pix-highlight">
+                                <strong>12× no cartão</strong><br>
+                                R$ 1134.42
+                            </div>
+                            <div class="payment-option">
+                                <strong>18× cartão</strong><br>
+                                R$ 793.09
+                            </div>
+                        </div>
+                    </div>
+                    <div class="performance-box">
+                        <strong>Performance Mensal</strong><br>
+                        Geração: 585 kWh | Cobertura: 106%<br>
+                        Economia: R$ 574,47 | Payback: 20,6 meses<br>
+                        TIR: 58,3% ao ano
+                    </div>
+                    <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="comparison-table">
+            <h3>📊 Comparação Detalhada dos Sistemas</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Sistema</th>
+                        <th>Potência</th>
+                        <th>PIX</th>
+                        <th>12x no cartão</th>
+                        <th>18x Cartão</th>
+                        <th>Geração/Mês</th>
+                        <th>Payback</th>
+                        <th>TIR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="recommended-row">
+                        <td>SISTEMA 1 ⭐</td>
+                        <td>4.64 kWp</td>
+                        <td><strong>R$ 10.529,10</strong></td>
+                        <td>R$ 1008.53</td>
+                        <td>R$ 704.76</td>
+                        <td>520 kWh</td>
+                        <td>20.6 meses</td>
+                        <td>58.3%</td>
+                    </tr>
+                    <tr>
+                        <td>SISTEMA 2</td>
+                        <td>5.22 kWp</td>
+                        <td><strong>R$ 11.846,70</strong></td>
+                        <td>R$ 1134.42</td>
+                        <td>R$ 793.09</td>
+                        <td>585 kWh</td>
+                        <td>20.6 meses</td>
+                        <td>58.3%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <footer class="footer">
+            <strong>PIENG Soluções Energéticas</strong><br>
+            35+ anos de experiência · Especialistas em sistemas elétricos de potência<br>
+            📞 (62) 99167-0536 · contato@piengsolucoes.com.br<br>
+            <small style="opacity:0.9; margin-top:10px; display:block;">Proposta de exemplo · Gerada para visualização do layout final ao cliente</small>
+        </footer>
+    </div>
+</body>
+</html>

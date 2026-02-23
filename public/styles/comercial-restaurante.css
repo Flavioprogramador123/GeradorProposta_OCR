@@ -1,6 +1,6 @@
 /**
  * 🍽️ CSS CUSTOMIZADO - RESTAURANTE
- * Tema: Cores verdes/natureza + foco em AC e cozinha profissional
+ * Tema: Cores verdes/natureza + fundo fresco + foco em AC e cozinha profissional
  */
 
 .variant-comercial-restaurante {
@@ -9,6 +9,13 @@
   --variant-gradient: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   --variant-accent: #1abc9c;
   --variant-icon: '🍽️';
+  --variant-bg-page: linear-gradient(180deg, #E8F5F0 0%, #F0F9F5 35%, #F5FBF8 100%);
+}
+
+/* Fundo da página - característica restaurante (verde água, fresco, natureza) */
+body.variant-comercial-restaurante {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
 }
 
 /* Hero Section - Tema Restaurante */

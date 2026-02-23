@@ -405,7 +405,7 @@ export class TemplateEnginePadrao {
       HSP_LOCAL: (data.cliente.hsp || 5.21).toString(),
 
       // Datas
-      BANNER_URGENCIA: data.bannerUrgencia || "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
+      BANNER_URGENCIA: data.bannerUrgencia || "Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
       DATA_GERACAO: data.dataGeracao || currentDate.toLocaleDateString('pt-BR'),
       DATA_VALIDADE: data.dataValidade || validityDate.toLocaleDateString('pt-BR'),
       ANO_ATUAL: currentDate.getFullYear().toString(),
@@ -747,14 +747,14 @@ export class TemplateEnginePadrao {
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">De R$ ${(sistema.priscado || 0).toFixed(2)}</div>
-              <div class="current-price">R$ ${(sistema.pavista || 0).toFixed(2)}</div>
+              <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+              <div class="current-price">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
               <div class="pix-price"><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
-                  <strong>12× sem juros</strong><br>
+                  <strong>12× no cartão</strong><br>
                   R$ ${(sistema.p12x || 0).toFixed(2)}
                 </div>
                 <div class="payment-option">
@@ -819,8 +819,8 @@ export class TemplateEnginePadrao {
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">De R$ ${(sistema.priscado || 0).toFixed(2)}</div>
-              <div class="current-price">R$ ${(sistema.pavista || 0).toFixed(2)}</div>
+              <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+              <div class="current-price">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
               <div style="font-size: 18px; font-weight: 700; color: var(--success); margin: 10px 0;">
                 PIX: R$ ${(sistema.ppix || 0).toFixed(2)}
@@ -828,7 +828,7 @@ export class TemplateEnginePadrao {
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
-                  <strong>12× sem juros</strong><br>
+                  <strong>12× no cartão</strong><br>
                   R$ ${(sistema.p12x || 0).toFixed(2)}<br>
                   <small style="color: #666;">Total: R$ ${(sistema.p12x_total || sistema.p12x * 12).toFixed(2)}</small>
                 </div>

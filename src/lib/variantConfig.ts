@@ -129,20 +129,20 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
       corPrimaria: '#27ae60',
       corSecundaria: '#f39c12',
       gradiente: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)',
-      icone: '🌾'
+      icone: '🌾☀️🚜'
     },
     
     copy: {
-      tituloHero: 'Energia Solar para o Campo',
-      subtituloHero: 'Reduza custos de irrigação e aumente sua produtividade',
-      ctaTexto: 'Aumentar Produtividade',
+      tituloHero: 'Sua Roça Brilhando no Sol 🌾☀️',
+      subtituloHero: 'Irrigação, ordenha e máquinas com energia que vem do céu! Menos diesel, mais produtividade.',
+      ctaTexto: 'Quero Energia Solar no Meu Sítio',
       beneficios: [
-        'Economia massiva em irrigação',
-        'Independência de diesel',
-        'Maior produtividade por hectare',
-        'ROI em menos de 2 safras',
-        'Energia garantida 365 dias',
-        'Sustentabilidade certificada'
+        '🌾 Irrigação e pivô com energia solar',
+        '🚜 Menos diesel, mais economia no campo',
+        '🐄 Ordenha e resfriamento de leite 24h',
+        '☀️ Energia garantida 365 dias no ano',
+        '💰 ROI em menos de 2 safras',
+        '🌻 Sustentabilidade que valoriza sua propriedade'
       ]
     },
     
@@ -173,20 +173,20 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
       corPrimaria: '#d35400',
       corSecundaria: '#f39c12',
       gradiente: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
-      icone: '🥖'
+      icone: '🥖🍞🥛'
     },
     
     copy: {
-      tituloHero: '🥖 Sua Padaria 100% Solar',
-      subtituloHero: 'Reduza custos de energia e aumente suas margens de lucro. Fornos, freezers e iluminação com energia solar!',
+      tituloHero: 'Padaria Solar — Pão, Leite e Energia do Sol! 🥖🍞☀️',
+      subtituloHero: 'Fornos, batedeiras, freezers e iluminação com energia solar. Sua padaria mais leve na conta e no planeta!',
       ctaTexto: 'Quero Economizar na Minha Padaria',
       beneficios: [
-        '🥖 Economia de até 85% na conta de energia',
-        '🔥 Fornos e freezers funcionando com energia solar',
-        '💰 Maior margem de lucro por produto vendido',
-        '🌱 Marketing verde: "Padaria Sustentável"',
-        '🏆 Certificado de energia limpa para exibir',
-        '⭐ Diferenciação competitiva no mercado'
+        '🥖 Pão quentinho com energia do sol',
+        '🥛 Leite e frios em freezers solares',
+        '☕ Cafeteria e iluminação 100% solar',
+        '🔥 Fornos e equipamentos sem pesar na conta',
+        '💰 Margem maior em cada produto vendido',
+        '🌱 Selo "Padaria Sustentável" para atrair clientes'
       ]
     },
     
@@ -216,20 +216,20 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
       corPrimaria: '#c0392b',
       corSecundaria: '#e74c3c',
       gradiente: 'linear-gradient(135deg, #c31432 0%, #240b36 100%)',
-      icone: '🥩'
+      icone: '🥩❄️🥓'
     },
     
     copy: {
-      tituloHero: 'Açougue Solar',
-      subtituloHero: 'Economize massivamente nas câmaras frias',
-      ctaTexto: 'Reduzir Custos de Refrigeração',
+      tituloHero: 'Açougue Solar — Carne Fresca, Conta Leve! 🥩❄️',
+      subtituloHero: 'Câmaras frias e balcões refrigerados com energia do sol. Qualidade e economia 24 horas.',
+      ctaTexto: 'Quero Reduzir a Conta do Açougue',
       beneficios: [
-        'Economia gigante em refrigeração',
-        'Câmaras frias 24h sem custo',
-        'Redução de até 90% na conta',
-        'ROI rápido (1.5-2 anos)',
-        'Selo verde diferencia negócio',
-        'Energia garantida sempre'
+        '🥩 Câmaras frias 24h com energia solar',
+        '❄️ Balcões refrigerados sem pesar na conta',
+        '🥓 Cortes sempre frescos, custo fixo',
+        '💰 Redução de até 90% na conta de luz',
+        '🌱 Açougue sustentável atrai mais clientes',
+        '⚡ Energia garantida para nunca perder produto'
       ]
     },
     
@@ -259,20 +259,20 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
       corPrimaria: '#16a085',
       corSecundaria: '#f39c12',
       gradiente: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
-      icone: '🍽️'
+      icone: '🍽️❄️👨‍🍳'
     },
     
     copy: {
-      tituloHero: 'Restaurante Sustentável',
-      subtituloHero: 'Energia solar para cozinha e climatização',
-      ctaTexto: 'Reduzir Custos Operacionais',
+      tituloHero: 'Restaurante Solar — Cliente Fresco, Conta Leve! 🍽️☀️',
+      subtituloHero: 'Ar-condicionado, cozinha e iluminação com energia do sol. Ambiente agradável e custo sob controle.',
+      ctaTexto: 'Quero Economizar no Restaurante',
       beneficios: [
-        'Economia em AC e cozinha profissional',
-        'Redução de custo operacional',
-        'Marketing: "Restaurante Verde"',
-        'Certificado de sustentabilidade',
-        'Diferenciação no mercado',
-        'ROI em 2-3 anos'
+        '❄️ Ar-condicionado e climatização solar',
+        '👨‍🍳 Cozinha profissional com energia limpa',
+        '🍽️ Iluminação e freezers sem pesar na conta',
+        '🌱 Marketing "Restaurante Verde"',
+        '💰 ROI em 2-3 anos',
+        '⭐ Diferenciação e certificado sustentável'
       ]
     },
     
@@ -303,20 +303,20 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
       corPrimaria: '#2980b9',
       corSecundaria: '#27ae60',
       gradiente: 'linear-gradient(135deg, #2980b9 0%, #2c3e50 100%)',
-      icone: '🛒'
+      icone: '🛒❄️💡'
     },
     
     copy: {
-      tituloHero: 'Mercado Solar',
-      subtituloHero: 'Economia completa: iluminação, refrigeração e climatização',
-      ctaTexto: 'Reduzir Custos Agora',
+      tituloHero: 'Mercado Solar — Prateleiras Cheias, Conta Leve! 🛒☀️',
+      subtituloHero: 'Geladeiras, freezers, iluminação e ar-condicionado com energia do sol. Seu mercado mais sustentável.',
+      ctaTexto: 'Quero Economizar no Mercado',
       beneficios: [
-        'Economia em todos os setores',
-        'Redução massiva de custos operacionais',
-        'Iluminação + refrigeração + AC solar',
-        'Marketing verde: "Mercado Sustentável"',
-        'ROI rápido (2-3 anos)',
-        'Certificação ambiental'
+        '💡 Iluminação 100% solar',
+        '❄️ Geladeiras e freezers com energia limpa',
+        '🛒 Ar-condicionado sem pesar na conta',
+        '💰 Redução massiva de custos operacionais',
+        '🌱 Selo "Mercado Sustentável"',
+        '⭐ Certificação e diferenciação no bairro'
       ]
     },
     

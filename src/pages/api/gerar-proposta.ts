@@ -445,8 +445,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 <div class="system-card">
                     <h3>OPÇÃO ${index + 1} ${index === 0 ? '⭐' : ''}</h3>
                     <div class="price-section">
-                        <div class="price-old">De R$ ${(sistema.priscado || 0).toFixed(2)}</div>
-                        <div class="price-new">À vista: R$ ${(sistema.pavista || 0).toFixed(2)}</div>
+                        <div class="price-old">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                        <div class="price-new">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div class="price-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
                         <div><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
                     </div>
@@ -478,7 +478,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     <th>Sistema</th>
                     <th>Potência</th>
                     <th>PIX</th>
-                    <th>12x S/Juros</th>
+                    <th>12x no cartão</th>
                     <th>18x Cartão</th>
                     <th>Geração/Mês</th>
                     <th>Payback</th>
@@ -612,7 +612,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           email: "contato@piengsolucoes.com.br",
           site: "www.piengsolucoes.com.br"
         },
-        bannerUrgencia: "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
+        bannerUrgencia: "Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
         dataGeracao: dataAtual,
         dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
       };
@@ -802,7 +802,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       dataGeracao: dataAtual,
       dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
       slug: slug,
-      bannerUrgencia: "🚀 Oferta especial válida até o final do mês!",
+      bannerUrgencia: "Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
       // ✅ SALVAR CONFIGURAÇÕES DA PROPOSTA (para edição/consultor)
       config: {
         pdespesaFixo: config.pdespesaFixo || configSistema.pdespesaFixo || 3000,

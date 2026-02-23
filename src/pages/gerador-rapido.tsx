@@ -1864,7 +1864,7 @@ consolidado_orcamentos_distribuidores:
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribuidora</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Potência</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PIX</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">12x S/Juros</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">12x no cartão</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total 12x</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">18x Cartão</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total 18x</th>
@@ -1932,7 +1932,7 @@ consolidado_orcamentos_distribuidores:
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600">
                         <div>
                           <p><strong>PIX:</strong> Valor base (Total da tabela acima)</p>
-                          <p><strong>12x S/Juros:</strong> Parcela mensal sem juros</p>
+                          <p><strong>12x no cartão:</strong> Parcela mensal no cartão</p>
                           <p><strong>Total 12x:</strong> Valor total parcelado em 12x</p>
                         </div>
                         <div>

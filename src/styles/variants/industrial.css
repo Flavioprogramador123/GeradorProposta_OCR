@@ -1,6 +1,6 @@
 /**
  * 🏭 CSS CUSTOMIZADO - INDUSTRIAL PREMIUM
- * Tema: Cinza corporativo + Azul tecnológico
+ * Tema: Cinza corporativo + Azul tecnológico + fundo neutro profissional
  */
 
 .variant-industrial {
@@ -9,6 +9,13 @@
   --variant-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   --variant-accent: #7f8c8d;
   --variant-bg-light: #ECF0F1;
+  --variant-bg-page: linear-gradient(180deg, #ECF0F1 0%, #F5F6FA 40%, #FFFFFF 100%);
+}
+
+/* Fundo da página - característica industrial (neutro, corporativo) */
+body.variant-industrial {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
 }
 
 /* Hero Section */

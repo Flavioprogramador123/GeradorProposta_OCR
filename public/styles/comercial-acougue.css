@@ -1,6 +1,6 @@
 /**
  * 🥩 CSS CUSTOMIZADO - AÇOUGUE
- * Tema: Cores vermelhas/escuras + foco em refrigeração 24h
+ * Tema: Cores vermelhas/escuras + fundo suave vermelho claro + foco em refrigeração 24h
  */
 
 .variant-comercial-acougue {
@@ -9,6 +9,13 @@
   --variant-gradient: linear-gradient(135deg, #c31432 0%, #240b36 100%);
   --variant-accent: #8b0000;
   --variant-icon: '🥩';
+  --variant-bg-page: linear-gradient(180deg, #FFF5F5 0%, #FFEBEB 35%, #FFF0F0 100%);
+}
+
+/* Fundo da página - característica açougue (vermelho suave, fresco) */
+body.variant-comercial-acougue {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
 }
 
 /* Hero Section - Tema Açougue */

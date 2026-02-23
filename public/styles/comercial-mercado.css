@@ -1,6 +1,6 @@
 /**
  * 🛒 CSS CUSTOMIZADO - MERCADO/SUPERMERCADO
- * Tema: Cores azul/verde + foco em economia completa (iluminação + refrigeração + AC)
+ * Tema: Cores azul/verde + fundo claro profissional + foco em economia completa
  */
 
 .variant-comercial-mercado {
@@ -9,6 +9,13 @@
   --variant-gradient: linear-gradient(135deg, #2980b9 0%, #2c3e50 100%);
   --variant-accent: #3498db;
   --variant-icon: '🛒';
+  --variant-bg-page: linear-gradient(180deg, #E8F4FC 0%, #F0F8FF 35%, #F5FAFF 100%);
+}
+
+/* Fundo da página - característica mercado (azul claro, limpo, confiança) */
+body.variant-comercial-mercado {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
 }
 
 /* Hero Section - Tema Mercado */
