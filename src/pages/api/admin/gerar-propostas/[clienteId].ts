@@ -309,7 +309,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dataGeracao: new Date().toLocaleDateString('pt-BR'),
         dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         slug: slug,
-        bannerUrgencia: '🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.'
+        bannerUrgencia: 'Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.'
       };
 
       // Gerar template padrão

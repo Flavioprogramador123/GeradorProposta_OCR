@@ -152,7 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         site: 'www.piengsolucoes.com.br',
         whatsapp: '5562991670536'
       },
-      bannerUrgencia: '🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.',
+      bannerUrgencia: 'Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.',
       dataGeracao: new Date().toLocaleDateString('pt-BR'),
       dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
     };

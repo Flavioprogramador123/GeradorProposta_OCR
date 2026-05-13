@@ -68,14 +68,14 @@ export const SystemCard: React.FC<SystemCardProps> = ({
         </ul>
 
         <div className="pieng-pricing-section">
-          <div className="pieng-original-price">De {precoRiscado}</div>
-          <div className="pieng-current-price">{precoAtual}</div>
+          <div className="pieng-original-price">Promoção de <span className="pieng-valor-riscado">{precoRiscado}</span></div>
+          <div className="pieng-current-price">para {precoAtual}</div>
           <div className="pieng-discount-tag">{tagDesconto}</div>
           <div className="font-bold text-lg mb-4">PIX: {formatPix(precoPixDecimal)}</div>
           
           <div className="pieng-payment-grid">
             <div className="pieng-payment-option pieng-payment-highlight">
-              <strong>12× sem juros</strong><br />
+              <strong>12× no cartão</strong><br />
               {preco12x}
             </div>
             <div className="pieng-payment-option">

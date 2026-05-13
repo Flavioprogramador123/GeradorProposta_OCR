@@ -1,6 +1,6 @@
 /**
  * 🌾 CSS CUSTOMIZADO - RURAL AGRO
- * Tema: Verde natural + Amarelo safra
+ * Tema: Verde natural + Amarelo safra + fundo campo
  */
 
 .variant-rural {
@@ -9,6 +9,16 @@
   --variant-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
   --variant-accent: #8BC34A;
   --variant-bg-light: #F1F8E9;
+}
+
+/* Fundo da página - característica rural (campo, terra, natureza) */
+body.variant-rural {
+  background: linear-gradient(180deg, #E8F5E9 0%, #F1F8E9 30%, #FFF8E1 100%);
+  min-height: 100vh;
+}
+
+.variant-rural .container {
+  position: relative;
 }
 
 /* Hero Section */
@@ -32,6 +42,11 @@
 .variant-rural .hero-section h1::before {
   content: '🌾 ';
   font-size: 2.8rem;
+}
+
+/* Logo/ícone do header com múltiplos ícones do segmento */
+.variant-rural .logo-icon {
+  letter-spacing: 0.05em;
 }
 
 /* Seção de Irrigação */

@@ -18,19 +18,21 @@ interface ComparisonTableProps {
 
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({ systems }) => {
   return (
-    <section className="pieng-card p-6 mb-8">
+    <section className="pieng-card pieng-comparison-table p-6 mb-8">
       <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
         📊 Comparação Detalhada dos Sistemas
       </h3>
-      
-      <div className="overflow-x-auto">
-        <table className="pieng-table">
+      <p className="pieng-table-scroll-hint">
+        👆 Deslize para o lado para ver todas as colunas
+      </p>
+      <div className="overflow-x-auto pieng-table-wrapper">
+        <table className="pieng-table min-w-[500px]">
           <thead>
             <tr>
               <th>Sistema</th>
               <th>Potência</th>
               <th>PIX</th>
-              <th>12x S/Juros</th>
+              <th>12x no cartão</th>
               <th>18x Cartão</th>
               <th>Geração/Mês</th>
               <th>Payback</th>

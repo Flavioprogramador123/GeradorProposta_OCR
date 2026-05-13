@@ -1,14 +1,21 @@
 /**
  * 🥖 CSS CUSTOMIZADO - PANIFICADORA
- * Tema: Cores quentes (laranja/vermelho) + foco em margem por produto
+ * Tema: Cores quentes (pão, leite, padaria) + fundo creme
  */
 
 .variant-comercial-panificadora {
   --variant-primary: #d35400;
   --variant-secondary: #f39c12;
-  --variant-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  --variant-gradient: linear-gradient(135deg, #e67e22 0%, #d35400 50%, #c0392b 100%);
   --variant-accent: #e67e22;
   --variant-icon: '🥖';
+  --variant-bg-page: linear-gradient(180deg, #FFF8F0 0%, #FFEFE0 35%, #FFF5EB 100%);
+}
+
+/* Fundo da página - característica padaria (creme, pão, aconchegante) */
+body.variant-comercial-panificadora {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
 }
 
 /* Hero Section - Tema Padaria */

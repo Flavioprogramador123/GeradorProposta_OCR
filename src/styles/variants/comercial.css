@@ -1,30 +1,55 @@
 /**
  * 💼 CSS CUSTOMIZADO - COMERCIAL (Panificadora, Açougue, Restaurante, Mercado)
- * Tema: Variável por subtipo + foco em ROI
+ * Tema: Variável por subtipo + fundos adequados a cada segmento
  */
 
 .variant-comercial-panificadora {
   --variant-primary: #d35400;
   --variant-secondary: #f39c12;
   --variant-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  --variant-bg-page: linear-gradient(180deg, #FFF8F0 0%, #FFEFE0 40%, #FFF5EB 100%);
 }
 
 .variant-comercial-acougue {
   --variant-primary: #c0392b;
   --variant-secondary: #e74c3c;
   --variant-gradient: linear-gradient(135deg, #c31432 0%, #240b36 100%);
+  --variant-bg-page: linear-gradient(180deg, #FFF5F5 0%, #FFEBEB 40%, #FFF0F0 100%);
 }
 
 .variant-comercial-restaurante {
   --variant-primary: #16a085;
   --variant-secondary: #f39c12;
   --variant-gradient: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  --variant-bg-page: linear-gradient(180deg, #E8F5F0 0%, #F0F9F5 40%, #F5FBF8 100%);
 }
 
 .variant-comercial-mercado {
   --variant-primary: #2980b9;
   --variant-secondary: #27ae60;
   --variant-gradient: linear-gradient(135deg, #2980b9 0%, #2c3e50 100%);
+  --variant-bg-page: linear-gradient(180deg, #E8F4FC 0%, #F0F8FF 40%, #F5FAFF 100%);
+}
+
+/* Fundos da página por segmento comercial */
+body.variant-comercial-panificadora {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
+}
+
+body.variant-comercial-acougue {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
+}
+
+body.variant-comercial-restaurante {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
+}
+
+body.variant-comercial-mercado {
+  background: var(--variant-bg-page);
+  min-height: 100vh;
 }
 
 /* Hero Section (Comum para todos os comerciais) */
