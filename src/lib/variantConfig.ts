@@ -104,7 +104,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/residencial_premium.html',
-    cssFile: 'variants/residencial.css'
+    cssFile: 'residencial.css'  // ✅ Mesmo padrão dos comerciais (sem 'variants/')
   },
   
   // ========== RURAL AGRO ==========
@@ -177,21 +177,21 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     copy: {
-      tituloHero: 'Padaria 100% Solar',
-      subtituloHero: 'Reduza custos e aumente suas margens de lucro',
-      ctaTexto: 'Reduzir Custos Agora',
+      tituloHero: '🥖 Sua Padaria 100% Solar',
+      subtituloHero: 'Reduza custos de energia e aumente suas margens de lucro. Fornos, freezers e iluminação com energia solar!',
+      ctaTexto: 'Quero Economizar na Minha Padaria',
       beneficios: [
-        'Economia de até 85% em energia',
-        'Redução de custo operacional',
-        'Maior margem por produto',
-        'Marketing verde (Padaria Sustentável)',
-        'Certificado de energia limpa',
-        'Diferenciação competitiva'
+        '🥖 Economia de até 85% na conta de energia',
+        '🔥 Fornos e freezers funcionando com energia solar',
+        '💰 Maior margem de lucro por produto vendido',
+        '🌱 Marketing verde: "Padaria Sustentável"',
+        '🏆 Certificado de energia limpa para exibir',
+        '⭐ Diferenciação competitiva no mercado'
       ]
     },
     
     templateFile: 'variants/comercial_panificadora.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-panificadora.css' // ✅ CSS específico para panificadora
   },
   
   // ========== COMERCIAL - AÇOUGUE ==========
@@ -234,7 +234,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_acougue.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-acougue.css' // ✅ CSS específico para açougue
   },
   
   // ========== COMERCIAL - RESTAURANTE ==========
@@ -277,7 +277,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_restaurante.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-restaurante.css' // ✅ CSS específico para restaurante
   },
   
   // ========== COMERCIAL - MERCADO ==========
@@ -321,7 +321,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
     },
     
     templateFile: 'variants/comercial_mercado.html',
-    cssFile: 'variants/comercial.css'
+    cssFile: 'comercial-mercado.css' // ✅ CSS específico para mercado
   },
   
   // ========== INDUSTRIAL PREMIUM ==========

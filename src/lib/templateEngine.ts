@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
+import { loadVariantCss, generateCssTag } from './cssLoader';
 
 interface ClienteData {
   cliente: {
@@ -384,7 +385,7 @@ export class TemplateEnginePadrao {
       HSP_LOCAL: (data.cliente.hsp || 5.21).toString(),
 
       // Datas
-      BANNER_URGENCIA: data.bannerUrgencia || "🚀 Oferta especial válida até o final do mês!",
+      BANNER_URGENCIA: data.bannerUrgencia || "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
       DATA_GERACAO: data.dataGeracao || currentDate.toLocaleDateString('pt-BR'),
       DATA_VALIDADE: data.dataValidade || validityDate.toLocaleDateString('pt-BR'),
       ANO_ATUAL: currentDate.getFullYear().toString(),
@@ -434,7 +435,7 @@ export class TemplateEnginePadrao {
       variables[`SISTEMA_${num}_12X`] = `R$ ${(sistema.p12x || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_18X`] = `R$ ${(sistema.p18x_parcela || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_GERACAO`] = `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`;
-      variables[`SISTEMA_${num}_COBERTURA`] = `${(Number(sistema.cobertura) || 0).toFixed(0)}%`;
+      variables[`SISTEMA_${num}_COBERTURA`] = `${Math.round(Number(sistema.cobertura) || 0)}%`;
       variables[`SISTEMA_${num}_ECONOMIA`] = `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`;
       variables[`SISTEMA_${num}_PAYBACK`] = `${(sistema.paybackMeses || 0).toFixed(1)} meses`;
       variables[`SISTEMA_${num}_TIR`] = `${(sistema.tirAnual || 0).toFixed(1)}%`;
@@ -456,6 +457,7 @@ export class TemplateEnginePadrao {
         <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
         <li>Cabeamento CC/CA completo</li>
         <li>String box DC/AC + proteções</li>
+        <li>Garantia de instalação de 1 ano, garantia dos módulos e inversores por 10 anos contra defeitos funcionais fornecida pelo fabricante, e garantia de desempenho linear de 25 anos para a produção de energia</li>
       `;
     });
 
@@ -511,24 +513,29 @@ export class TemplateEnginePadrao {
     );
 
     // 2. Injetar CSS personalizado no head
-    // 🔧 ESTRATÉGIA HÍBRIDA: Tentar inline primeiro, fallback para <link>
+    // 🎨 NOVO: Sistema híbrido (Arquivos locais > Supabase Storage)
     const isProduction = process.env.VERCEL || process.env.NETLIFY || process.env.NODE_ENV === 'production';
-
     let cssInjected = false;
 
-    // TENTATIVA 1: Injetar CSS inline (funciona em dev e produção)
+    // TENTATIVA 1: Carregar CSS de arquivos locais (síncrono, mais rápido)
     try {
-      // Mapear arquivos CSS de variantes
       const cssPathsToTry = [
         path.join(process.cwd(), 'public/styles', config.cssFile),
         path.join(process.cwd(), 'src/styles/variants', config.cssFile),
-        path.join(process.cwd(), 'src/styles', config.cssFile)
-      ];
+        path.join(process.cwd(), 'src/styles', config.cssFile),
+        // Tentar sem "variants/" se necessário
+        config.cssFile.includes('variants/') 
+          ? path.join(process.cwd(), 'public/styles', config.cssFile.replace('variants/', ''))
+          : null,
+        config.cssFile.includes('variants/')
+          ? path.join(process.cwd(), 'src/styles/variants', config.cssFile.replace('variants/', ''))
+          : null,
+      ].filter(Boolean) as string[];
 
       for (const cssPath of cssPathsToTry) {
         if (fs.existsSync(cssPath)) {
           const variantCss = fs.readFileSync(cssPath, 'utf-8');
-          const cssInjection = `<style id="variant-styles-inline">${variantCss}</style>`;
+          const cssInjection = generateCssTag(variantCss, config.cssFile, true);
           html = html.replace('</head>', `${cssInjection}\n</head>`);
           cssInjected = true;
           console.log(`✅ CSS inline injetado: ${cssPath}`);
@@ -536,14 +543,16 @@ export class TemplateEnginePadrao {
         }
       }
     } catch (error) {
-      console.warn(`⚠️ Erro ao injetar CSS inline: ${error instanceof Error ? error.message : 'unknown'}`);
+      console.warn(`⚠️ Erro ao carregar CSS do filesystem: ${error instanceof Error ? error.message : 'unknown'}`);
     }
 
-    // FALLBACK: Se inline falhar, usar <link> (apenas em produção)
-    if (!cssInjected && isProduction) {
-      const cssLink = `<link rel="stylesheet" href="/styles/${config.cssFile}">`;
+    // FALLBACK: Se não encontrou localmente, usar <link> tag (funciona com Supabase Storage ou CDN)
+    if (!cssInjected) {
+      const cssLink = generateCssTag(null, config.cssFile, false);
       html = html.replace('</head>', `${cssLink}\n</head>`);
       console.log(`⚠️ Fallback: CSS via <link> tag: /styles/${config.cssFile}`);
+      // Nota: Em produção, o Supabase Storage pode servir os arquivos CSS via CDN
+      // Configurar bucket 'pieng-templates' como público e mapear /styles/* para storage
     }
 
     // 3. Injetar variáveis CSS customizadas
@@ -628,7 +637,7 @@ export class TemplateEnginePadrao {
   private getMaxCoverage(sistemas: Sistema[]): string {
     if (sistemas.length === 0) return "0%";
     const max = Math.max(...sistemas.map(s => Number(s.cobertura) || 0));
-    return `${max.toFixed(0)}%`;
+    return `${Math.round(max)}%`;
   }
 
   private getMaxTir(sistemas: Sistema[]): string {
@@ -744,7 +753,7 @@ export class TemplateEnginePadrao {
 
             <div class="performance-box">
               <strong>Performance Mensal</strong><br>
-              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${(Number(sistema.cobertura) || 0).toFixed(0)}%<br>
+              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${Math.round(Number(sistema.cobertura) || 0)}%<br>
               Economia: R$ ${(sistema.economiaMensal || 0).toFixed(2)} | Payback: ${(sistema.paybackMeses || 0).toFixed(1)} meses<br>
               TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
             </div>

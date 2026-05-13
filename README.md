@@ -1,13 +1,63 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.2.5-blue.svg)](CLAUDE.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.1-blue.svg)](CHANGELOG_v2.4.1.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
+[![PWA](https://img.shields.io/badge/PWA-desenvolvimento-purple.svg)](PWA.md)
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.2.5` (18/11/2025) | [Ver Changelog Completo](CLAUDE.md)
+**📌 Versão Atual**: `v2.4.1` (05/12/2025) ✅ **PRODUÇÃO**
+**📖** [Ver Changelog Completo](CHANGELOG_v2.4.1.md) | [Documentação PWA](PWA.md)
+
+## 🆕 Novidades v2.4.1 (05/12/2025)
+
+**🖼️ Sistema de Logos Profissional:**
+- ✅ Sistema centralizado de configuração de logos (`logoConfig.ts`)
+- ✅ Logos adicionados em Header, Footer, Favicon e Meta Tags
+- ✅ Configuração via variáveis de ambiente (sem alterar código)
+- ✅ Suporte a múltiplos formatos (JPG, PNG, SVG)
+- ✅ Logo configurável para WhatsApp/Facebook (Open Graph)
+- ✅ Documentação completa: `GUIA_CONFIGURAR_LOGO.md`
+
+## 🆕 Novidades v2.3.3 (01/12/2025)
+
+**🔧 Correções Críticas:**
+- ✅ **TypeError Fix**: Corrigido erro `toLocaleString()` em `/admin/orcamentos`
+- ✅ Verificação robusta de valores undefined/null
+- ✅ Fallback seguro para exibição de valores monetários
+
+**🎨 Melhorias UI/UX:**
+- ✅ Removido card "Enviar Proposta" da tela principal
+- ✅ Botão "Email" integrado na linha de ações dos clientes
+- ✅ Modal pré-preenchido com dados do cliente
+
+## 🆕 Novidades v2.3.1 (01/12/2025)
+
+**🔧 Correções Críticas:**
+- ✅ **Window Opening Fix**: Propostas agora abrem diretamente sem `about:blank`
+- ✅ **Favicons Corrigidos**: Logo PIENG aparecendo em todos os navegadores
+- ✅ **Configurações Dinâmicas**: 20 configs no Supabase (HSP, tarifas, margens)
+
+**🎨 Melhorias UI/UX:**
+- ✅ Removidos cards desnecessários do admin (Google Drive, Atualizar)
+- ✅ Gerador rápido sincroniza valores do Supabase automaticamente
+- ✅ Sistema totalmente sem hardcode - tudo configurável
+
+**🛠️ Ferramentas:**
+- ✅ Criado conversor SVG→PNG web (`/convert-svg-to-png.html`)
+- ✅ Scripts SQL para configurações (4 arquivos)
+- ✅ Teste direto da API Supabase (`test-supabase-config.js`)
+
+## 🆕 PWA v2.3.0 (branch desenvolvimento)
+
+- 📱 **Instalável como App**: Android, iPhone, Windows, Mac
+- ⚡ **Acesso Offline**: Propostas em cache para visualização sem internet
+- 🚀 **Performance**: Carregamento instantâneo com Service Worker
+- 🎯 **Atalhos**: Admin, Nova Proposta, Propostas Públicas
+- 🔔 **Notificações** (futuro): Push notifications para novas propostas
+- 📖 [Documentação Completa do PWA](PWA.md)
 
 ## ✨ Principais Funcionalidades
 
@@ -18,8 +68,9 @@ Sistema completo de geração de propostas solares com administração web, extr
 - ⚡ **Performance Otimizada**: SSG com Next.js para carregamento instantâneo
 - 🎨 **Design Responsivo**: Visual moderno com Tailwind CSS
 - 🔒 **Dados Protegidos**: Sistema seguro sem exposição de informações sigilosas
-- 📱 **Mobile First**: Totalmente responsivo para todos os dispositivos
+- 📱 **Progressive Web App**: Instalável como app nativo em qualquer dispositivo
 - 🌐 **CDN Global**: Deploy automático no Vercel Edge Network
+- 💾 **Modo Offline**: Funciona sem conexão após primeira visita
 
 ### 🆕 Novidades v2.2.5 (18/11/2025)
 - ✅ Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase

@@ -95,6 +95,7 @@ export default function Configuracoes() {
   const [config, setConfig] = useState<ConfiguracaoSistema>(configPadrao);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('tecnico');
+  const [limpandoTestes, setLimpandoTestes] = useState(false);
 
   // Carregar configurações salvas
   useEffect(() => {
@@ -169,6 +170,53 @@ export default function Configuracoes() {
     }
   };
 
+  const handleLimpezaTestes = async () => {
+    const confirmacao = window.confirm(
+      `⚠️ ATENÇÃO: Você realmente deseja deletar TODOS os clientes de teste?\n\n` +
+      `Esta ação irá remover:\n` +
+      `• Clientes que começam com "Cliente Padrão"\n` +
+      `• Clientes com "teste", "test", "exemplo", "demo" no nome\n` +
+      `• Todas as propostas relacionadas\n` +
+      `• Todos os analytics relacionados\n` +
+      `• Todos os orçamentos relacionados\n\n` +
+      `Esta ação NÃO pode ser desfeita!\n\n` +
+      `Deseja continuar?`
+    );
+
+    if (!confirmacao) {
+      return;
+    }
+
+    try {
+      setLimpandoTestes(true);
+      
+      const response = await fetch('/api/admin/limpeza-clientes-teste', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Erro ao fazer limpeza');
+      }
+
+      const result = await response.json();
+      
+      alert(
+        `✅ Limpeza concluída com sucesso!\n\n` +
+        `Clientes deletados: ${result.result.clientesDeletados}\n` +
+        `Propostas deletadas: ${result.result.propostasDeletadas}\n` +
+        `Analytics deletados: ${result.result.analyticsDeletados}\n` +
+        `Orçamentos deletados: ${result.result.orcamentosDeletados}`
+      );
+      
+    } catch (error) {
+      console.error('❌ Erro ao fazer limpeza:', error);
+      alert(`❌ Erro ao fazer limpeza: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setLimpandoTestes(false);
+    }
+  };
+
   const tabs = [
     { id: 'tecnico', label: '⚙️ Técnico', icon: '⚙️' },
     { id: 'financeiro', label: '💰 Financeiro', icon: '💰' },
@@ -189,12 +237,30 @@ export default function Configuracoes() {
             
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                ⚙️ Configurações do Sistema
-              </h1>
-              <p className="text-gray-600">
-                Configure parâmetros, cálculos e textos do sistema de propostas
-              </p>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex-1"></div>
+                <div className="flex-1 text-center">
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                    ⚙️ Configurações do Sistema
+                  </h1>
+                  <p className="text-gray-600">
+                    Configure parâmetros, cálculos e textos do sistema de propostas
+                  </p>
+                  <p className="text-sm text-blue-600 mt-2">
+                    ✅ Configurações indexadas - Use o hook <code className="bg-blue-50 px-2 py-1 rounded">useConfiguracoes()</code> para acessar sem hardcode
+                  </p>
+                </div>
+                <div className="flex-1 flex justify-end">
+                  <button
+                    onClick={handleLimpezaTestes}
+                    disabled={limpandoTestes}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    title="Limpar clientes de teste do banco de dados"
+                  >
+                    {limpandoTestes ? '⏳ Limpando...' : '🧹 Limpar Testes'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">

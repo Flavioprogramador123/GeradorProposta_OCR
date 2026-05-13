@@ -61,6 +61,21 @@
             height: auto;
             margin-bottom: 15px;
             filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+            display: block;
+            margin: 0 auto;
+        }
+
+        .pieng-logo-real img:not([src]),
+        .pieng-logo-real img[src=""],
+        .pieng-logo-real img[src="#"] {
+            display: none;
+        }
+
+        .logo-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
         .company-tagline {
@@ -463,7 +478,7 @@
         <!-- HEADER -->
         <header class="header">
             <div class="pieng-logo-real">
-                <img src="/assets/logos/logo.png" alt="PIENG Soluções Energéticas" />
+                <img src="/assets/logos/logo-pieng-principal.jpg" alt="PIENG Soluções Energéticas">
                 <div class="company-tagline">Soluções Energéticas</div>
             </div>
             <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
@@ -471,8 +486,7 @@
                 <strong>Cliente:</strong> {{CLIENTE_NOME}} | 
                 <strong>Cidade:</strong> {{CLIENTE_CIDADE}} | 
                 <strong>Consumo:</strong> {{CLIENTE_CONSUMO_KWH}} kWh/mês | 
-                <strong>Tipo:</strong> {{CLIENTE_CONSUMO_TIPO}} | 
-                <strong>Instalação:</strong> {{CLIENTE_TIPO_INSTALACAO}}
+                <strong>Tipo:</strong> {{CLIENTE_CONSUMO_TIPO}}
             </div>
         </header>
 
@@ -595,9 +609,9 @@
                 • Performance Rate: 75% conforme padrões da indústria (variação real: 72% a 78% dependendo das condições)<br>
                 • Base legal: Lei 14.300/2022 sobre TUSD • Simultaneidade residencial: 30% (variação ±10%)<br>
                 • HSP {{CLIENTE_CIDADE}}: {{HSP_LOCAL}} (fonte: CRESESB/INPE) • Economia considerando tarifa {{ECONOMIA_TARIFA}}/kWh para {{CLIENTE_CONSUMO_TIPO}}<br>
-                • Valores válidos até {{DATA_VALIDADE}} • Equipamentos sujeitos à disponibilidade de estoque<br><br>
+                • Orçamento válido por 2 dias ou até acabar o estoque • Equipamentos sujeitos à disponibilidade<br><br>
                 
-                <em>Proposta gerada em {{DATA_GERACAO}} • Válida por 7 dias • Sujeita à análise técnica do local</em>
+                <em>Proposta gerada em {{DATA_GERACAO}} • Válida por 2 dias ou até acabar o estoque • Sujeita à análise técnica do local</em>
             </div>
         </footer>
     </div>

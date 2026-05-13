@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import InstallPWA from '@/components/InstallPWA';
 
 interface ClienteInfo {
   nome: string;
@@ -26,12 +27,10 @@ export default function AdminIndex() {
     clienteNome: '',
     clienteEmail: '',
     clienteTelefone: '',
-    propostaSlug: '',
-    cidade: 'Anápolis/GO',
-    consumoMensal: 2500,
-    tipoInstalacao: 'Telhado Fibrocimento'
+    propostaSlug: ''
   });
   const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [limpandoTestes, setLimpandoTestes] = useState(false);
 
   useEffect(() => {
     loadClientesData();
@@ -146,48 +145,24 @@ export default function AdminIndex() {
     }
   };
 
-  const syncWithGoogleDrive = async () => {
-    if (!confirm('Deseja sincronizar todos os clientes com o Google Drive?\n\nIsso irá fazer upload de todos os arquivos para a nuvem.')) return;
-    
-    try {
-      const syncPromises = clientes.map(async (cliente) => {
-        const response = await fetch('/api/admin/sync-google-drive', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            clientePasta: cliente.pasta
-          })
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log(`Cliente ${cliente.nome} sincronizado:`, result);
-          return { cliente: cliente.nome, success: true, result };
-        } else {
-          const error = await response.json();
-          console.error(`Erro ao sincronizar ${cliente.nome}:`, error);
-          return { cliente: cliente.nome, success: false, error };
-        }
+  const openEnviarPropostaModal = (cliente?: ClienteInfo) => {
+    if (cliente) {
+      // Preencher formulário com dados do cliente
+      setEnviarForm({
+        clienteNome: cliente.nome,
+        clienteEmail: cliente.email || '',
+        clienteTelefone: cliente.telefone || '',
+        propostaSlug: cliente.pasta || ''
       });
-
-      const results = await Promise.all(syncPromises);
-      const successCount = results.filter(r => r.success).length;
-      const errorCount = results.filter(r => !r.success).length;
-
-      alert(`Sincronização concluída!\n\n✅ Sucessos: ${successCount}\n❌ Erros: ${errorCount}`);
-      
-      // Recarregar dados após sincronização
-      loadClientesData();
-      
-    } catch (error) {
-      console.error('Erro na sincronização:', error);
-      alert('Erro durante a sincronização com Google Drive');
+    } else {
+      // Limpar formulário para novo envio
+      setEnviarForm({
+        clienteNome: '',
+        clienteEmail: '',
+        clienteTelefone: '',
+        propostaSlug: ''
+      });
     }
-  };
-
-  const openEnviarPropostaModal = () => {
     setShowEnviarModal(true);
   };
 
@@ -197,11 +172,58 @@ export default function AdminIndex() {
       clienteNome: '',
       clienteEmail: '',
       clienteTelefone: '',
-      propostaSlug: '',
-      cidade: 'Anápolis/GO',
-      consumoMensal: 2500,
-      tipoInstalacao: 'Telhado Fibrocimento'
+      propostaSlug: ''
     });
+  };
+
+  const handleLimpezaTestes = async () => {
+    const confirmacao = window.confirm(
+      `⚠️ ATENÇÃO: Você realmente deseja deletar TODOS os clientes de teste?\n\n` +
+      `Esta ação irá remover:\n` +
+      `• Clientes que começam com "Cliente Padrão"\n` +
+      `• Clientes com "teste", "test", "exemplo", "demo" no nome\n` +
+      `• Todas as propostas relacionadas\n` +
+      `• Todos os analytics relacionados\n` +
+      `• Todos os orçamentos relacionados\n\n` +
+      `Esta ação NÃO pode ser desfeita!\n\n` +
+      `Deseja continuar?`
+    );
+
+    if (!confirmacao) {
+      return;
+    }
+
+    try {
+      setLimpandoTestes(true);
+      
+      const response = await fetch('/api/admin/limpeza-clientes-teste', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Erro ao fazer limpeza');
+      }
+
+      const result = await response.json();
+      
+      alert(
+        `✅ Limpeza concluída com sucesso!\n\n` +
+        `Clientes deletados: ${result.result.clientesDeletados}\n` +
+        `Propostas deletadas: ${result.result.propostasDeletadas}\n` +
+        `Analytics deletados: ${result.result.analyticsDeletados}\n` +
+        `Orçamentos deletados: ${result.result.orcamentosDeletados}`
+      );
+
+      // Recarregar lista de clientes
+      await loadClientesData();
+      
+    } catch (error) {
+      console.error('❌ Erro ao fazer limpeza:', error);
+      alert(`❌ Erro ao fazer limpeza: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setLimpandoTestes(false);
+    }
   };
 
   const handleEnviarFormChange = (field: string, value: string | number) => {
@@ -229,10 +251,8 @@ export default function AdminIndex() {
           clienteNome: enviarForm.clienteNome,
           clienteEmail: enviarForm.clienteEmail,
           clienteTelefone: enviarForm.clienteTelefone,
-          cidade: enviarForm.cidade,
-          consumoMensal: enviarForm.consumoMensal,
-          tipoInstalacao: enviarForm.tipoInstalacao,
           propostaSlug: enviarForm.propostaSlug
+          // cidade, consumoMensal e tipoInstalacao serão buscados da proposta original
         })
       });
 
@@ -271,7 +291,7 @@ export default function AdminIndex() {
                     🏢 Área Administrativa
                   </h1>
                   <span className="px-2 py-1 text-xs font-mono bg-blue-100 text-blue-700 rounded border border-blue-200">
-                    v2.2.5
+                    v2.4.1
                   </span>
                 </div>
                 <p className="text-gray-600">
@@ -285,11 +305,19 @@ export default function AdminIndex() {
                     ✨ Ver Exemplo
                   </a>
                 </Link>
+                <Link href="/admin/configuracoes" legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xl" title="Configurações do Sistema">
+                    ⚙️
+                  </a>
+                </Link>
                 <Link href="/" legacyBehavior><a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                 🏠 Site
               </a></Link>
               </div>
             </div>
+
+            {/* PWA Install Banner */}
+            <InstallPWA />
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -343,23 +371,11 @@ export default function AdminIndex() {
             </div>
 
             {/* Ações Principais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
                 <div className="text-3xl mb-3">⚡</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Gerador Rápido</h3>
-                <p className="text-sm text-gray-600">Geração rápida de propostas</p>
-              </a></Link>
-
-              <Link href="/admin/novo-cliente" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
-                <div className="text-3xl mb-3">👤</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Novo Cliente</h3>
-                <p className="text-sm text-gray-600">Cadastrar novo cliente</p>
-              </a></Link>
-
-              <Link href="/admin/configuracoes" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
-                <div className="text-3xl mb-3">⚙️</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Configurações</h3>
-                <p className="text-sm text-gray-600">Parâmetros do sistema</p>
+                <h3 className="font-semibold mb-1">Gerador Rápido</h3>
+                <p className="text-sm opacity-90">Geração rápida de propostas</p>
               </a></Link>
 
               <Link href="/admin/orcamentos" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
@@ -368,24 +384,6 @@ export default function AdminIndex() {
                 <p className="text-sm text-gray-600">Gerenciar orçamentos</p>
               </a></Link>
 
-              <button
-                onClick={loadClientesData}
-                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
-              >
-                <div className="text-3xl mb-3">🔄</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Atualizar</h3>
-                <p className="text-sm text-gray-600">Recarregar dados</p>
-              </button>
-
-              <button
-                onClick={syncWithGoogleDrive}
-                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
-              >
-                <div className="text-3xl mb-3">☁️</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Google Drive</h3>
-                <p className="text-sm text-gray-600">Sincronizar com nuvem</p>
-              </button>
-
               <Link href="/propostas-publicas" legacyBehavior>
                 <a className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
                   <div className="text-3xl mb-3">🌐</div>
@@ -393,15 +391,6 @@ export default function AdminIndex() {
                   <p className="text-sm opacity-90">Ver todas propostas online</p>
                 </a>
               </Link>
-
-              <button
-                onClick={openEnviarPropostaModal}
-                className="block w-full p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
-              >
-                <div className="text-3xl mb-3">📧</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Enviar Proposta</h3>
-                <p className="text-sm text-gray-600">Enviar link para cliente</p>
-              </button>
             </div>
 
             {/* Lista de Clientes */}
@@ -419,8 +408,8 @@ export default function AdminIndex() {
               ) : clientes.length === 0 ? (
                 <div className="p-8 text-center">
                   <div className="text-gray-500 mb-4">Nenhum cliente cadastrado</div>
-                  <Link href="/admin/novo-cliente" legacyBehavior><a className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    👤 Cadastrar Primeiro Cliente
+                  <Link href="/gerador-rapido" legacyBehavior><a className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    ⚡ Gerar Primeira Proposta
                   </a></Link>
                 </div>
               ) : (
@@ -467,22 +456,30 @@ export default function AdminIndex() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-2 flex-wrap">
-                              <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior><a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">
-                                📋 Orçamentos
-                              </a></Link>
-                              {cliente.temProposta && (
+                              {cliente.temProposta ? (
                                 <>
+                                  {/* ✅ Botão "Editar Proposta" - Busca dados do Supabase via /api/propostas/[slug] */}
+                                  <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior><a className="text-orange-600 hover:text-orange-900 px-2 py-1 rounded bg-orange-50 hover:bg-orange-100">
+                                    ✏️ Editar Proposta
+                                  </a></Link>
                                   <a
-                                    href={`https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`}
+                                    href={`/proposta/${cliente.pasta}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
                                   >
-                                    👁️ Ver Real
+                                    👁️ Ver Proposta
                                   </a>
                                   <button
+                                    onClick={() => openEnviarPropostaModal(cliente)}
+                                    className="text-pink-600 hover:text-pink-900 px-2 py-1 rounded bg-pink-50 hover:bg-pink-100"
+                                    title="Enviar proposta por email"
+                                  >
+                                    📧 Email
+                                  </button>
+                                  <button
                                     onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
                                       const mensagem = `Olá! Sua proposta de energia solar está pronta! 🌞\n\nAcesse aqui: ${propostaUrl}\n\nQualquer dúvida, estou à disposição!\n\nPIENG Soluções Energéticas`;
                                       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
                                       window.open(whatsappUrl, '_blank');
@@ -493,7 +490,7 @@ export default function AdminIndex() {
                                   </button>
                                   <button
                                     onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas.vercel.app/propostas/orçamento/clientes/proposta_${cliente.pasta}.html`;
+                                      const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
                                       navigator.clipboard.writeText(propostaUrl);
                                       alert('Link copiado! Cole no WhatsApp ou email do cliente.');
                                     }}
@@ -502,9 +499,13 @@ export default function AdminIndex() {
                                     🔗 Copiar
                                   </button>
                                 </>
+                              ) : (
+                                <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior><a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">
+                                  📋 Criar Orçamento
+                                </a></Link>
                               )}
                               <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior><a className="text-yellow-600 hover:text-yellow-900 px-2 py-1 rounded bg-yellow-50 hover:bg-yellow-100">
-                                ✏️ Editar
+                                ⚙️ Editar Cliente
                               </a></Link>
                               <button
                                 onClick={() => deleteCliente(cliente.pasta, cliente.nome)}
@@ -593,6 +594,7 @@ export default function AdminIndex() {
                   value={enviarForm.propostaSlug}
                   onChange={(e) => handleEnviarFormChange('propostaSlug', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Selecione a proposta para enviar"
                 >
                   <option value="">Selecione uma proposta</option>
                   {clientes.filter(c => c.temProposta).map(cliente => (
@@ -603,48 +605,6 @@ export default function AdminIndex() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cidade
-                </label>
-                <input
-                  type="text"
-                  value={enviarForm.cidade}
-                  onChange={(e) => handleEnviarFormChange('cidade', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Anápolis/GO"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Consumo Mensal (kWh)
-                </label>
-                <input
-                  type="number"
-                  value={enviarForm.consumoMensal}
-                  onChange={(e) => handleEnviarFormChange('consumoMensal', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="2500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Instalação
-                </label>
-                <select
-                  value={enviarForm.tipoInstalacao}
-                  onChange={(e) => handleEnviarFormChange('tipoInstalacao', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Telhado Fibrocimento">Telhado Fibrocimento</option>
-                  <option value="Telhado Cerâmico">Telhado Cerâmico</option>
-                  <option value="Telhado Metálico">Telhado Metálico</option>
-                  <option value="Solo">Solo</option>
-                  <option value="Laje">Laje</option>
-                </select>
-              </div>
             </div>
 
             <div className="flex justify-end space-x-3 mt-6">

@@ -1,0 +1,155 @@
+/**
+ * 🥩 CSS CUSTOMIZADO - AÇOUGUE
+ * Tema: Cores vermelhas/escuras + foco em refrigeração 24h
+ */
+
+.variant-comercial-acougue {
+  --variant-primary: #c0392b;
+  --variant-secondary: #e74c3c;
+  --variant-gradient: linear-gradient(135deg, #c31432 0%, #240b36 100%);
+  --variant-accent: #8b0000;
+  --variant-icon: '🥩';
+}
+
+/* Hero Section - Tema Açougue */
+.variant-comercial-acougue .hero-section {
+  background: var(--variant-gradient);
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+    var(--variant-gradient);
+  color: white;
+  padding: 60px 30px;
+  text-align: center;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(192, 57, 43, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.variant-comercial-acougue .hero-section::before {
+  content: '🥩';
+  position: absolute;
+  font-size: 15rem;
+  opacity: 0.1;
+  top: -50px;
+  right: -50px;
+  transform: rotate(-15deg);
+}
+
+/* Seção de Refrigeração - Destaque para Açougue */
+.variant-comercial-acougue .refrigeration-section {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  padding: 40px;
+  border-radius: 16px;
+  margin: 30px 0;
+  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.variant-comercial-acougue .refrigeration-section::before {
+  content: '❄️';
+  position: absolute;
+  font-size: 12rem;
+  opacity: 0.1;
+  top: -30px;
+  right: -30px;
+  transform: rotate(15deg);
+}
+
+.variant-comercial-acougue .refrigeration-icon {
+  font-size: 5rem;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+.variant-comercial-acougue .refrigeration-highlight {
+  background: rgba(255,255,255,0.2);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  backdrop-filter: blur(10px);
+}
+
+/* Custo Operacional - Foco em Refrigeração */
+.variant-comercial-acougue .operational-cost-section {
+  background: white;
+  border: 3px solid var(--variant-primary);
+  border-radius: 16px;
+  padding: 35px;
+  margin: 30px 0;
+  box-shadow: 0 8px 25px rgba(192, 57, 43, 0.15);
+}
+
+.variant-comercial-acougue .refrigeration-cost {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  margin: 20px 0;
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* Cards de Sistema - Tema Açougue */
+.variant-comercial-acougue .pieng-system-card {
+  border: 3px solid transparent;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(192, 57, 43, 0.1);
+}
+
+.variant-comercial-acougue .pieng-system-card:hover {
+  border-color: var(--variant-primary);
+  box-shadow: 0 8px 25px rgba(192, 57, 43, 0.25);
+  transform: translateY(-5px);
+}
+
+/* CTA Button - Tema Açougue */
+.variant-comercial-acougue .cta-button {
+  background: var(--variant-gradient);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 18px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(192, 57, 43, 0.4);
+  transition: all 0.3s ease;
+}
+
+.variant-comercial-acougue .cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(192, 57, 43, 0.5);
+}
+
+/* Tabelas - Header com tema açougue */
+.variant-comercial-acougue th {
+  background: var(--variant-gradient);
+  color: white;
+  padding: 15px;
+  font-weight: 700;
+}
+
+/* Marketing Verde - Selo Açougue Sustentável */
+.variant-comercial-acougue .green-marketing-section {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  padding: 35px;
+  border-radius: 16px;
+  margin: 30px 0;
+  text-align: center;
+  position: relative;
+}
+
+.variant-comercial-acougue .sustainability-badge {
+  font-size: 5rem;
+  margin: 20px 0;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+

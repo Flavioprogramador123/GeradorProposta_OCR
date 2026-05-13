@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 interface Orcamento {
   nome: string;
@@ -18,6 +19,7 @@ interface Orcamento {
 }
 
 export default function GeradorRapido() {
+  const router = useRouter();
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
 
   const [config, setConfig] = useState({
@@ -30,7 +32,11 @@ export default function GeradorRapido() {
     performanceRate: 0.75,
     pdespesaFixo: 3000,
     pdespesaVariavel: 22,
-    metodo: 'variavel'
+    metodo: 'variavel',
+    descontoPix: 10.0,
+    fatorParcelado: 1.20,
+    fator12x: 0.88,
+    fator18x: 0.83
   });
 
   const [resultados, setResultados] = useState<any[]>([]);
@@ -39,6 +45,378 @@ export default function GeradorRapido() {
   const [yamlStatus, setYamlStatus] = useState({ message: '', type: '', show: false });
   const [showYamlInput, setShowYamlInput] = useState(false);
   const [configSistema, setConfigSistema] = useState<any>(null);
+  const [slugAtual, setSlugAtual] = useState<string | null>(null); // ✅ Slug da proposta carregada
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateSelecionado, setTemplateSelecionado] = useState<string>('padrao');
+  const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
+
+  // ✅ Função para carregar proposta existente
+  const carregarPropostaExistente = async (clienteSlug: string) => {
+    try {
+      console.log('📥 Carregando proposta existente para:', clienteSlug);
+      setLoading(true);
+
+      // Buscar proposta do Supabase ou filesystem usando a API correta
+      const response = await fetch(`/api/propostas/${clienteSlug}`);
+      if (!response.ok) {
+        throw new Error('Proposta não encontrada');
+      }
+
+      const propostaData = await response.json();
+      console.log('✅ Dados da proposta carregados:', propostaData);
+      console.log('📊 Estrutura da proposta:', {
+        temCliente: !!propostaData?.cliente,
+        temSistemas: !!propostaData?.sistemas,
+        quantidadeSistemas: propostaData?.sistemas?.length || 0,
+        keys: propostaData ? Object.keys(propostaData) : []
+      });
+
+      // Verificar se tem dados e sistemas
+      if (!propostaData || !propostaData.sistemas || !Array.isArray(propostaData.sistemas) || propostaData.sistemas.length === 0) {
+        console.error('❌ Estrutura inválida:', {
+          temProposta: !!propostaData,
+          temSistemas: !!propostaData?.sistemas,
+          ehArray: Array.isArray(propostaData?.sistemas),
+          quantidade: propostaData?.sistemas?.length,
+          keys: propostaData ? Object.keys(propostaData) : [],
+          primeiroSistema: propostaData?.sistemas?.[0]
+        });
+        throw new Error('Dados da proposta incompletos - sistemas não encontrados');
+      }
+
+      // ✅ Preencher TODOS os dados do cliente da proposta (não hardcoded)
+      const cliente = propostaData.cliente || {};
+      // ✅ CARREGAR CONFIG DA PROPOSTA (valores usados na geração original)
+      const configProposta = propostaData.config || {};
+      
+      setConfig(prev => ({
+        ...prev,
+        nomeCliente: cliente.nome || prev.nomeCliente,
+        cidadeCliente: cliente.cidade || prev.cidadeCliente,
+        consumoMensal: cliente.consumoMensal || cliente.consumo || parseFloat(cliente.consumoKwh) || prev.consumoMensal,
+        tipoImovel: cliente.tipoImovel || cliente.tipo || prev.tipoImovel,
+        // ✅ Prioridade: Config da Proposta > Cliente > Config Sistema > Default
+        hsp: configProposta.hsp || cliente.hsp || parseFloat(cliente.hspLocal?.toString().replace(',', '.')) || prev.hsp,
+        tarifa: configProposta.tarifa || cliente.tarifa || parseFloat(cliente.tarifaEnergia?.toString().replace(',', '.')) || prev.tarifa,
+        // ✅ CARREGAR PDESPESA DA PROPOSTA (valores originais usados)
+        pdespesaFixo: configProposta.pdespesaFixo || prev.pdespesaFixo,
+        pdespesaVariavel: configProposta.pdespesaVariavel || prev.pdespesaVariavel,
+        performanceRate: configProposta.performanceRate || prev.performanceRate,
+        metodo: configProposta.metodo || prev.metodo,
+        descontoPix: configProposta.descontoPix || prev.descontoPix,
+        fatorParcelado: configProposta.fatorParcelado || prev.fatorParcelado,
+        fator12x: configProposta.fator12x || prev.fator12x,
+        fator18x: configProposta.fator18x || prev.fator18x
+      }));
+      
+      console.log('✅ Config da proposta carregada:', {
+        pdespesaFixo: configProposta.pdespesaFixo,
+        pdespesaVariavel: configProposta.pdespesaVariavel,
+        hsp: configProposta.hsp,
+        tarifa: configProposta.tarifa
+      });
+
+      console.log('📋 Dados do cliente carregados:', {
+        nome: cliente.nome,
+        cidade: cliente.cidade,
+        consumo: cliente.consumoMensal || cliente.consumo,
+        hsp: cliente.hsp || cliente.hspLocal,
+        tarifa: cliente.tarifa || cliente.tarifaEnergia
+      });
+
+      // Converter sistemas em orçamentos com validação robusta
+      const orcamentosCarregados: Orcamento[] = propostaData.sistemas.map((sistema: any, index: number) => {
+        console.log(`📦 Processando sistema ${index + 1}:`, {
+          titulo: sistema.titulo || sistema.nome,
+          potencia: sistema.potencia || sistema.potTotal,
+          pcusto: sistema.pcusto,
+          precoCusto: sistema.precoCusto,
+          total_final: sistema.total_final,
+          ppix: sistema.ppix,
+          precoPixDecimal: sistema.precoPixDecimal,
+          pdespesa_total: sistema.pdespesa_total,
+          modulos: sistema.modulos,
+          pot_modulo: sistema.pot_modulo,
+          sistema_completo: sistema // Para debug completo
+        });
+        
+        // Extrair potência de diferentes formatos possíveis
+        let potenciaTotal = 0;
+        if (sistema.potTotal) {
+          potenciaTotal = typeof sistema.potTotal === 'number' ? sistema.potTotal : parseFloat(sistema.potTotal.toString().replace(',', '.'));
+        } else if (sistema.potencia) {
+          const potenciaMatch = sistema.potencia.toString().match(/(\d+[.,]?\d*)/);
+          potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1].replace(',', '.')) : 0;
+        } else if (sistema.modulos && sistema.pot_modulo) {
+          potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
+        }
+
+        // Extrair P.Custo de diferentes formatos com cálculo reverso quando necessário
+        let pcusto = 0;
+        
+        // Converter valores para número (suporta strings formatadas como "R$ 13.500,00")
+        const parseValue = (val: any): number => {
+          if (typeof val === 'number') return val;
+          if (!val) return 0;
+          
+          // Converter para string e remover espaços
+          let str = val.toString().trim();
+          
+          // Se já é um número válido, retornar
+          if (!isNaN(Number(str)) && !str.includes(',') && !str.includes('.')) {
+            return Number(str);
+          }
+          
+          // Remover tudo exceto dígitos, vírgulas e pontos
+          str = str.replace(/[^\d,.-]/g, '');
+          
+          // Se está vazio após limpeza, retornar 0
+          if (!str) return 0;
+          
+          // Se tem vírgula e ponto, assumir formato BR: 13.500,00 (ponto = milhar, vírgula = decimal)
+          if (str.includes(',') && str.includes('.')) {
+            // Remover pontos (separadores de milhar) e substituir vírgula por ponto
+            str = str.replace(/\./g, '').replace(',', '.');
+          } else if (str.includes(',')) {
+            // Apenas vírgula, verificar se é decimal ou separador de milhar
+            const parts = str.split(',');
+            if (parts[1] && parts[1].length <= 2) {
+              // Decimal (ex: "13500,50")
+              str = str.replace(',', '.');
+            } else {
+              // Separador de milhar (ex: "13,500")
+              str = str.replace(',', '');
+            }
+          }
+          
+          const parsed = parseFloat(str);
+          return isNaN(parsed) ? 0 : parsed;
+        };
+
+        // Tentar extrair pcusto diretamente (prioridade: campos diretos)
+        if (sistema.pcusto) {
+          pcusto = parseValue(sistema.pcusto);
+          console.log(`✅ Sistema ${index + 1}: pcusto direto = ${pcusto}`);
+        } else if (sistema.precoCusto) {
+          pcusto = parseValue(sistema.precoCusto);
+          console.log(`✅ Sistema ${index + 1}: precoCusto = ${pcusto}`);
+        } else {
+          // Se não tem pcusto, calcular a partir do preço final (precoPixDecimal/ppix)
+          // O precoPixDecimal JÁ É o total final (pcusto + pdespesa)
+          // Precisamos calcular o pcusto reverso
+          
+          // Tentar múltiplos campos possíveis para o preço final
+          const precoFinal = parseValue(sistema.precoPixDecimal) || 
+                            parseValue(sistema.ppix) || 
+                            parseValue(sistema.total_final) || 
+                            parseValue(sistema.valorTotal) ||
+                            parseValue(sistema.precoAtual) ||
+                            parseValue(sistema.precoRiscado) ||
+                            parseValue(sistema.preco) ||
+                            parseValue(sistema.valor);
+          
+          // Tentar múltiplos campos possíveis para pdespesa
+          const pdespesaTotal = parseValue(sistema.pdespesa_total) || 
+                               parseValue(sistema.pdespesaTotal) ||
+                               parseValue(sistema.preco_despesa) ||
+                               parseValue(sistema.despesa) ||
+                               parseValue(sistema.despesas);
+          
+          console.log(`🔍 Sistema ${index + 1} - Valores extraídos:`, {
+            precoFinal,
+            pdespesaTotal,
+            precoPixDecimal_raw: sistema.precoPixDecimal,
+            ppix_raw: sistema.ppix,
+            total_final_raw: sistema.total_final
+          });
+          
+          if (precoFinal > 0) {
+            if (pdespesaTotal > 0 && pdespesaTotal < precoFinal) {
+              // Calcular pcusto: precoFinal = pcusto + pdespesa_total
+              pcusto = precoFinal - pdespesaTotal;
+              console.log(`✅ Sistema ${index + 1}: Calculado pcusto = ${precoFinal} - ${pdespesaTotal} = ${pcusto}`);
+            } else {
+              // Se não tem pdespesa, calcular usando configurações atuais
+              // Fórmula: precoFinal = pcusto + (pdespesaFixo + pcusto * pdespesaVariavel/100)
+              // precoFinal = pcusto * (1 + pdespesaVariavel/100) + pdespesaFixo
+              // pcusto = (precoFinal - pdespesaFixo) / (1 + pdespesaVariavel/100)
+              const pdespesaFixo = config.pdespesaFixo || 2000;
+              const pdespesaVariavel = config.pdespesaVariavel || 15;
+              const fator = 1 + (pdespesaVariavel / 100);
+              pcusto = Math.max(0, (precoFinal - pdespesaFixo) / fator);
+              console.log(`📊 Sistema ${index + 1}: Estimado pcusto = (${precoFinal} - ${pdespesaFixo}) / ${fator} = ${pcusto}`);
+            }
+          } else {
+            console.warn(`⚠️ Sistema ${index + 1}: Não foi possível determinar preço final, tentando calcular da potência`);
+            // Tentar estimar baseado na potência (R$ 4.000/kWp é um valor razoável)
+            if (potenciaTotal > 0) {
+              pcusto = potenciaTotal * 4000; // Estimativa conservadora
+              console.log(`📊 Sistema ${index + 1}: Estimado pcusto da potência = ${potenciaTotal} kWp * 4000 = ${pcusto}`);
+            } else {
+              pcusto = 10000; // Valor padrão mínimo
+              console.warn(`⚠️ Sistema ${index + 1}: Usando valor padrão mínimo de pcusto = ${pcusto}`);
+            }
+          }
+        }
+        
+        // Log detalhado para debug ANTES do cálculo
+        console.log(`💰 Sistema ${index + 1} - Dados brutos do sistema:`, {
+          titulo: sistema.titulo || sistema.nome,
+          pcusto_direto: sistema.pcusto,
+          precoCusto: sistema.precoCusto,
+          total_final: sistema.total_final,
+          ppix: sistema.ppix,
+          precoPixDecimal: sistema.precoPixDecimal,
+          precoAtual: sistema.precoAtual,
+          precoRiscado: sistema.precoRiscado,
+          pdespesa_total: sistema.pdespesa_total,
+          pdespesaTotal: sistema.pdespesaTotal,
+          preco_despesa: sistema.preco_despesa,
+          valorTotal: sistema.valorTotal,
+          // Mostrar TODOS os campos do sistema para debug
+          todas_chaves: Object.keys(sistema)
+        });
+        
+        // Log após cálculo
+        console.log(`✅ Sistema ${index + 1} - pcusto final calculado:`, pcusto);
+        
+        // Calcular módulos e inversores se não existirem (com valores mínimos garantidos)
+        let modulos = 0;
+        if (sistema.modulos) {
+          modulos = typeof sistema.modulos === 'number' ? sistema.modulos : parseInt(sistema.modulos.toString()) || 0;
+        } else if (potenciaTotal > 0) {
+          modulos = Math.round(potenciaTotal * 1000 / 605);
+        } else {
+          modulos = 10; // Valor padrão mínimo
+        }
+        
+        let inversores = 0;
+        if (sistema.inversores) {
+          inversores = typeof sistema.inversores === 'number' ? sistema.inversores : parseInt(sistema.inversores.toString()) || 0;
+        } else if (potenciaTotal > 0) {
+          inversores = Math.ceil(potenciaTotal / 15);
+        } else {
+          inversores = 1; // Valor padrão mínimo
+        }
+        
+        let pot_modulo = 0;
+        if (sistema.pot_modulo) {
+          pot_modulo = typeof sistema.pot_modulo === 'number' ? sistema.pot_modulo : parseFloat(sistema.pot_modulo.toString().replace(',', '.')) || 0;
+        } else {
+          pot_modulo = 605; // Valor padrão
+        }
+        
+        let pot_inv = 0;
+        if (sistema.pot_inv) {
+          pot_inv = typeof sistema.pot_inv === 'number' ? sistema.pot_inv : parseFloat(sistema.pot_inv.toString().replace(',', '.')) || 0;
+        } else {
+          pot_inv = 15; // Valor padrão
+        }
+
+        // Garantir valores mínimos válidos - se ainda for 0, usar valor baseado na potência
+        // Garantir valores mínimos válidos - se ainda for 0, usar valor baseado na potência
+        if (pcusto <= 0) {
+          // Estimar pcusto baseado na potência (R$ 4.000/kWp é um valor razoável)
+          pcusto = Math.max(10000, potenciaTotal * 4000);
+          console.warn(`⚠️ Sistema ${index + 1} tem pcusto inválido, usando estimativa baseada em potência: ${pcusto} (${potenciaTotal} kWp × R$ 4.000/kWp)`);
+        }
+        
+        if (modulos <= 0) modulos = 10;
+        if (pot_modulo <= 0) pot_modulo = 605;
+
+        const orcamento: Orcamento = {
+          nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
+          distribuidora: sistema.distribuidora || sistema.fornecedor || 'Fornecedor',
+          pcusto,
+          modulos,
+          pot_modulo,
+          marca_modulo: sistema.marca_modulo || 'Padrão',
+          inversores: inversores || 1,
+          pot_inv: pot_inv || 15,
+          marca_inversor: sistema.marca_inversor || 'Padrão',
+          // ✅ Prioridade: Sistema > Config da Proposta > Config Atual > Default
+          pdespesa_fixo: parseValue(sistema.pdespesa_fixo) || parseValue(sistema.pdespesaFixo) || (propostaData.config?.pdespesaFixo) || config.pdespesaFixo,
+          pdespesa_variavel_percent: parseValue(sistema.pdespesa_variavel_percent) || parseValue(sistema.pdespesaVariavel) || (propostaData.config?.pdespesaVariavel) || config.pdespesaVariavel,
+          pdespesa_total: parseValue(sistema.pdespesa_total) || parseValue(sistema.pdespesaTotal) || 0
+        };
+
+        console.log(`✅ Orçamento ${index + 1} convertido:`, {
+          nome: orcamento.nome,
+          pcusto: orcamento.pcusto,
+          modulos: orcamento.modulos,
+          pot_modulo: orcamento.pot_modulo,
+          inversores: orcamento.inversores,
+          valido: orcamento.pcusto > 0 && orcamento.modulos > 0 && orcamento.pot_modulo > 0,
+          sistemaOriginal: {
+            pcusto: sistema.pcusto,
+            precoCusto: sistema.precoCusto,
+            valorTotal: sistema.valorTotal,
+            total_final: sistema.total_final,
+            ppix: sistema.ppix,
+            modulos: sistema.modulos,
+            pot_modulo: sistema.pot_modulo
+          }
+        });
+
+        return orcamento;
+      });
+
+      // Validar orçamentos antes de salvar com logs detalhados
+      const orcamentosValidos = orcamentosCarregados.filter((orc, index) => {
+        const validacoes = {
+          temOrcamento: !!orc,
+          temNome: !!orc?.nome,
+          pcustoValido: orc?.pcusto > 0,
+          modulosValido: orc?.modulos > 0,
+          pot_moduloValido: orc?.pot_modulo > 0
+        };
+        
+        const valido = validacoes.temOrcamento && validacoes.temNome && validacoes.pcustoValido && validacoes.modulosValido && validacoes.pot_moduloValido;
+        
+        if (!valido) {
+          console.warn(`⚠️ Orçamento ${index + 1} inválido será removido:`, {
+            orcamento: orc,
+            validacoes,
+            valores: {
+              nome: orc?.nome,
+              pcusto: orc?.pcusto,
+              modulos: orc?.modulos,
+              pot_modulo: orc?.pot_modulo
+            }
+          });
+        } else {
+          console.log(`✅ Orçamento ${index + 1} válido:`, {
+            nome: orc.nome,
+            pcusto: orc.pcusto,
+            modulos: orc.modulos,
+            pot_modulo: orc.pot_modulo
+          });
+        }
+        
+        return valido;
+      });
+
+      if (orcamentosValidos.length === 0) {
+        throw new Error('Nenhum orçamento válido encontrado na proposta. Verifique os dados dos sistemas.');
+      }
+
+      console.log(`✅ ${orcamentosValidos.length} de ${orcamentosCarregados.length} orçamentos válidos`);
+      setOrcamentos(orcamentosValidos);
+      
+      // ✅ Definir slug atual quando a proposta é carregada
+      const slugProposta = propostaData.slug || clienteSlug;
+      setSlugAtual(slugProposta);
+      console.log('📌 Slug da proposta carregada:', slugProposta);
+      
+      setLoading(false);
+
+      alert(`✅ Proposta carregada com sucesso!\n\nCliente: ${propostaData.cliente?.nome || 'N/A'}\nSistemas válidos: ${orcamentosValidos.length} de ${orcamentosCarregados.length}\n\nVocê pode editar e gerar nova versão.`);
+    } catch (error) {
+      console.error('❌ Erro ao carregar proposta:', error);
+      alert(`❌ Erro ao carregar proposta do cliente ${clienteSlug}.\n\nVerifique se a proposta existe.`);
+      setLoading(false);
+    }
+  };
 
   // Carregar configurações do sistema
   useEffect(() => {
@@ -49,6 +427,22 @@ export default function GeradorRapido() {
           const configData = await response.json();
           console.log('🔧 Configurações carregadas:', configData);
           setConfigSistema(configData);
+
+          // ✅ ATUALIZAR config state com valores do Supabase
+          setConfig(prev => ({
+            ...prev,
+            hsp: parseFloat(configData.hspPadrao) || prev.hsp,
+            tarifa: parseFloat(configData.tarifaEnergia) || prev.tarifa,
+            performanceRate: parseFloat(configData.performanceRate) || prev.performanceRate,
+            pdespesaFixo: parseFloat(configData.pdespesaFixo) || prev.pdespesaFixo,
+            pdespesaVariavel: parseFloat(configData.pdespesaVariavel) || prev.pdespesaVariavel
+          }));
+
+          console.log('✅ Config atualizado com valores do Supabase:', {
+            hsp: parseFloat(configData.hspPadrao),
+            performanceRate: parseFloat(configData.performanceRate),
+            pdespesaFixo: parseFloat(configData.pdespesaFixo)
+          });
         }
       } catch (error) {
         console.error('Erro ao carregar configurações:', error);
@@ -56,16 +450,29 @@ export default function GeradorRapido() {
     };
 
     carregarConfigSistema();
-    
+  }, []);
+
+  // ✅ CARREGAR PROPOSTA EXISTENTE quando há parâmetro 'cliente' na URL
+  // Esta função é usada tanto pelo botão "Editar" em /admin quanto em /admin/orcamentos
+  // Ambos buscam dados do Supabase através da API /api/propostas/[slug]
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const clienteSlug = router.query.cliente as string;
+    if (clienteSlug) {
+      console.log('📥 Parâmetro cliente detectado na URL:', clienteSlug);
+      carregarPropostaExistente(clienteSlug);
+      return; // Não processar outros modos se cliente foi detectado
+    }
+
     // Verificar se está no modo "reaproveitar" (um único orçamento)
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('modo') === 'reaproveitar') {
+    if (router.query.modo === 'reaproveitar') {
       const dadosReaproveitamento = localStorage.getItem('orcamento-reaproveitar');
       if (dadosReaproveitamento) {
         try {
           const dados = JSON.parse(dadosReaproveitamento);
           console.log('♻️ Reaproveitando orçamento:', dados);
-          
+
           // Criar orçamento a partir dos dados reaproveitados
           const orc = dados.orcamento;
           const novoOrcamento: Orcamento = {
@@ -82,13 +489,13 @@ export default function GeradorRapido() {
             pdespesa_variavel_percent: config.pdespesaVariavel,
             pdespesa_total: 0
           };
-          
+
           // Adicionar orçamento à lista
           setOrcamentos([novoOrcamento]);
-          
+
           // Limpar localStorage
           localStorage.removeItem('orcamento-reaproveitar');
-          
+
           // Mostrar mensagem de sucesso
           alert(`✅ Orçamento reaproveitado!\n\n${dados.origem}\n\nVocê pode agora:\n- Preencher os dados do novo cliente\n- Adicionar/remover orçamentos\n- Calcular e gerar proposta`);
         } catch (error) {
@@ -99,7 +506,7 @@ export default function GeradorRapido() {
     }
     
     // Verificar se está no modo "reaproveitar-todos" (múltiplos orçamentos)
-    if (params.get('modo') === 'reaproveitar-todos') {
+    if (router.query.modo === 'reaproveitar-todos') {
       const dadosReaproveitamento = localStorage.getItem('orcamentos-reaproveitar-todos');
       if (dadosReaproveitamento) {
         try {
@@ -136,7 +543,7 @@ export default function GeradorRapido() {
         }
       }
     }
-  }, []);
+  }, [router.isReady, router.query.cliente, router.query.modo]);
 
   // Função para calcular preços usando configurações dinâmicas do sistema
   const calcularPrecos = (totalFinalTabela: number) => {
@@ -575,7 +982,11 @@ consolidado_orcamentos_distribuidores:
       performanceRate: 0.75,
       pdespesaFixo: 3000,
       pdespesaVariavel: 22,
-      metodo: 'variavel'
+      metodo: 'variavel',
+      descontoPix: 0,
+      fatorParcelado: 1,
+      fator12x: 1.15,
+      fator18x: 1.25
     });
     mostrarYamlStatus('🗑️ Histórico limpo! Dados padrão restaurados.', 'info');
   };
@@ -597,7 +1008,8 @@ consolidado_orcamentos_distribuidores:
   };
 
   // Gerar proposta HTML
-  const gerarProposta = async () => {
+  // ✅ Função para abrir modal de seleção de template
+  const abrirModalTemplate = (salvarComo: boolean = false) => {
     const erros = validarDados();
     
     if (erros.length > 0) {
@@ -605,8 +1017,57 @@ consolidado_orcamentos_distribuidores:
       return;
     }
 
+    // Se já tem template selecionado no config, usar ele como padrão
+    const templateAtual = mapearTipoImovelParaTemplate(config.tipoImovel);
+    setTemplateSelecionado(templateAtual);
+    setSalvarComoPendente(salvarComo);
+    setShowTemplateModal(true);
+  };
+
+  // Função para mapear tipo de imóvel para template CSS
+  const mapearTipoImovelParaTemplate = (tipoImovel: string): string => {
+    const tipoLower = tipoImovel.toLowerCase();
+    
+    if (tipoLower.includes('residencial')) {
+      return 'residencial';
+    }
+    if (tipoLower.includes('rural')) {
+      return 'rural';
+    }
+    if (tipoLower.includes('panificadora')) {
+      return 'comercial-panificadora';
+    }
+    if (tipoLower.includes('açougue') || tipoLower.includes('acougue')) {
+      return 'comercial-acougue';
+    }
+    if (tipoLower.includes('restaurante')) {
+      return 'comercial-restaurante';
+    }
+    if (tipoLower.includes('mercado')) {
+      return 'comercial-mercado';
+    }
+    if (tipoLower.includes('industrial')) {
+      return 'industrial';
+    }
+    
+    return 'padrao';
+  };
+
+  // ✅ Função para salvar proposta (atualiza existente ou cria nova)
+  const salvarProposta = async (salvarComo: boolean = false, templateEscolhido: string = 'padrao') => {
     setLoading(true);
     try {
+      // ✅ Determinar slug: se "Salvar Como" ou não tem slug atual, criar novo
+      const slugParaUsar = (salvarComo || !slugAtual) ? null : (slugAtual || null);
+      
+      console.log(salvarComo 
+        ? '💾 Modo: Salvar Como (criar nova proposta)'
+        : (slugAtual && typeof slugAtual === 'string' && slugAtual.trim() !== '') 
+          ? '💾 Modo: Salvar (atualizar proposta existente)'
+          : '💾 Modo: Criar nova proposta'
+      );
+      console.log('📌 Slug atual:', slugAtual || '(nenhum)');
+      console.log('📌 Slug que será usado:', slugParaUsar || 'NOVO');
       // Debug: mostrar dados que serão enviados
       console.log('📤 Dados sendo enviados para a API:', {
         cliente: {
@@ -640,13 +1101,16 @@ consolidado_orcamentos_distribuidores:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          // ✅ Enviar slug existente se for atualização (não "Salvar Como")
+          slugExistente: slugParaUsar,
           cliente: {
             nome: config.nomeCliente,
             cidade: config.cidadeCliente,
             consumo_mensal: config.consumoMensal,
             tipo_imovel: config.tipoImovel,
             hsp: config.hsp,
-            tarifa: config.tarifa
+            tarifa: config.tarifa,
+            template: templateEscolhido // ✅ Enviar template escolhido
           },
           orcamentos: resultados.map(resultado => {
             // USAR DADOS DOS RESULTADOS FINANCEIROS (já calculados)
@@ -694,28 +1158,37 @@ consolidado_orcamentos_distribuidores:
           alert(`⚠️ ATENÇÃO: Proposta gerada mas NÃO foi salva no banco de dados!\n\n${data.supabase?.message || 'Erro desconhecido'}\n\nA proposta pode não estar disponível publicamente.`);
         }
 
-        // Se temos HTML inline, abrir diretamente em nova janela
-        if (data.htmlContent) {
-          const newWindow = window.open('', '_blank');
-          if (newWindow) {
-            newWindow.document.write(data.htmlContent);
-            newWindow.document.close();
+        // ✅ ATUALIZAR SLUG ATUAL se foi criada nova proposta
+        if (data.slug) {
+          setSlugAtual(data.slug);
+        }
+
+        // ✅ ABRIR PROPOSTA DIRETAMENTE NA URL CORRETA (sem about:blank)
+        const propostaUrl = data.slug ? `/proposta/${data.slug}` : null;
+
+        if (propostaUrl) {
+          // Abrir proposta em nova aba IMEDIATAMENTE com URL correta
+          window.open(propostaUrl, '_blank');
+
+          // Mostrar mensagem de sucesso SEM BLOQUEAR
+          const modoTexto = salvarComo 
+            ? '✅ NOVA proposta criada e salva no banco de dados!'
+            : slugAtual 
+              ? '✅ Proposta ATUALIZADA no banco de dados!'
+              : '✅ Proposta gerada e salva no banco de dados!';
+          
+          const mensagemSucesso = data.supabase?.salva
+            ? `${modoTexto}\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || propostaUrl}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n${salvarComo ? '✨ Nova proposta criada com novo link!' : slugAtual ? '✨ Proposta atualizada - link permanece o mesmo!' : '✨ A proposta foi aberta em nova aba!'}`
+            : `✅ Proposta gerada!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: ${propostaUrl}\n⚠️ Não foi salva no banco de dados\n\n✨ A proposta foi aberta em nova aba!`;
+
+          console.log(mensagemSucesso);
+          
+          // Mostrar alert apenas se não foi atualização (para não incomodar)
+          if (!slugAtual || salvarComo) {
+            alert(mensagemSucesso);
           }
-          
-          const mensagemSucesso = data.supabase?.salva 
-            ? `✅ Proposta gerada, salva no banco de dados e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || `/proposta/${data.slug}`}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}`
-            : `✅ Proposta gerada e aberta em nova aba!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n⚠️ Não foi salva no banco de dados`;
-          
-          alert(mensagemSucesso);
         } else {
-          // Fallback: tentar abrir via rota Next.js
-          const mensagemConfirmacao = data.supabase?.salva
-            ? `✅ Proposta gerada e salva no banco de dados!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link público: ${data.supabase.url || `/proposta/${data.slug}`}\n💾 ID no banco: ${data.supabase.propostaId || 'N/A'}\n\nDeseja abrir a proposta agora?`
-            : `✅ Proposta gerada com sucesso!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: /proposta/${data.slug}\n⚠️ Não foi salva no banco de dados\n\nDeseja abrir a proposta agora?`;
-            
-          if (confirm(mensagemConfirmacao)) {
-            window.open(`/proposta/${data.slug}`, '_blank');
-          }
+          alert('❌ Erro: Slug da proposta não foi gerado');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -759,9 +1232,13 @@ consolidado_orcamentos_distribuidores:
                 <Link href="/admin" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                   🏠 Admin
                 </Link>
-                <Link href="/admin/orcamentos" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  🎯 Consultor
-                </Link>
+                <button 
+                  onClick={() => router.back()}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  title="Voltar"
+                >
+                  ← Voltar
+                </button>
               </div>
             </div>
 
@@ -893,6 +1370,24 @@ consolidado_orcamentos_distribuidores:
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">🎨 Template da Proposta</label>
+                  <select
+                    value={config.tipoImovel}
+                    onChange={(e) => setConfig({...config, tipoImovel: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="Residencial">🏠 Residencial</option>
+                    <option value="Rural">🌾 Rural</option>
+                    <option value="Comercial - Panificadora">🥖 Comercial - Panificadora</option>
+                    <option value="Comercial - Açougue">🥩 Comercial - Açougue</option>
+                    <option value="Comercial - Restaurante">🍽️ Comercial - Restaurante</option>
+                    <option value="Comercial - Mercado">🛒 Comercial - Mercado</option>
+                    <option value="Industrial">🏭 Industrial</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Escolha o template visual da proposta</p>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">HSP</label>
                   <input
                     type="number"
@@ -925,7 +1420,7 @@ consolidado_orcamentos_distribuidores:
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Fixo (R$)</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       value={config.pdespesaFixo}
                       onChange={(e) => setConfig({...config, pdespesaFixo: Number(e.target.value)})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -938,7 +1433,7 @@ consolidado_orcamentos_distribuidores:
                     <label className="block text-sm font-medium text-gray-700 mb-1">Percentual Variável (%)</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="1"
                       value={config.pdespesaVariavel}
                       onChange={(e) => setConfig({...config, pdespesaVariavel: Number(e.target.value)})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1131,7 +1626,7 @@ consolidado_orcamentos_distribuidores:
                                 value={orc.pcusto}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pcusto = Number(e.target.value);
+                                  novosOrc[index].pcusto = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
                                   // Recalcular Pdespesa total
                                   const pdVar = novosOrc[index].pcusto * (novosOrc[index].pdespesa_variavel_percent / 100);
                                   novosOrc[index].pdespesa_total = novosOrc[index].pdespesa_fixo + pdVar;
@@ -1159,10 +1654,11 @@ consolidado_orcamentos_distribuidores:
                             <td className="border border-gray-300 px-1 py-1">
                               <input
                                 type="number"
+                                step="0.01"
                                 value={orc.pot_modulo}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pot_modulo = Number(e.target.value);
+                                  novosOrc[index].pot_modulo = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
                                   setOrcamentos(novosOrc);
                                 }}
                                 className="w-16 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
@@ -1201,11 +1697,11 @@ consolidado_orcamentos_distribuidores:
                             <td className="border border-gray-300 px-1 py-1">
                               <input
                                 type="number"
-                                step="0.1"
+                                step="0.01"
                                 value={orc.pot_inv}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pot_inv = Number(e.target.value);
+                                  novosOrc[index].pot_inv = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
                                   setOrcamentos(novosOrc);
                                 }}
                                 className="w-16 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
@@ -1301,13 +1797,29 @@ consolidado_orcamentos_distribuidores:
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={gerarProposta}
-                  disabled={loading || orcamentos.length === 0 || resultados.length === 0}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? '⏳ Gerando...' : '🚀 Gerar Proposta HTML'}
-                </button>
+                <div className="flex gap-3">
+                  {/* ✅ Botão Salvar (atualiza proposta existente) */}
+                  {slugAtual && (
+                    <button
+                      onClick={() => abrirModalTemplate(false)}
+                      disabled={loading || orcamentos.length === 0 || resultados.length === 0}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Atualizar proposta existente (mesmo link)"
+                    >
+                      {loading ? '⏳ Salvando...' : '💾 Salvar'}
+                    </button>
+                  )}
+                  
+                  {/* ✅ Botão Salvar Como (cria nova proposta) */}
+                  <button
+                    onClick={() => abrirModalTemplate(true)}
+                    disabled={loading || orcamentos.length === 0 || resultados.length === 0}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={slugAtual ? "Criar nova proposta com novo link" : "Gerar nova proposta"}
+                  >
+                    {loading ? '⏳ Gerando...' : slugAtual ? '📄 Salvar Como' : '🚀 Gerar Proposta HTML'}
+                  </button>
+                </div>
               </div>
 
               {orcamentos.length === 0 ? (
@@ -1360,7 +1872,7 @@ consolidado_orcamentos_distribuidores:
                             <strong>{resultado.potTotal.toFixed(2)} kWp</strong>
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                            R$ {resultado.ppix.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            R$ {resultado.ppix.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div className="flex flex-col">
@@ -1369,7 +1881,7 @@ consolidado_orcamentos_distribuidores:
                             </div>
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">
-                            R$ {resultado.p12x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            R$ {resultado.p12x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div className="flex flex-col">
@@ -1378,7 +1890,7 @@ consolidado_orcamentos_distribuidores:
                             </div>
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">
-                            R$ {resultado.p18x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            R$ {resultado.p18x_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                             {resultado.geracaoMensal.toFixed(0)} kWh
@@ -1423,6 +1935,172 @@ consolidado_orcamentos_distribuidores:
           </div>
         </div>
       </div>
+
+      {/* Modal de Seleção de Template */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-800">
+                🎨 Escolher Template CSS
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Selecione um template para a proposta. O template será salvo junto com os dados.
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Template Padrão */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('padrao');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'padrao' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">📄</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Template Padrão</h4>
+                  <p className="text-sm text-gray-600">Visualização padrão universal</p>
+                </button>
+
+                {/* Residencial */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('residencial');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'residencial' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🏠</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Residencial Premium</h4>
+                  <p className="text-sm text-gray-600">Foco em economia doméstica</p>
+                </button>
+
+                {/* Rural */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('rural');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'rural' 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🌾</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Rural Agro</h4>
+                  <p className="text-sm text-gray-600">Análise de irrigação e safra</p>
+                </button>
+
+                {/* Panificadora */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-panificadora');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-panificadora' 
+                      ? 'border-orange-500 bg-orange-50' 
+                      : 'border-gray-300 hover:border-orange-500 hover:bg-orange-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🥖</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Panificadora</h4>
+                  <p className="text-sm text-gray-600">Foco em margem por produto</p>
+                </button>
+
+                {/* Açougue */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-acougue');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-acougue' 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-gray-300 hover:border-red-500 hover:bg-red-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🥩</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Açougue</h4>
+                  <p className="text-sm text-gray-600">Economia em refrigeração</p>
+                </button>
+
+                {/* Restaurante */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-restaurante');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-restaurante' 
+                      ? 'border-teal-500 bg-teal-50' 
+                      : 'border-gray-300 hover:border-teal-500 hover:bg-teal-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🍽️</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Restaurante</h4>
+                  <p className="text-sm text-gray-600">AC e cozinha profissional</p>
+                </button>
+
+                {/* Mercado */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('comercial-mercado');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'comercial-mercado' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🛒</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Mercado</h4>
+                  <p className="text-sm text-gray-600">Economia completa (iluminação + refrigeração + AC)</p>
+                </button>
+
+                {/* Industrial */}
+                <button
+                  onClick={() => {
+                    setTemplateSelecionado('industrial');
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    templateSelecionado === 'industrial' 
+                      ? 'border-gray-600 bg-gray-50' 
+                      : 'border-gray-300 hover:border-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">🏭</div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Industrial Premium</h4>
+                  <p className="text-sm text-gray-600">Demanda contratada e créditos</p>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setShowTemplateModal(false);
+                  await salvarProposta(salvarComoPendente, templateSelecionado);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                ✅ Confirmar e Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

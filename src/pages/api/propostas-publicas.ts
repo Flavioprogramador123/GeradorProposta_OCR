@@ -19,13 +19,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
-      const filePath = path.join(publicPropostasDir, filename);
+      // Extrair slug do filename (proposta_xxx.html -> xxx)
+      const slug = filename.replace('proposta_', '').replace('.html', '');
 
-      await fs.unlink(filePath);
-      console.log(`✅ Proposta deletada: ${filename}`);
+      // 🚀 PRIORIDADE 1: Deletar do Supabase (PRODUÇÃO)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      let deletedFromSupabase = false;
 
-      return res.status(200).json({ message: 'Proposta deletada com sucesso' });
+      if (supabaseUrl && supabaseKey) {
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          console.log(`🗑️ Deletando proposta do Supabase: ${slug}`);
+
+          // Soft delete: atualizar status para 'inativa' ao invés de deletar
+          const { error } = await supabase
+            .from('propostas')
+            .update({ status: 'inativa' })
+            .eq('slug', slug);
+
+          if (error) {
+            console.error('Erro ao deletar do Supabase:', error);
+          } else {
+            console.log(`✅ Proposta marcada como inativa no Supabase: ${slug}`);
+            deletedFromSupabase = true;
+          }
+        } catch (supabaseError) {
+          console.error('⚠️ Erro ao conectar ao Supabase:', supabaseError);
+        }
+      }
+
+      // 🗂️ PRIORIDADE 2: Deletar do filesystem (se existir)
+      try {
+        const publicPropostasDir = path.join(process.cwd(), 'public/propostas/orçamento/clientes');
+        const filePath = path.join(publicPropostasDir, filename);
+
+        await fs.access(filePath); // Verificar se existe
+        await fs.unlink(filePath);
+        console.log(`✅ Arquivo deletado do filesystem: ${filename}`);
+      } catch (fsError: any) {
+        if (fsError.code !== 'ENOENT') {
+          console.error('⚠️ Erro ao deletar do filesystem:', fsError);
+        }
+        // ENOENT = arquivo não existe, não é erro (está só no Supabase)
+      }
+
+      // Retornar sucesso se deletou de algum lugar
+      if (deletedFromSupabase) {
+        return res.status(200).json({ message: 'Proposta deletada com sucesso' });
+      } else {
+        return res.status(500).json({ message: 'Não foi possível deletar a proposta' });
+      }
+
     } catch (error) {
       console.error('Erro ao deletar proposta:', error);
       return res.status(500).json({ message: 'Erro ao deletar proposta' });

@@ -104,7 +104,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
                           : 'bg-yellow-100 text-yellow-700'
                       }`}
                     >
-                      {sistema.cobertura}
+                      {Math.round(parseFloat(sistema.cobertura) || 0)}%
                     </span>
                   </td>
                   <td className="p-3 text-center text-sm font-medium">{sistema.payback}</td>
@@ -141,7 +141,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
             <li>✓ Performance Ratio de 75% (padrão da indústria)</li>
             <li>✓ Valores consideram tarifa energética atual</li>
             <li>✓ Sistemas dimensionados conforme NBR 16690</li>
-            <li>✓ Garantia limitada de 10 anos contra defeitos funcionais, e uma garantia de desempenho linear de 25 anos para a produção de energia</li>
+            <li>✓ Garantia de instalação de 1 ano, garantia dos módulos e inversores por 10 anos contra defeitos funcionais fornecida pelo fabricante, e garantia de desempenho linear de 25 anos para a produção de energia</li>
           </ul>
         </div>
       </div>

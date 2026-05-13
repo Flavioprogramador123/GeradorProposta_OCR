@@ -31,18 +31,34 @@ async function saveConfigToFile(config: Record<string, any>) {
 async function readConfigFromSupabase() {
   if (!supabase) return null;
 
+  // ✅ LER TODAS AS CONFIGURAÇÕES (não apenas uma)
   const { data, error } = await supabase
     .from('configuracoes')
-    .select('valor')
-    .eq('chave', CONFIG_KEY)
-    .maybeSingle();
+    .select('chave, valor');
 
   if (error) {
-    console.error('Erro ao ler configuração no Supabase:', error);
+    console.error('Erro ao ler configurações no Supabase:', error);
     return null;
   }
 
-  return data?.valor || null;
+  if (!data || data.length === 0) {
+    console.warn('⚠️ Nenhuma configuração encontrada no Supabase');
+    return null;
+  }
+
+  // Converter array de configurações em objeto
+  const config: Record<string, any> = {};
+  data.forEach((item: any) => {
+    // Remover aspas do valor JSON se for string
+    let valor = item.valor;
+    if (typeof valor === 'string' && valor.startsWith('"') && valor.endsWith('"')) {
+      valor = valor.slice(1, -1);
+    }
+    config[item.chave] = parseFloat(valor) || valor;
+  });
+
+  console.log(`✅ ${data.length} configurações carregadas do Supabase`);
+  return config;
 }
 
 async function saveConfigToSupabase(config: Record<string, any>) {
@@ -60,22 +76,26 @@ async function saveConfigToSupabase(config: Record<string, any>) {
   }
 
   try {
+    // ✅ SALVAR CADA CONFIGURAÇÃO INDIVIDUALMENTE
+    const updates = Object.entries(config).map(([chave, valor]) => ({
+      chave,
+      valor: JSON.stringify(valor), // Converter para JSON string
+      updated_at: new Date().toISOString()
+    }));
+
+    console.log(`💾 Salvando ${updates.length} configurações no Supabase...`);
+
     const { data, error } = await supabase
       .from('configuracoes')
-      .upsert({
-        chave: CONFIG_KEY,
-        valor: config,
-        descricao: 'Configurações globais do sistema',
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'chave' })
+      .upsert(updates, { onConflict: 'chave' })
       .select();
 
     if (error) {
-      console.error('❌ Erro ao salvar configuração no Supabase:', error);
+      console.error('❌ Erro ao salvar configurações no Supabase:', error);
       return { success: false, error: error.message, details: error };
     }
 
-    console.log('✅ Configuração salva no Supabase com sucesso');
+    console.log(`✅ ${updates.length} configurações salvas no Supabase com sucesso`);
     return { success: true, data };
   } catch (err) {
     console.error('❌ Erro inesperado ao salvar no Supabase:', err);
@@ -146,15 +166,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Em produção, Supabase é obrigatório
+      // Em produção, tentar fallback para arquivo temporário se Supabase falhar
+      if (isProduction) {
+        try {
+          console.log('⚠️ Supabase falhou, tentando salvar em arquivo temporário...');
+          await saveConfigToFile(configWithMetadata);
+          return res.status(200).json({ 
+            message: 'Configuração salva em arquivo temporário (Supabase não disponível).',
+            source: 'filesystem-temp',
+            warning: 'A tabela "configuracoes" não existe no Supabase. Execute o script criar_tabela_configuracoes.sql',
+            error: supabaseResult.error,
+            debug: {
+              hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+              hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+              isProduction,
+              supabaseClientAvailable: !!supabase,
+              tableError: supabaseResult.error?.includes('table') ? 'Tabela configuracoes não encontrada' : 'Outro erro'
+            }
+          });
+        } catch (fileError) {
+          console.error('❌ Erro ao salvar no filesystem temporário:', fileError);
+        }
+      }
+
+      // Se chegou aqui, não foi possível salvar
       return res.status(500).json({ 
-        message: 'Não foi possível salvar configuração. Configure o Supabase.',
+        message: 'Não foi possível salvar configuração. A tabela "configuracoes" não existe no Supabase.',
         error: supabaseResult.error,
+        solution: 'Execute o script criar_tabela_configuracoes.sql no Supabase Dashboard',
         debug: {
           hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
           hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
           isProduction,
-          supabaseClientAvailable: !!supabase
+          supabaseClientAvailable: !!supabase,
+          tableError: supabaseResult.error?.includes('table') ? 'Tabela configuracoes não encontrada' : 'Outro erro'
         }
       });
     } catch (error) {

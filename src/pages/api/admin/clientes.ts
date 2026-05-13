@@ -60,13 +60,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .toString()
                 .trim();
 
-              // Gerar pasta do nome (sanitizado)
-              const pasta = nomeSeguro
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]/g, '')
-                .slice(0, 20) || 'cliente';
+              // ✅ USAR SLUG DA PROPOSTA (não gerar do nome)
+              let pasta = cliente.slug || 'cliente'; // Fallback para cliente.slug da tabela clientes
+
+              // Se tem proposta, usar o slug da proposta (mais específico)
+              if (cliente.temProposta && cliente.propostas?.length > 0) {
+                pasta = cliente.propostas[0].slug || pasta;
+              }
 
               // Determinar status baseado nas propostas
               let status = 'aguardando_orcamentos';
@@ -80,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               return {
                 nome: nomeSeguro,
                 cidade: cliente.cidade || 'N/A',
-                pasta,
+                pasta, // ✅ Agora usa slug real da proposta
                 status,
                 ultimaModificacao: new Date(ultimaData).toLocaleDateString('pt-BR'),
                 temProposta: cliente.temProposta || (cliente.propostas?.length > 0) || false,

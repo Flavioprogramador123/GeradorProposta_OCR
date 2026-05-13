@@ -51,7 +51,10 @@ export default function ConsultorOrcamentosPage() {
 
   // Carregar dados do cliente e orçamentos
   useEffect(() => {
-    if (!clienteId) return;
+    if (!clienteId || clienteId === 'cliente' || typeof clienteId !== 'string') {
+      console.warn('⚠️ clienteId inválido:', clienteId);
+      return;
+    }
 
     const loadData = async () => {
       try {
@@ -91,60 +94,178 @@ export default function ConsultorOrcamentosPage() {
           }
         }
         
-        // 🔧 FALLBACK: Dados simulados se não houver no localStorage
-        console.log('ℹ️ Carregando dados simulados (fallback)');
-        
-        const clienteData: Cliente = {
-          id: clienteId as string,
-          nome: 'Cliente Exemplo',
-          cidade: 'São Paulo',
-          consumoMensal: 600
-        };
-        
-        const orcamentosData: OrcamentoComparativo[] = [
-          {
-            id: '1',
-            nome: 'Sistema SOOLLAR',
-            fornecedor: 'SOOLLAR',
-            pcusto: 12000,
-            modulos: 20,
-            pot_modulo: 580,
-            marca_modulo: 'SOOLLAR',
-            inversores: 1,
-            pot_inv: 10,
-            marca_inversor: 'SOOLLAR',
-            status: 'pendente'
-          },
-          {
-            id: '2',
-            nome: 'Sistema BELENERGY',
-            fornecedor: 'BELENERGY',
-            pcusto: 11500,
-            modulos: 20,
-            pot_modulo: 580,
-            marca_modulo: 'BELENERGY',
-            inversores: 1,
-            pot_inv: 10,
-            marca_inversor: 'BELENERGY',
-            status: 'pendente'
-          },
-          {
-            id: '3',
-            nome: 'Sistema FORTLEV',
-            fornecedor: 'FORTLEV',
-            pcusto: 10800,
-            modulos: 20,
-            pot_modulo: 580,
-            marca_modulo: 'FORTLEV',
-            inversores: 1,
-            pot_inv: 10,
-            marca_inversor: 'FORTLEV',
-            status: 'pendente'
-          }
-        ];
+        // 🔧 FALLBACK: Carregar PROPOSTA GERADA (não orçamentos individuais)
+        console.log('📥 Carregando proposta gerada para:', clienteId);
 
-        setCliente(clienteData);
-        setOrcamentos(orcamentosData);
+        try {
+          // Buscar proposta gerada usando a API correta que retorna dados completos
+          const propostaRes = await fetch(`/api/propostas/${clienteId}`);
+
+          if (!propostaRes.ok) {
+            throw new Error('Proposta não encontrada');
+          }
+
+          const proposta = await propostaRes.json();
+          console.log('✅ Proposta encontrada:', proposta);
+
+          if (!proposta || !proposta.sistemas || !Array.isArray(proposta.sistemas)) {
+            throw new Error('Dados da proposta incompletos - sistemas não encontrados');
+          }
+
+          // Configurar cliente
+          const clienteData: Cliente = {
+            id: clienteId as string,
+            nome: proposta.cliente?.nome || 'Cliente',
+            cidade: proposta.cliente?.cidade || 'N/A',
+            consumoMensal: proposta.cliente?.consumoMensal || 600
+          };
+
+          // ✅ CARREGAR CONFIG DA PROPOSTA (valores originais usados na geração)
+          const configProposta = proposta.config || {};
+          
+          console.log('✅ Config da proposta carregada no consultor:', {
+            pdespesaFixo: configProposta.pdespesaFixo,
+            pdespesaVariavel: configProposta.pdespesaVariavel,
+            hsp: configProposta.hsp,
+            tarifa: configProposta.tarifa
+          });
+          
+          // ✅ Sincronizar configurações da proposta (prioridade: Config Proposta > Cliente > Default)
+          updateConfig({
+            hsp: configProposta.hsp || parseFloat(proposta.cliente?.hsp) || config.hsp,
+            tarifa: configProposta.tarifa || parseFloat(proposta.cliente?.tarifa) || config.tarifa,
+            consumoMensal: proposta.cliente?.consumoMensal || config.consumoMensal,
+            // ✅ CARREGAR PDESPESA DA PROPOSTA (valores originais)
+            pdespesaFixo: configProposta.pdespesaFixo || config.pdespesaFixo,
+            pdespesaVariavel: configProposta.pdespesaVariavel || config.pdespesaVariavel,
+            performanceRate: configProposta.performanceRate || config.performanceRate
+          });
+
+          // ✅ Converter sistemas da proposta em orçamentos usando VALORES EXATOS do Supabase
+          const parseValue = (val: any): number => {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            let str = val.toString().trim().replace(/[^\d,.-]/g, '');
+            if (!str) return 0;
+            if (str.includes(',') && str.includes('.')) {
+              str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes(',')) {
+              const parts = str.split(',');
+              if (parts[1] && parts[1].length <= 2) {
+                str = str.replace(',', '.');
+              } else {
+                str = str.replace(',', '');
+              }
+            }
+            const parsed = parseFloat(str);
+            return isNaN(parsed) ? 0 : parsed;
+          };
+
+          const orcamentosData: OrcamentoComparativo[] = proposta.sistemas.map((sistema: any, index: number) => {
+            // ✅ Extrair potência de múltiplas fontes (preservar valores exatos)
+            let potenciaTotal = 0;
+            if (sistema.potTotal !== undefined && sistema.potTotal !== null) {
+              potenciaTotal = typeof sistema.potTotal === 'number' ? sistema.potTotal : parseFloat(sistema.potTotal.toString().replace(',', '.')) || 0;
+            } else if (sistema.potencia) {
+              const potenciaMatch = sistema.potencia?.toString().match(/(\d+[.,]?\d*)/);
+              potenciaTotal = potenciaMatch ? parseFloat(potenciaMatch[1].replace(',', '.')) : 0;
+            } else if (sistema.modulos && sistema.pot_modulo) {
+              potenciaTotal = (sistema.modulos * sistema.pot_modulo) / 1000;
+            }
+
+            // ✅ PRIORIDADE: Usar pcusto EXATO do Supabase (não recalcular!)
+            let pcusto = 0;
+            if (sistema.pcusto !== undefined && sistema.pcusto !== null) {
+              pcusto = parseValue(sistema.pcusto);
+              console.log(`✅ Consultor - Sistema ${index + 1}: pcusto EXATO do Supabase = ${pcusto}`);
+            } else if (sistema.precoCusto !== undefined && sistema.precoCusto !== null) {
+              pcusto = parseValue(sistema.precoCusto);
+              console.log(`✅ Consultor - Sistema ${index + 1}: precoCusto EXATO do Supabase = ${pcusto}`);
+            } else {
+              // Fallback apenas se não existir
+              const precoFinal = parseValue(sistema.precoPixDecimal) || parseValue(sistema.ppix) || parseValue(sistema.total_final) || 0;
+              const pdespesaTotal = parseValue(sistema.pdespesa_total) || parseValue(sistema.pdespesaTotal) || 0;
+              if (precoFinal > 0 && pdespesaTotal > 0 && pdespesaTotal < precoFinal) {
+                pcusto = precoFinal - pdespesaTotal;
+                console.log(`⚠️ Consultor - Sistema ${index + 1}: Calculado pcusto (fallback) = ${precoFinal} - ${pdespesaTotal} = ${pcusto}`);
+              } else {
+                pcusto = parseValue(sistema.valorTotal) || parseValue(sistema.ppix) || 0;
+                console.warn(`⚠️ Consultor - Sistema ${index + 1}: Usando fallback para pcusto = ${pcusto}`);
+              }
+            }
+
+            // ✅ Usar valores EXATOS do Supabase (não recalcular)
+            const modulos = sistema.modulos !== undefined && sistema.modulos !== null 
+              ? (typeof sistema.modulos === 'number' ? sistema.modulos : parseInt(sistema.modulos.toString()) || 0)
+              : (potenciaTotal > 0 ? Math.round(potenciaTotal * 1000 / 605) : 20);
+            
+            const inversores = sistema.inversores !== undefined && sistema.inversores !== null
+              ? (typeof sistema.inversores === 'number' ? sistema.inversores : parseInt(sistema.inversores.toString()) || 0)
+              : (potenciaTotal > 0 ? Math.ceil(potenciaTotal / 15) : 1);
+
+            console.log(`✅ Consultor - Sistema ${index + 1} convertido:`, {
+              nome: sistema.titulo || sistema.nome,
+              pcusto,
+              modulos,
+              inversores,
+              pot_modulo: sistema.pot_modulo,
+              sistemaOriginal: {
+                pcusto: sistema.pcusto,
+                precoCusto: sistema.precoCusto,
+                modulos: sistema.modulos,
+                inversores: sistema.inversores
+              }
+            });
+
+            return {
+              id: sistema.id || `sistema-${index}`,
+              nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
+              fornecedor: sistema.distribuidora || sistema.fornecedor || 'SOOLLAR',
+              pcusto: pcusto, // ✅ Valor exato do Supabase
+              modulos: modulos, // ✅ Valor exato do Supabase
+              pot_modulo: sistema.pot_modulo || 605,
+              marca_modulo: sistema.marca_modulo || sistema.marcaModulo || 'Padrão',
+              inversores: inversores, // ✅ Valor exato do Supabase
+              pot_inv: sistema.pot_inv || sistema.potInv || 15,
+              marca_inversor: sistema.marca_inversor || sistema.marcaInversor || 'Padrão',
+              status: 'aprovado' as const
+            };
+          });
+
+          console.log('✅ Cliente e sistemas carregados:', {
+            cliente: clienteData.nome,
+            sistemas: orcamentosData.length
+          });
+
+          setCliente(clienteData);
+          setOrcamentos(orcamentosData);
+        } catch (apiError) {
+          console.error('❌ Erro ao carregar proposta:', apiError);
+
+          // Se falhar, tentar buscar cliente básico
+          try {
+            const clienteRes = await fetch(`/api/admin/clientes/${clienteId}`);
+            if (clienteRes.ok) {
+              const clienteApiData = await clienteRes.json();
+              setCliente({
+                id: clienteId as string,
+                nome: clienteApiData.nome || 'Cliente',
+                cidade: clienteApiData.cidade || 'N/A',
+                consumoMensal: clienteApiData.consumoMensal || 600
+              });
+            }
+          } catch {
+            // Fallback final
+            setCliente({
+              id: clienteId as string,
+              nome: 'Cliente',
+              cidade: 'N/A',
+              consumoMensal: 600
+            });
+          }
+
+          setOrcamentos([]);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       } finally {
@@ -297,19 +418,9 @@ export default function ConsultorOrcamentosPage() {
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <div className="flex items-center gap-4 mb-2">
-                  <Link href="/admin" legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                    ← Admin
-                  </a></Link>
-                  <span className="text-gray-400">|</span>
-                  <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                    ← Orçamentos
-                  </a></Link>
-                  <span className="text-gray-400">|</span>
-                  <h1 className="text-3xl font-bold text-gray-800">
-                    🎛️ Sistema do Consultor
-                  </h1>
-                </div>
+                <h1 className="text-3xl font-bold text-gray-800 mb-4">
+                  🎛️ Sistema do Consultor
+                </h1>
                 <div className="bg-white rounded-lg p-4 shadow-sm">
                   <h2 className="text-xl font-semibold text-gray-800 mb-1">
                     {cliente.nome}
@@ -318,6 +429,19 @@ export default function ConsultorOrcamentosPage() {
                     📍 {cliente.cidade} • ⚡ {cliente.consumoMensal} kWh/mês
                   </p>
                 </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior>
+                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                    ← Voltar
+                  </a>
+                </Link>
               </div>
             </div>
 

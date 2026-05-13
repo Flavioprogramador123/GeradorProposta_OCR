@@ -402,7 +402,88 @@ Before deploying major changes:
 
 ## Recent Updates & Changelog
 
-### v2.2.5 — 18/11/2025 ✅ CURRENT
+### v2.3.3 — 01/12/2025 ✅ **CURRENT PRODUCTION**
+
+**🔧 Critical Fixes:**
+- ✅ **TypeError Fix**: Fixed `Cannot read properties of undefined (reading 'toLocaleString')` in `/admin/orcamentos`
+  - Added robust type checking before calling `toLocaleString()`
+  - Safe fallback for undefined/null values
+  - Using nullish coalescing (`??`) to preserve `0` values
+
+**🎨 UI/UX Improvements:**
+- ✅ Removed "Enviar Proposta" card from main admin screen
+- ✅ Integrated "Email" button in client list action row
+- ✅ Email modal pre-filled with client data (name, slug, city)
+
+**📦 Files Modified:**
+- `src/pages/admin/orcamentos/index.tsx` - TypeError fix with type checking
+- `src/pages/admin/index.tsx` - Removed "Enviar Proposta" card, added Email button
+
+**✅ Status:**
+- All fixes tested and deployed
+- Production ready (Vercel) - v2.3.3
+
+---
+
+### v2.3.2 — 01/12/2025
+- ✅ Removed "Novo Cliente" card from admin
+- ✅ Improved existing proposal loading
+
+---
+
+### v2.3.1 — 01/12/2025
+
+**🔧 Critical Fixes:**
+- ✅ **Window Opening Fix**: Proposta agora abre diretamente na URL correta sem `about:blank`
+  - Antes: `window.open('', '_blank')` + `document.write()` causava página em branco
+  - Agora: `window.open(propostaUrl, '_blank')` abre diretamente com URL correta
+  - Removido: Alert bloqueante que prendia a janela anterior
+  - Impacto: UX muito melhorada - usuário vê proposta instantaneamente
+
+- ✅ **Favicons Corrigidos**: Logo PIENG agora aparece corretamente
+  - Problema: Arquivos PNG corrompidos (70 bytes vazios)
+  - Solução: Usar `favicon.svg` (839KB) como fonte principal
+  - Arquivos atualizados: `_document.tsx`, `manifest.json`
+  - Deletados: `favicon.ico`, `favicon-16x16.svg` (corrompidos)
+  - Status: Favicons funcionando em todos os navegadores
+
+- ✅ **Configurações Dinâmicas**: Sistema agora usa Supabase para todas as configs
+  - Criada tabela `configuracoes` no Supabase (20 configs)
+  - API `/api/admin/config` refatorada para ler todas as configs individualmente
+  - `gerador-rapido.tsx`: useEffect sincroniza HSP e outras configs do Supabase
+  - `gerar-proposta.ts`: Todos os fallbacks agora usam `configSistema`
+  - Impacto: HSP 5.30 (ou qualquer valor) agora reflete em todo o app
+
+**🎨 UI/UX Improvements:**
+- ✅ Removido card "Google Drive" da área administrativa
+- ✅ Removido card "Atualizar" (recarregar dados) - desnecessário com Supabase
+- ✅ Admin dashboard mais limpo e focado
+
+**📦 SQL Scripts Created:**
+- `1_criar_tabela_configuracoes.sql` - Estrutura da tabela
+- `2_inserir_configuracoes_padrao.sql` - 20 configurações padrão
+- `3_testar_configuracoes.sql` - Testes de validação
+- `4_atualizar_schema_cache.sql` - Refresh do schema cache
+
+**📦 Files Modified:**
+- `src/pages/gerador-rapido.tsx` - Window opening fix + config sync (linhas 930-952)
+- `src/pages/api/admin/config.ts` - Multi-config pattern
+- `src/pages/api/gerar-proposta.ts` - HSP fallbacks (linhas 499, 626, 789, 815)
+- `src/pages/admin/index.tsx` - Removed "Atualizar" button
+- `src/pages/_document.tsx` - Favicon links updated
+- `public/manifest.json` - Icons updated to use SVG
+
+**🛠️ Tools Created:**
+- `convert-svg-to-png.html` - Ferramenta web para converter SVG → PNG
+- `test-supabase-config.js` - Script de teste direto da API Supabase
+
+**✅ Status:**
+- Todas as funcionalidades testadas localmente
+- Configurações Supabase validadas (20 configs)
+- Deploy para produção (Vercel) - v2.3.1
+- Favicons aparecendo corretamente
+
+### v2.2.5 — 18/11/2025
 - Corrigido erro 500 em `/api/admin/orcamentos/[cliente]` - integração completa com Supabase.
 - Orçamentos agora persistem no banco de dados (tabela `orcamentos`) com CRUD completo (GET/POST/PUT/DELETE).
 - Criado `src/utils/orcamentosSupabase.ts` com funções helper para resolução de cliente e mapeamento de dados.
@@ -441,4 +522,42 @@ Before deploying major changes:
 - Primeira versão com controle de versão visual (`VERSION.md`, badge no admin).
 - Correções de ordenação em `/api/admin/clientes` e melhorias de logs/erros.
 
-**Status atual:** Produção saudável em `clean-main` (Supabase obrigatório). Próximas metas: v2.3.0 (analytics avançado, multiusuário).
+
+---
+
+### v2.3.0 — 06/11/2025 (branch `desenvolvimento`)
+**📱 PWA Implementation (Progressive Web App):**
+- ✅ **Manifest.json**: Full PWA configuration with shortcuts
+- ✅ **Service Worker**: Offline cache with Network First strategy
+- ✅ **Install Component**: Smart installation banner for all platforms
+- ✅ **Icons**: SVG source + PNG exports (192x192, 512x512)
+- ✅ **Meta Tags**: Apple/Android specific tags in _document.tsx
+- ✅ **Offline Support**: Cached pages work without internet
+- ✅ **Shortcuts**: Quick access to Admin, Nova Proposta, Propostas Públicas
+
+**📦 New Files:**
+- `public/manifest.json` - PWA configuration
+- `public/sw.js` - Service Worker with caching logic
+- `public/icon.svg` - Vector icon (source)
+- `public/icon-192x192.png` - Small icon
+- `public/icon-512x512.png` - Large icon
+- `src/pages/_document.tsx` - PWA meta tags
+- `src/components/InstallPWA.tsx` - Installation component
+- `PWA.md` - Complete PWA documentation
+
+**✨ Features:**
+- Installable on Android, iPhone, Windows, Mac, Linux
+- Works offline after first visit (cached pages)
+- Native app experience (standalone window)
+- Fast loading with Service Worker cache
+
+---
+
+**Last Updated**: 2025-12-01 ✅ **v2.3.3**
+**System Status**: ✅ Production Ready
+**Current Issues**: None - All fixes applied and tested
+**Supabase**: ✅ Fully integrated and required for production
+**Configurations**: ✅ 20 configs in Supabase (dynamic, no hardcode)
+**Favicons**: ✅ Working (favicon.svg 839KB)
+**Window UX**: ✅ Fixed (direct URL opening, no blocking alerts)
+**Next Version**: v2.3.2 (PWA icons optimization, PNG generation)

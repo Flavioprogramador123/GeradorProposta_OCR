@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { supabase } from '@/lib/supabase';
-import { getAllPropostasLocais } from '@/lib/local-db';
 
 interface PropostaData {
   cliente: {
@@ -25,22 +24,48 @@ interface PropostaData {
   };
 }
 
-interface OrcamentoItem {
-  id: string;
-  propostaId?: string; // ID do Supabase ou Local
-  cliente: string;
-  clientePasta: string;
+interface SistemaItem {
+  titulo: string;
   potencia: number;
   modulos: number;
   inversores: number;
   valorTotal: number;
-  status: 'pendente' | 'aprovado' | 'rejeitado';
-  data: string;
   geracaoMensal?: number;
   paybackMeses?: number;
   cobertura?: number;
-  storageType?: 'local' | 'supabase' | 'filesystem'; // ✅ Tipo de armazenamento
-  storageLocation?: string; // ✅ Localização do arquivo
+  storageType?: 'supabase' | 'filesystem';
+  storageLocation?: string;
+}
+
+interface OrcamentoItem {
+  id: string;
+  propostaId?: string;
+  cliente: string;
+  clientePasta: string;
+  sistemas: SistemaItem[];
+  status: 'pendente' | 'aprovado' | 'rejeitado';
+  data: string;
+  totalSistemas: number;
+  storageType?: 'supabase' | 'filesystem';
+  storageLocation?: string;
+}
+
+function extrairValor(val: unknown): number {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return Number.isNaN(val) ? 0 : val;
+  if (typeof val === 'string') {
+    const limpo = val.replace(/[R$\s.]/g, '').replace(',', '.');
+    const num = parseFloat(limpo);
+    return Number.isNaN(num) ? 0 : num;
+  }
+  return 0;
+}
+
+function statusFromDate(createdAt: string): 'pendente' | 'aprovado' | 'rejeitado' {
+  const dataCriacao = new Date(createdAt);
+  const diasDesdeCriacao = (Date.now() - dataCriacao.getTime()) / (1000 * 60 * 60 * 24);
+  if (diasDesdeCriacao > 30) return 'aprovado';
+  return 'pendente';
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -50,248 +75,230 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const todosOrcamentos: OrcamentoItem[] = [];
-    
     let total = 0;
     let pendentes = 0;
     let aprovados = 0;
     let rejeitados = 0;
 
-    // 🚀 PRIORIDADE 1: Buscar do Supabase (PRODUÇÃO)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseKey) {
+    if (supabaseUrl && supabaseKey && supabase) {
       try {
-        console.log('🔍 Buscando propostas no Supabase...');
-        
-        // Buscar todas as propostas do Supabase
-        const { data: propostas, error } = await supabase
+        let propostas: any[] = [];
+        const { data: comStatus, error: errStatus } = await supabase
           .from('propostas')
-          .select('*, clientes(nome)')
+          .select('id, slug, created_at, valor_total, dados_completos, status, cliente_id')
           .eq('status', 'ativa')
           .order('created_at', { ascending: false });
 
-        if (!error && propostas && propostas.length > 0) {
-          console.log(`✅ ${propostas.length} propostas encontradas no Supabase`);
-          
-          // Converter propostas em orçamentos
+        if (errStatus) {
+          const { data: semFiltro, error: errSem } = await supabase
+            .from('propostas')
+            .select('id, slug, created_at, valor_total, dados_completos, status, cliente_id')
+            .order('created_at', { ascending: false })
+            .limit(200);
+          if (errSem) {
+            console.error('❌ Erro ao buscar propostas:', errSem);
+            throw errSem;
+          }
+          propostas = semFiltro || [];
+        } else {
+          propostas = comStatus || [];
+        }
+
+        if (propostas.length > 0) {
+          const clienteIds = [
+            ...new Set(
+              propostas
+                .map((p) => p.cliente_id || p.dados_completos?.cliente?.id)
+                .filter(Boolean)
+            ),
+          ] as string[];
+
+          const clientesMap = new Map<string, string>();
+          if (clienteIds.length > 0) {
+            const { data: clientesRows } = await supabase.from('clientes').select('id, nome').in('id', clienteIds);
+            (clientesRows || []).forEach((c: any) => clientesMap.set(c.id, c.nome));
+          }
+
           propostas.forEach((proposta: any) => {
             const dados = proposta.dados_completos;
-            
-            if (dados && dados.sistemas && Array.isArray(dados.sistemas)) {
-              dados.sistemas.forEach((sistema: any, index: number) => {
-                // Extrair potência
+            const cid = proposta.cliente_id || dados?.cliente?.id;
+            const nomeCliente =
+              (cid && clientesMap.get(cid)) ||
+              dados?.cliente?.nome ||
+              proposta.clienteNome ||
+              'Cliente';
+
+            if (dados && Array.isArray(dados.sistemas) && dados.sistemas.length > 0) {
+              const status = statusFromDate(proposta.created_at);
+
+              const sistemas: SistemaItem[] = dados.sistemas.map((sistema: any, index: number) => {
                 const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
                 const potencia = potenciaMatch ? parseFloat(potenciaMatch[1]) : sistema.potTotal || 0;
-                
-                // Calcular módulos e inversores
-                const modulos = Math.round(potencia * 1000 / 605);
-                const inversores = Math.ceil(potencia / 15);
-                
-                // Status baseado na data
-                const dataCriacao = new Date(proposta.created_at);
-                const diasDesdeCriacao = (Date.now() - dataCriacao.getTime()) / (1000 * 60 * 60 * 24);
-                
-                let status: 'pendente' | 'aprovado' | 'rejeitado' = 'pendente';
-                if (diasDesdeCriacao > 30) {
-                  status = 'aprovado';
+                const modulos = sistema.modulos || Math.round((potencia * 1000) / 605);
+                const inversores = sistema.inversores || Math.ceil(potencia / 15);
+
+                let valorTotal = extrairValor(
+                  sistema.ppix ||
+                    sistema.valorTotal ||
+                    sistema.total_final ||
+                    sistema.precoPixDecimal ||
+                    sistema.precoPix ||
+                    sistema.valor ||
+                    sistema.preco ||
+                    sistema.preco_final ||
+                    sistema.pavista ||
+                    0
+                );
+
+                if (valorTotal === 0 && index === 0 && proposta.valor_total) {
+                  valorTotal = extrairValor(proposta.valor_total);
                 }
-                
-                const orcamento: OrcamentoItem = {
-                  id: `${proposta.slug}-sistema-${index + 1}`,
-                  propostaId: proposta.id, // ✅ ID do banco Supabase
-                  cliente: proposta.clientes?.nome || dados.cliente?.nome || 'Cliente',
-                  clientePasta: proposta.slug,
+
+                return {
+                  titulo: sistema.titulo || `Sistema ${index + 1}`,
                   potencia,
                   modulos,
                   inversores,
-                  valorTotal: sistema.ppix || sistema.valorTotal || 0,
-                  status,
-                  data: proposta.created_at,
+                  valorTotal,
                   geracaoMensal: sistema.geracaoMensal,
                   paybackMeses: sistema.paybackMeses,
-                  cobertura: sistema.cobertura || sistema.coberturaPercent,
-                  storageType: 'supabase', // ✅ Marca como Supabase
-                  storageLocation: 'Supabase (Nuvem)' // ✅ Indica localização
+                  cobertura: sistema.cobertura ?? sistema.coberturaPercent,
+                  storageType: 'supabase',
+                  storageLocation: 'Supabase',
                 };
-                
-                todosOrcamentos.push(orcamento);
-                total++;
-                
-                if (status === 'pendente') pendentes++;
-                else if (status === 'aprovado') aprovados++;
-                else if (status === 'rejeitado') rejeitados++;
               });
-            }
-          });
-          
-          const stats = {
-            total,
-            pendentes,
-            aprovados,
-            rejeitados
-          };
 
-          console.log(`✅ Orçamentos processados: ${total} (${pendentes} pendentes, ${aprovados} aprovados)`);
-          return res.status(200).json({ orcamentos: todosOrcamentos, stats, source: 'supabase' });
-        }
-      } catch (supabaseError) {
-        console.error('⚠️ Erro ao buscar do Supabase, usando fallback:', supabaseError);
-        // Continuar para fallback
-      }
-    }
-
-    // 💾 PRIORIDADE 2: Buscar do Banco Local (SQLite)
-    try {
-      console.log('🔍 Buscando propostas no banco local...');
-      const propostasLocais = getAllPropostasLocais();
-      
-      if (propostasLocais && propostasLocais.length > 0) {
-        console.log(`✅ ${propostasLocais.length} propostas encontradas no banco local`);
-        
-        propostasLocais.forEach((proposta) => {
-          const dados = proposta.dados_completos;
-          
-          if (dados && dados.sistemas && Array.isArray(dados.sistemas)) {
-            dados.sistemas.forEach((sistema: any, index: number) => {
-              const potenciaMatch = sistema.potencia?.toString().match(/(\d+\.?\d*)/);
-              const potencia = potenciaMatch ? parseFloat(potenciaMatch[1]) : sistema.potTotal || proposta.sistema_kwp || 0;
-              const modulos = Math.round(potencia * 1000 / 605);
-              const inversores = Math.ceil(potencia / 15);
-              
               const orcamento: OrcamentoItem = {
-                id: `${proposta.slug}-sistema-${index + 1}`,
-                propostaId: proposta.id, // ✅ ID do banco local
-                cliente: dados.cliente?.nome || 'Cliente',
+                id: proposta.slug,
+                propostaId: proposta.id,
+                cliente: nomeCliente,
                 clientePasta: proposta.slug,
-                potencia,
-                modulos,
-                inversores,
-                valorTotal: sistema.precoPixDecimal || proposta.valor_total || 0,
-                status: 'aprovado', // Propostas locais são consideradas aprovadas
-                data: proposta.created_at || new Date().toISOString(),
-                geracaoMensal: sistema.geracao ? parseFloat(sistema.geracao.replace(/[^\d.,]/g, '').replace(',', '.')) : proposta.geracao_mensal || 0,
-                paybackMeses: sistema.payback ? parseFloat(sistema.payback.replace(/[^\d.,]/g, '').replace(',', '.')) * 12 : proposta.payback ? proposta.payback * 12 : 0,
-                cobertura: sistema.cobertura ? parseFloat(sistema.cobertura.replace(/[^\d.,]/g, '').replace(',', '.')) : 0,
-                storageType: 'local', // ✅ Marca como local
-                storageLocation: 'Máquina Local' // ✅ Indica localização
+                sistemas,
+                status,
+                data: proposta.created_at,
+                totalSistemas: sistemas.length,
+                storageType: 'supabase',
+                storageLocation: 'Supabase (nuvem)',
               };
-              
+
               todosOrcamentos.push(orcamento);
               total++;
-              aprovados++;
-            });
+              if (status === 'pendente') pendentes++;
+              else if (status === 'aprovado') aprovados++;
+              else if (status === 'rejeitado') rejeitados++;
+            }
+          });
+
+          if (todosOrcamentos.length > 0) {
+            todosOrcamentos.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+            const stats = { total, pendentes, aprovados, rejeitados };
+            console.log(`✅ Orçamentos (Supabase): ${total} cartões`);
+            return res.status(200).json({ orcamentos: todosOrcamentos, stats, source: 'supabase' });
           }
-        });
+        }
+      } catch (supabaseError: unknown) {
+        const msg = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
+        const isCloudflare =
+          msg.includes('500') || msg.includes('cloudflare') || msg.includes('Internal Server Error');
+        console.error('⚠️ Erro Supabase orcamentos-todos:', supabaseError);
+        if (isCloudflare && (process.env.VERCEL || process.env.NETLIFY)) {
+          return res.status(200).json({
+            orcamentos: [],
+            stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
+            source: 'supabase-error',
+            error: 'Erro ao conectar com Supabase',
+          });
+        }
       }
-    } catch (localError) {
-      console.warn('⚠️ Erro ao buscar do banco local:', localError);
-      // Continuar para fallback filesystem
     }
 
-    // 🗂️ PRIORIDADE 3: Fallback para Filesystem (DESENVOLVIMENTO)
-    console.log('🔍 Buscando orçamentos no filesystem (fallback)...');
     const clientesDir = path.join(process.cwd(), 'src/data/clientes');
-    
-    // Verificar se o diretório existe
     try {
       await fs.access(clientesDir);
     } catch {
-      return res.status(200).json({ 
-        orcamentos: [], 
-        stats: { total: 0, pendentes: 0, aprovados: 0, rejeitados: 0 },
-        source: 'filesystem-empty'
+      return res.status(200).json({
+        orcamentos: todosOrcamentos,
+        stats: { total, pendentes, aprovados, rejeitados },
+        source: 'filesystem-empty',
       });
     }
 
     const pastas = await fs.readdir(clientesDir);
+    const seenSlugs = new Set(todosOrcamentos.map((o) => o.clientePasta));
 
     for (const pasta of pastas) {
+      if (seenSlugs.has(pasta)) continue;
+
       const clientePath = path.join(clientesDir, pasta);
       const stat = await fs.stat(clientePath);
-      
       if (!stat.isDirectory()) continue;
 
       try {
-        // Tentar ler proposta.json
         const propostaPath = path.join(clientePath, 'proposta.json');
-        
-        try {
-          const propostaData = await fs.readFile(propostaPath, 'utf8');
-          const proposta: PropostaData = JSON.parse(propostaData);
-          
-          // Converter sistemas da proposta em orçamentos
-          proposta.sistemas.forEach((sistema, index) => {
-            // Extrair números da potência (ex: "19.36 kWp" -> 19.36)
-            const potenciaMatch = sistema.potencia.match(/(\d+\.?\d*)/);
-            const potencia = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
-            
-            // Calcular módulos baseado na potência (assumindo módulos de 605W)
-            const modulos = Math.round(potencia * 1000 / 605);
-            
-            // Calcular inversores baseado na potência (assumindo inversores de 15kW)
-            const inversores = Math.ceil(potencia / 15);
-            
-            // Determinar status baseado na data de criação
-            const dataCriacao = proposta.metadata?.created ? new Date(proposta.metadata.created) : stat.mtime;
-            const diasDesdeCriacao = (Date.now() - dataCriacao.getTime()) / (1000 * 60 * 60 * 24);
-            
-            let status: 'pendente' | 'aprovado' | 'rejeitado' = 'pendente';
-            if (diasDesdeCriacao > 30) {
-              status = 'aprovado'; // Propostas antigas consideradas aprovadas
-            }
-            
-            const orcamento: OrcamentoItem = {
-              id: `${pasta}-sistema-${index + 1}`,
-              propostaId: undefined, // Filesystem não tem ID do banco
-              cliente: proposta.cliente.nome,
-              clientePasta: pasta,
-              potencia,
-              modulos,
-              inversores,
-              valorTotal: sistema.valorTotal,
-              status,
-              data: proposta.metadata?.created || stat.mtime.toISOString(),
-              geracaoMensal: sistema.geracaoMensal,
-              paybackMeses: sistema.paybackMeses,
-              cobertura: sistema.cobertura,
-              storageType: 'filesystem', // ✅ Marca como filesystem
-              storageLocation: 'Arquivo Local' // ✅ Indica localização
-            };
-            
-            todosOrcamentos.push(orcamento);
-            total++;
-            
-            if (status === 'pendente') pendentes++;
-            else if (status === 'aprovado') aprovados++;
-            else if (status === 'rejeitado') rejeitados++;
-          });
-          
-        } catch (error) {
-          // Arquivo proposta.json não existe ou tem erro, pular
-          console.log(`Pasta ${pasta} não tem proposta.json válida`);
-        }
-        
-      } catch (error) {
-        console.error(`Erro ao processar cliente ${pasta}:`, error);
+        const propostaData = await fs.readFile(propostaPath, 'utf8');
+        const proposta: PropostaData = JSON.parse(propostaData);
+
+        if (!proposta.sistemas?.length) continue;
+
+        const dataCriacao = proposta.metadata?.created ? new Date(proposta.metadata.created) : stat.mtime;
+        const diasDesdeCriacao = (Date.now() - dataCriacao.getTime()) / (1000 * 60 * 60 * 24);
+        let status: 'pendente' | 'aprovado' | 'rejeitado' = 'pendente';
+        if (diasDesdeCriacao > 30) status = 'aprovado';
+
+        const sistemas: SistemaItem[] = proposta.sistemas.map((sistema, index) => {
+          const potenciaMatch = sistema.potencia?.match(/(\d+\.?\d*)/);
+          const potencia = potenciaMatch ? parseFloat(potenciaMatch[1]) : 0;
+          const modulos = Math.round((potencia * 1000) / 605);
+          const inversores = Math.ceil(potencia / 15);
+
+          return {
+            titulo: sistema.titulo || `Sistema ${index + 1}`,
+            potencia,
+            modulos,
+            inversores,
+            valorTotal: sistema.valorTotal ?? 0,
+            geracaoMensal: sistema.geracaoMensal,
+            paybackMeses: sistema.paybackMeses,
+            cobertura: sistema.cobertura,
+            storageType: 'filesystem',
+            storageLocation: 'Arquivo local',
+          };
+        });
+
+        const orcamento: OrcamentoItem = {
+          id: pasta,
+          propostaId: undefined,
+          cliente: proposta.cliente.nome,
+          clientePasta: pasta,
+          sistemas,
+          status,
+          data: proposta.metadata?.created || stat.mtime.toISOString(),
+          totalSistemas: sistemas.length,
+          storageType: 'filesystem',
+          storageLocation: 'Arquivo local',
+        };
+
+        todosOrcamentos.push(orcamento);
+        total++;
+        if (status === 'pendente') pendentes++;
+        else if (status === 'aprovado') aprovados++;
+        else if (status === 'rejeitado') rejeitados++;
+      } catch {
+        /* sem proposta.json */
       }
     }
 
-    // Ordenar por data (mais recente primeiro)
     todosOrcamentos.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 
-    const stats = {
-      total,
-      pendentes,
-      aprovados,
-      rejeitados
-    };
+    const stats = { total, pendentes, aprovados, rejeitados };
+    const source = todosOrcamentos.some((o) => o.storageType === 'filesystem') ? 'mixed' : 'filesystem';
 
-    console.log(`✅ Orçamentos processados (filesystem): ${total}`);
-    res.status(200).json({ orcamentos: todosOrcamentos, stats, source: 'filesystem' });
-
+    return res.status(200).json({ orcamentos: todosOrcamentos, stats, source });
   } catch (error) {
     console.error('Erro ao listar orçamentos:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 }

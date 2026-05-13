@@ -3,7 +3,36 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 import { pythonCalculator } from '@/lib/python-calculator';
-import { getOrCreateCliente, savePropostaLocal } from '@/lib/local-db';
+
+// Função para mapear tipo de imóvel para template CSS
+function mapearTipoImovelParaTemplate(tipoImovel: string): string {
+  const tipoLower = tipoImovel.toLowerCase();
+  
+  if (tipoLower.includes('residencial')) {
+    return 'residencial';
+  }
+  if (tipoLower.includes('rural')) {
+    return 'rural';
+  }
+  if (tipoLower.includes('panificadora')) {
+    return 'comercial-panificadora';
+  }
+  if (tipoLower.includes('açougue') || tipoLower.includes('acougue')) {
+    return 'comercial-acougue';
+  }
+  if (tipoLower.includes('restaurante')) {
+    return 'comercial-restaurante';
+  }
+  if (tipoLower.includes('mercado')) {
+    return 'comercial-mercado';
+  }
+  if (tipoLower.includes('industrial')) {
+    return 'industrial';
+  }
+  
+  // Padrão
+  return 'padrao';
+}
 
 // Interface para dados de extração de PDFs
 interface ExtractedData {
@@ -114,7 +143,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { cliente, orcamentos, config } = req.body;
+    const { cliente, orcamentos, config, slugExistente } = req.body;
 
     // Debug: mostrar dados recebidos
     console.log('📥 Dados recebidos na API:', {
@@ -127,8 +156,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         geracaoMensal: orc.geracaoMensal,
         paybackMeses: orc.paybackMeses
       })),
-      config: config
+      config: config,
+      slugExistente: slugExistente || 'NOVO'
     });
+    
+    // ✅ Determinar modo: atualizar existente ou criar nova
+    const modoAtualizacao = !!slugExistente;
+    console.log(modoAtualizacao 
+      ? `💾 MODO: Atualizar proposta existente (slug: ${slugExistente})`
+      : '💾 MODO: Criar nova proposta'
+    );
 
     // Validar dados
     if (!cliente || !orcamentos || !config) {
@@ -211,18 +248,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return {ppix, pavista, priscado, p12x, p18x_parcela, p12x_total, p18x_total};
     };
 
-    // Calcular performance usando configurações dinâmicas
-    const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
-      // 🔧 NOVO: Usar performanceRate das configurações do sistema
-      const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
-      const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
-      const cobertura = consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0;
-      const economiaMensal = geracaoMensal * (tarifa || 0);
-      const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
-      const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
-      
-      return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
-    };
+     // Calcular performance usando configurações dinâmicas
+     const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
+       // 🔧 NOVO: Usar performanceRate das configurações do sistema
+       const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
+       const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
+       const cobertura = Math.round(consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0); // ✅ Arredondar para inteiro
+       const economiaMensal = geracaoMensal * (tarifa || 0);
+       const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
+       const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
+       
+       return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
+     };
 
     // Processar orçamentos - USAR DADOS JÁ CALCULADOS DO FRONTEND
     let sistemas;
@@ -271,9 +308,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p12x_total: orc.p12x_total !== undefined ? orc.p12x_total : (precos.p12x_total !== undefined ? precos.p12x_total : 0),
           p18x_parcela: orc.p18x_parcela !== undefined ? orc.p18x_parcela : (precos.p18x_parcela !== undefined ? precos.p18x_parcela : 0),
           p18x_total: orc.p18x_total !== undefined ? orc.p18x_total : (precos.p18x_total !== undefined ? precos.p18x_total : 0),
-          geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
-          cobertura: orc.cobertura !== undefined ? orc.cobertura : (config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0),
-          economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
+           geracaoMensal: orc.geracaoMensal !== undefined ? orc.geracaoMensal : 0,
+           cobertura: orc.cobertura !== undefined ? Math.round(orc.cobertura) : Math.round(config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0), // ✅ Arredondar para inteiro
+           economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
           paybackMeses: orc.paybackMeses !== undefined ? orc.paybackMeses : 0,
           tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 && orc.paybackMeses !== Infinity ? (12 / orc.paybackMeses) * 100 : 0)
         };
@@ -352,7 +389,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .trim();
     };
 
-    const slug = `${normalizeSlug(cliente.nome)}-${dataAtual.replace(/\//g, '-')}`;
+    // ✅ Usar slug existente se fornecido (atualização), senão gerar novo
+    const slug = slugExistente || `${normalizeSlug(cliente.nome)}-${dataAtual.replace(/\//g, '-')}`;
+    
+    console.log(`📌 Slug final: ${slug} (${modoAtualizacao ? 'ATUALIZAÇÃO' : 'CRIAÇÃO'})`);
     
     const htmlContent = `
 <!DOCTYPE html>
@@ -497,7 +537,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           consumoMensal: cliente.consumo_mensal,
           consumoKwh: cliente.consumo_mensal.toString(),
           tipo: cliente.tipo_imovel,
-          hspLocal: (cliente.hsp || 5.21).toString(),
+          hspLocal: (cliente.hsp || configSistema.hspPadrao || 5.21).toString(),
           // Novo: tipo de instalação vindo do payload/YAML
           tipoInstalacao: (cliente.tipoInstalacao || cliente.tipo_instalacao || cliente.instalacao || '').toString()
         },
@@ -532,7 +572,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           // Performance (valores numéricos para template engine)
           geracaoMensal: sistema.geracaoMensal,
-          cobertura: (parseFloat(sistema.cobertura) || 0),
+          cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Arredondar para inteiro
           economiaMensal: sistema.economiaMensal,
           paybackMeses: sistema.paybackMeses,
           tirAnual: sistema.tirAnual,
@@ -572,7 +612,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           email: "contato@piengsolucoes.com.br",
           site: "www.piengsolucoes.com.br"
         },
-        bannerUrgencia: "🚀 Oferta especial válida até o final do mês!",
+        bannerUrgencia: "🚀 Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
         dataGeracao: dataAtual,
         dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
       };
@@ -621,10 +661,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         nome: cliente.nome,
         cidade: cliente.cidade,
         consumoMensal: cliente.consumo_mensal,
+        consumo: cliente.consumo_mensal, // Alias
         consumoKwh: cliente.consumo_mensal.toString(),
         tipoImovel: cliente.tipo_imovel,
         tipo: cliente.tipo_imovel,
-        hspLocal: (cliente.hsp || 5.21).toString()
+        hspLocal: (cliente.hsp || configSistema.hspPadrao || 5.21).toString(),
+        hsp: cliente.hsp || configSistema.hspPadrao || 5.21, // Numérico também
+        tarifa: cliente.tarifa || configSistema.tarifaPadrao || 0.982, // Tarifa numérica
+        tarifaEnergia: cliente.tarifa || configSistema.tarifaPadrao || 0.982 // Alias
       },
       sistemas: (() => {
         // Encontrar o sistema com melhor payback
@@ -656,12 +700,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
           preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
           geracao: `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`,
-          cobertura: `${((parseFloat(sistema.cobertura) || 0) || 0).toFixed(0)}%`,
+          cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Número inteiro arredondado
+          coberturaFormatada: `${Math.round(parseFloat(sistema.cobertura) || 0)}%`, // Formatado para exibição
           economia: `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`,
           payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
           tir: `${(sistema.tirAnual || 0).toFixed(1)}%`,
           isRecommended: index === melhorIndice,
-          badge: index === melhorIndice ? '⭐ MELHOR PAYBACK' : ''
+          badge: index === melhorIndice ? '⭐ MELHOR PAYBACK' : '',
+          // ✅ NOVOS CAMPOS para edição de proposta (Supabase dados_completos)
+          // Campos numéricos ESSENCIAIS para recarregar a proposta
+          pcusto: sistema.pcusto || sistema.precoCusto || 0,
+          precoCusto: sistema.pcusto || sistema.precoCusto || 0, // Alias
+          ppix: sistema.ppix || 0, // Preço PIX numérico
+          total_final: sistema.ppix || 0, // Total final = ppix (sem desconto adicional)
+          pdespesa_total: sistema.pdespesa_total || (sistema.pdespesa_fixo || 0) + (sistema.pcusto || 0) * ((sistema.pdespesa_variavel_percent || 0) / 100),
+          pdespesaTotal: sistema.pdespesa_total || (sistema.pdespesa_fixo || 0) + (sistema.pcusto || 0) * ((sistema.pdespesa_variavel_percent || 0) / 100), // Alias
+          pdespesa_fixo: sistema.pdespesa_fixo || 0,
+          pdespesaFixo: sistema.pdespesa_fixo || 0, // Alias
+          pdespesa_variavel_percent: sistema.pdespesa_variavel_percent || 0,
+          pdespesaVariavel: sistema.pdespesa_variavel_percent || 0, // Alias
+          // Campos de equipamentos
+          modulos: sistema.modulos || Math.round(sistema.potTotal * 1000 / 580),
+          pot_modulo: sistema.pot_modulo || 580,
+          marca_modulo: sistema.marca_modulo || 'N/A',
+          inversores: sistema.inversores || 1,
+          pot_inv: sistema.pot_inv || Math.ceil(sistema.potTotal),
+          marca_inversor: sistema.marca_inversor || 'N/A',
+          // Campos de potência e identificação
+          potTotal: sistema.potTotal || 0,
+          nome: sistema.nome || `Sistema ${String(index + 1).padStart(2, '0')}`,
+          distribuidora: sistema.distribuidora || 'Fornecedor',
+          fornecedor: sistema.distribuidora || sistema.fornecedor || 'Fornecedor', // Alias
+          // Campos financeiros adicionais (para compatibilidade)
+          pavista: sistema.pavista || sistema.ppix || 0,
+          priscado: sistema.priscado || sistema.pavista || sistema.ppix || 0,
+          p12x: sistema.p12x || 0,
+          p12x_total: sistema.p12x_total || (sistema.p12x || 0) * 12,
+          p18x_parcela: sistema.p18x_parcela || 0,
+          p18x_total: sistema.p18x_total || (sistema.p18x_parcela || 0) * 18,
+           // Campos técnicos (valores numéricos)
+           geracaoMensal: sistema.geracaoMensal || 0,
+           cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Valor numérico inteiro arredondado
+           economiaMensal: sistema.economiaMensal || 0,
+          paybackMeses: sistema.paybackMeses || 0,
+          tirAnual: sistema.tirAnual || 0
         }));
       })(),
       analise: (() => {
@@ -720,7 +802,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       dataGeracao: dataAtual,
       dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
       slug: slug,
-      bannerUrgencia: "🚀 Oferta especial válida até o final do mês!"
+      bannerUrgencia: "🚀 Oferta especial válida até o final do mês!",
+      // ✅ SALVAR CONFIGURAÇÕES DA PROPOSTA (para edição/consultor)
+      config: {
+        pdespesaFixo: config.pdespesaFixo || configSistema.pdespesaFixo || 3000,
+        pdespesaVariavel: config.pdespesaVariavel || configSistema.pdespesaVariavel || 22,
+        hsp: config.hsp || configSistema.hspPadrao || 5.21,
+        tarifa: config.tarifa || configSistema.tarifaPadrao || 0.982,
+        performanceRate: config.performanceRate || configSistema.performanceRate || 0.75,
+        consumoMensal: config.consumoMensal || cliente.consumo_mensal || 600,
+        metodo: config.metodo || 'variavel',
+        descontoPix: configSistema.descontoPix || 10.0,
+        fatorParcelado: configSistema.fatorParcelado || 1.20,
+        fator12x: configSistema.fator12x || 0.88,
+        fator18x: configSistema.fator18x || 0.83
+      }
     };
 
     // Salvar arquivo JSON para Next.js (apenas em desenvolvimento)
@@ -729,11 +825,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await fs.writeFile(jsonPath, JSON.stringify(propostaData, null, 2), 'utf8');
     }
 
-    // 🚀 SALVAR NO BANCO: Tentar Supabase primeiro, depois banco local como fallback
+    // 🚀 OBRIGATÓRIO: SALVAR NO SUPABASE ANTES DE RETORNAR (PRODUÇÃO E DESENVOLVIMENTO)
     let propostaSalvaNoSupabase = false;
-    let propostaSalvaLocal = false;
     let propostaSupabaseId: string | null = null;
-    let propostaLocalId: string | null = null;
     
     try {
       const { createClient } = await import('@supabase/supabase-js');
@@ -756,10 +850,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
           throw new Error('Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.');
         } else {
-          // Em desenvolvimento, apenas avisar e continuar sem salvar no Supabase
+          // Em desenvolvimento, apenas avisar
           console.warn('⚠️ Variáveis Supabase não configuradas - PROPOSTA NÃO SERÁ SALVA NO BANCO!');
-          // Não lançar erro, apenas pular o salvamento no Supabase
-          throw new Error('SKIP_SUPABASE'); // Erro especial que será tratado abaixo
+          throw new Error('Variáveis Supabase não configuradas');
         }
       }
 
@@ -790,7 +883,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             estado: estadoCliente,
             tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
             consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
             email: cliente.email,
             telefone: cliente.telefone,
             pdespesa: cliente.pdespesa,
@@ -816,7 +909,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             estado: estadoCliente,
             tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
             consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
+            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
             email: cliente.email,
             telefone: cliente.telefone,
             pdespesa: cliente.pdespesa,
@@ -858,27 +951,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error('Nenhum sistema foi gerado. Verifique os dados dos orçamentos.');
       }
       
-      // Salvar proposta no Supabase (OBRIGATÓRIO)
-      console.log('💾 Salvando proposta no Supabase...');
+      // ✅ Salvar proposta no Supabase (OBRIGATÓRIO)
+      console.log(modoAtualizacao 
+        ? `💾 Atualizando proposta existente no Supabase (slug: ${slug})...`
+        : '💾 Salvando nova proposta no Supabase...'
+      );
       const sistemaPrincipal = sistemas[0];
+      
+      // ✅ Preparar dados para upsert
+      const dadosProposta = {
+        cliente_id: clienteSupabase.id,
+        slug: slug, // ✅ Slug permanece o mesmo se for atualização
+        titulo: `Proposta Solar - ${cliente.nome}`,
+        template_usado: cliente.template || mapearTipoImovelParaTemplate(cliente.tipo_imovel || 'Residencial'),
+        sistema_kwp: sistemaPrincipal?.potTotal || 0,
+        geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
+        geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
+        valor_total: sistemaPrincipal?.ppix || 0,
+        valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
+        payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
+        tir: sistemaPrincipal?.tirAnual || 0,
+        dados_completos: propostaData,
+        html_gerado: htmlGenerated || htmlContent,
+        status: 'ativa',
+        updated_at: new Date().toISOString() // ✅ Sempre atualizar timestamp
+      };
+      
       const { data: propostaSalva, error: propostaError } = await supabase
         .from('propostas')
-        .upsert({
-          cliente_id: clienteSupabase.id,
-          slug: slug,
-          titulo: `Proposta Solar - ${cliente.nome}`,
-          template_usado: 'pieng_basic',
-          sistema_kwp: sistemaPrincipal?.potTotal || 0,
-          geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
-          geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
-          valor_total: sistemaPrincipal?.ppix || 0,
-          valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
-          payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
-          tir: sistemaPrincipal?.tirAnual || 0,
-          dados_completos: propostaData,
-          html_gerado: htmlGenerated || htmlContent,
-          status: 'ativa',
-        }, { onConflict: 'slug' })
+        .upsert(dadosProposta, { 
+          onConflict: 'slug', // ✅ Atualiza se slug existir, cria se não existir
+          ignoreDuplicates: false // ✅ Permite atualização
+        })
         .select()
         .single();
 
@@ -893,170 +997,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       propostaSalvaNoSupabase = true;
       propostaSupabaseId = propostaSalva.id;
-      console.log('✅ Proposta salva no Supabase com sucesso! ID:', propostaSalva.id, 'Slug:', slug);
+      console.log(modoAtualizacao
+        ? `✅ Proposta ATUALIZADA no Supabase com sucesso! ID: ${propostaSalva.id}, Slug: ${slug}`
+        : `✅ Proposta salva no Supabase com sucesso! ID: ${propostaSalva.id}, Slug: ${slug}`
+      );
 
     } catch (supabaseError) {
-      const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
+      console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
+      console.error('  Tipo:', typeof supabaseError);
+      console.error('  Mensagem:', supabaseError instanceof Error ? supabaseError.message : String(supabaseError));
       
-      // Se for o erro especial de pular Supabase em desenvolvimento, tentar salvar localmente
-      if (errorMessage === 'SKIP_SUPABASE') {
-        // ⚠️ Em produção, não tentar salvar localmente (SQLite não funciona em serverless)
-        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-          console.error('❌ ERRO: Supabase não configurado em produção e banco local não disponível em serverless');
-          throw new Error('Supabase não configurado. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel.');
-        }
-
-        console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento - variáveis não configuradas)');
-        console.log('💾 Tentando salvar no banco de dados local...');
+      // Em produção, retornar erro mais informativo
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
         
-        // Tentar salvar no banco local (apenas em desenvolvimento)
-        try {
-          const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
-          
-          // Buscar ou criar cliente local
-          const clienteLocal = await getOrCreateCliente({
-            nome: cliente.nome,
-            cidade: cliente.cidade,
-            estado: estadoCliente,
-            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
-            consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
-            email: cliente.email,
-            telefone: cliente.telefone,
-            pdespesa: cliente.pdespesa
-          });
-
-          // Ler HTML gerado
-          let htmlGenerated = '';
-          try {
-            if (!isServerless && arquivoPath) {
-              htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
-            }
-          } catch (readError) {
-            console.log('⚠️ Não foi possível ler HTML do arquivo, usando htmlContent gerado');
-          }
-          
-          if (!htmlGenerated && htmlContent) {
-            htmlGenerated = htmlContent;
-          }
-
-          // Salvar proposta localmente
-          const sistemaPrincipal = sistemas[0];
-          const propostaLocal = await savePropostaLocal({
-            cliente_id: clienteLocal.id,
-            slug: slug,
-            titulo: `Proposta Solar - ${cliente.nome}`,
-            template_usado: 'pieng_basic',
-            sistema_kwp: sistemaPrincipal?.potTotal || 0,
-            geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
-            geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
-            valor_total: sistemaPrincipal?.ppix || 0,
-            valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
-            payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
-            tir: sistemaPrincipal?.tirAnual || 0,
-            dados_completos: propostaData,
-            html_gerado: htmlGenerated || htmlContent,
-            status: 'ativa'
-          });
-
-          propostaSalvaLocal = true;
-          propostaLocalId = propostaLocal.id;
-          console.log('✅ Proposta salva no banco local com sucesso! ID:', propostaLocal.id, 'Slug:', slug);
-        } catch (localError) {
-          console.error('❌ Erro ao salvar no banco local:', localError);
-          console.warn('⚠️ Proposta será gerada mas não será salva em nenhum banco');
+        // Se for erro de variáveis não configuradas, retornar erro específico
+        if (errorMessage.includes('Variáveis Supabase não configuradas')) {
+          throw new Error(`Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel. Detalhes: ${errorMessage}`);
         }
+        
+        throw new Error(`Falha ao persistir proposta no banco de dados: ${errorMessage}`);
       } else {
-        console.error('❌ ERRO CRÍTICO ao salvar no Supabase:', supabaseError);
-        console.error('  Tipo:', typeof supabaseError);
-        console.error('  Mensagem:', errorMessage);
-        
-        // Tentar salvar localmente como fallback (apenas em desenvolvimento)
-        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-          console.log('💾 Tentando salvar no banco de dados local como fallback...');
-          try {
-          const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
-          
-          const clienteLocal = await getOrCreateCliente({
-            nome: cliente.nome,
-            cidade: cliente.cidade,
-            estado: estadoCliente,
-            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
-            consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || '5.21'),
-            email: cliente.email,
-            telefone: cliente.telefone,
-            pdespesa: cliente.pdespesa
-          });
-
-          let htmlGenerated = '';
-          try {
-            if (!isServerless && arquivoPath) {
-              htmlGenerated = await fs.readFile(arquivoPath, 'utf8');
-            }
-          } catch (readError) {
-            // Ignorar
-          }
-          
-          if (!htmlGenerated && htmlContent) {
-            htmlGenerated = htmlContent;
-          }
-
-          const sistemaPrincipal = sistemas[0];
-          const propostaLocal = await savePropostaLocal({
-            cliente_id: clienteLocal.id,
-            slug: slug,
-            titulo: `Proposta Solar - ${cliente.nome}`,
-            template_usado: 'pieng_basic',
-            sistema_kwp: sistemaPrincipal?.potTotal || 0,
-            geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
-            geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,
-            valor_total: sistemaPrincipal?.ppix || 0,
-            valor_kwp: sistemaPrincipal?.potTotal > 0 ? (sistemaPrincipal.ppix || 0) / sistemaPrincipal.potTotal : 0,
-            payback: sistemaPrincipal?.paybackMeses ? Math.round(sistemaPrincipal.paybackMeses / 12) : 0,
-            tir: sistemaPrincipal?.tirAnual || 0,
-            dados_completos: propostaData,
-            html_gerado: htmlGenerated || htmlContent,
-            status: 'ativa'
-          });
-
-            propostaSalvaLocal = true;
-            propostaLocalId = propostaLocal.id;
-            console.log('✅ Proposta salva no banco local (fallback)! ID:', propostaLocal.id);
-          } catch (localError) {
-            console.error('❌ Erro ao salvar no banco local também:', localError);
-          }
-        } else {
-          // Em produção, não podemos usar banco local
-          console.error('❌ ERRO: Não foi possível salvar no Supabase e banco local não está disponível em produção');
-        }
-        
-        // Em produção, retornar erro mais informativo
-        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-          // Se conseguiu salvar localmente, não lançar erro (mas isso não deve acontecer em produção)
-          if (propostaSalvaLocal) {
-            console.log('✅ Proposta salva localmente, continuando...');
-          } else {
-            // Se for erro de variáveis não configuradas, retornar erro específico
-            if (errorMessage.includes('Variáveis Supabase não configuradas')) {
-              throw new Error(`Erro: Variáveis Supabase não configuradas. Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no Vercel. Detalhes: ${errorMessage}`);
-            }
-            
-            throw new Error(`Falha ao persistir proposta no banco de dados: ${errorMessage}`);
-          }
-        } else {
-          // Em desenvolvimento, avisar mas permitir continuar
-          console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
-        }
+        // Em desenvolvimento, avisar mas permitir continuar
+        console.warn('⚠️ AVISO: Proposta NÃO foi salva no Supabase (modo desenvolvimento)');
       }
     }
 
     // 🔧 CORREÇÃO NETLIFY: Se em produção, retornar também o HTML inline
     const response: any = {
       message: propostaSalvaNoSupabase 
-        ? 'Proposta gerada e salva no banco de dados (Supabase) com sucesso!' 
-        : propostaSalvaLocal
-        ? 'Proposta gerada e salva no banco de dados local com sucesso!'
+        ? (modoAtualizacao 
+            ? 'Proposta atualizada no banco de dados com sucesso!' 
+            : 'Proposta gerada e salva no banco de dados com sucesso!')
         : 'Proposta gerada com sucesso!',
       arquivo: arquivo,
       caminho: isServerless ? `/tmp/${slug}/${arquivo}` : arquivoPath,
@@ -1067,17 +1039,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         propostaId: propostaSupabaseId,
         url: propostaSalvaNoSupabase ? `/proposta/${slug}` : null,
         message: propostaSalvaNoSupabase 
-          ? '✅ Proposta persistida no banco de dados (Supabase) e disponível publicamente' 
-          : '⚠️ Proposta não foi salva no Supabase'
-      },
-      // 💾 Status do salvamento local
-      local: {
-        salva: propostaSalvaLocal,
-        propostaId: propostaLocalId,
-        url: propostaSalvaLocal ? `/proposta/${slug}` : null,
-        message: propostaSalvaLocal
-          ? '💾 Proposta salva no banco de dados local (máquina local)'
-          : '⚠️ Proposta não foi salva no banco local'
+          ? '✅ Proposta persistida no banco de dados e disponível publicamente' 
+          : '⚠️ Proposta não foi salva no banco de dados'
       },
       // 🔧 NOVO: Dados secundários incorporados
       metadata: {
