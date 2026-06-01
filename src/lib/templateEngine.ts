@@ -379,7 +379,7 @@ export class TemplateEnginePadrao {
       // Cliente
       CLIENTE_NOME: data.cliente.nome,
       CLIENTE_CIDADE: data.cliente.cidade,
-      CLIENTE_CONSUMO_KWH: data.cliente.consumoMensal.toString(),
+      CLIENTE_CONSUMO_KWH: String(data.cliente.consumoMensal ?? 600),
       CLIENTE_CONSUMO_TIPO: data.cliente.tipo,
       CLIENTE_TIPO_INSTALACAO: (data.cliente.tipoInstalacao || '').toString(),
       HSP_LOCAL: (data.cliente.hsp || 5.21).toString(),

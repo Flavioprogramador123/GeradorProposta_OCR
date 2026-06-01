@@ -29,9 +29,20 @@ interface OrcamentoComparativo {
   status: 'pendente' | 'analisando' | 'aprovado' | 'rejeitado';
 }
 
+function resolveClienteId(
+  param: string | string[] | undefined,
+  fallbackId?: string
+): string | null {
+  if (typeof param === 'string' && param.length > 0 && param !== 'cliente') {
+    return param;
+  }
+  if (fallbackId) return fallbackId;
+  return null;
+}
+
 export default function ConsultorOrcamentosPage() {
   const router = useRouter();
-  const { clienteId } = router.query;
+  const { clienteId: clienteIdParam } = router.query;
   const { config, updateConfig, resetConfig, calcularPrecos, calcularPerformance, calcularPdespesa } = useConsultorConfig();
   
   const [cliente, setCliente] = useState<Cliente | null>(null);
@@ -49,10 +60,15 @@ export default function ConsultorOrcamentosPage() {
     setTemplateSelecionado({ tipo, subtipo });
   };
 
+  const clienteId = resolveClienteId(clienteIdParam, cliente?.id);
+
   // Carregar dados do cliente e orçamentos
   useEffect(() => {
-    if (!clienteId || clienteId === 'cliente' || typeof clienteId !== 'string') {
-      console.warn('⚠️ clienteId inválido:', clienteId);
+    if (!router.isReady) return;
+
+    const id = resolveClienteId(clienteIdParam);
+    if (!id) {
+      setLoading(false);
       return;
     }
 
@@ -61,7 +77,7 @@ export default function ConsultorOrcamentosPage() {
         setLoading(true);
         
         // 🔧 PRIORIDADE 1: Tentar carregar do localStorage (vindo do Gerador Rápido)
-        const dadosLocalStorage = localStorage.getItem(`consultor-${clienteId}`);
+        const dadosLocalStorage = localStorage.getItem(`consultor-${id}`);
         
         if (dadosLocalStorage) {
           try {
@@ -75,7 +91,7 @@ export default function ConsultorOrcamentosPage() {
             
             // Configurar cliente
             const clienteData: Cliente = {
-              id: clienteId as string,
+              id: id,
               nome: dados.cliente?.nome || 'Cliente Exemplo',
               cidade: dados.cliente?.cidade || 'São Paulo',
               consumoMensal: dados.cliente?.consumoMensal || 600
@@ -95,11 +111,11 @@ export default function ConsultorOrcamentosPage() {
         }
         
         // 🔧 FALLBACK: Carregar PROPOSTA GERADA (não orçamentos individuais)
-        console.log('📥 Carregando proposta gerada para:', clienteId);
+        console.log('📥 Carregando proposta gerada para:', id);
 
         try {
           // Buscar proposta gerada usando a API correta que retorna dados completos
-          const propostaRes = await fetch(`/api/propostas/${clienteId}`);
+          const propostaRes = await fetch(`/api/propostas/${id}`);
 
           if (!propostaRes.ok) {
             throw new Error('Proposta não encontrada');
@@ -114,7 +130,7 @@ export default function ConsultorOrcamentosPage() {
 
           // Configurar cliente
           const clienteData: Cliente = {
-            id: clienteId as string,
+            id: id,
             nome: proposta.cliente?.nome || 'Cliente',
             cidade: proposta.cliente?.cidade || 'N/A',
             consumoMensal: proposta.cliente?.consumoMensal || 600
@@ -244,11 +260,11 @@ export default function ConsultorOrcamentosPage() {
 
           // Se falhar, tentar buscar cliente básico
           try {
-            const clienteRes = await fetch(`/api/admin/clientes/${clienteId}`);
+            const clienteRes = await fetch(`/api/admin/clientes/${id}`);
             if (clienteRes.ok) {
               const clienteApiData = await clienteRes.json();
               setCliente({
-                id: clienteId as string,
+                id: id,
                 nome: clienteApiData.nome || 'Cliente',
                 cidade: clienteApiData.cidade || 'N/A',
                 consumoMensal: clienteApiData.consumoMensal || 600
@@ -257,7 +273,7 @@ export default function ConsultorOrcamentosPage() {
           } catch {
             // Fallback final
             setCliente({
-              id: clienteId as string,
+              id: id,
               nome: 'Cliente',
               cidade: 'N/A',
               consumoMensal: 600
@@ -274,7 +290,7 @@ export default function ConsultorOrcamentosPage() {
     };
 
     loadData();
-  }, [clienteId]);
+  }, [router.isReady, clienteIdParam]);
 
   const handleOrcamentoUpdate = (id: string, updates: Partial<OrcamentoComparativo>) => {
     setOrcamentos(prev => 
@@ -317,6 +333,12 @@ export default function ConsultorOrcamentosPage() {
   };
 
   const gerarPropostas = async () => {
+    const id = resolveClienteId(clienteIdParam, cliente?.id);
+    if (!id) {
+      alert('❌ Identificador do cliente não encontrado. Recarregue a página ou acesse novamente pelo Gerador Rápido.');
+      return;
+    }
+
     const aprovados = orcamentos.filter(o => o.status === 'aprovado');
     if (aprovados.length === 0) {
       alert('Nenhum orçamento aprovado para gerar propostas');
@@ -332,24 +354,39 @@ export default function ConsultorOrcamentosPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          clienteId,
+          clienteId: id,
           orcamentos,
           config,
+          cliente: cliente
+            ? {
+                nome: cliente.nome,
+                cidade: cliente.cidade,
+                consumoMensal: cliente.consumoMensal,
+              }
+            : undefined,
           clientType: templateSelecionado?.tipo,
-          subType: templateSelecionado?.subtipo
+          subType: templateSelecionado?.subtipo,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao gerar proposta');
+        const errorData = await response.json().catch(() => ({}));
+        const detalhe = errorData.details ? `: ${errorData.details}` : '';
+        throw new Error((errorData.error || 'Erro ao gerar proposta') + detalhe);
       }
 
       const result = await response.json();
       
       if (result.success) {
-        // Abrir proposta na nova aba
-        window.open(result.propostaUrl, '_blank');
+        // Em produção (Vercel) o HTML vem no JSON; localmente pode haver URL em disco
+        if (result.html) {
+          const blob = new Blob([result.html], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } else if (result.propostaUrl) {
+          window.open(result.propostaUrl, '_blank');
+        }
         
         // Mostrar mensagem de sucesso com dados completos
         alert(`✅ Proposta gerada com sucesso!
@@ -437,7 +474,7 @@ export default function ConsultorOrcamentosPage() {
                     🏠 Admin
                   </a>
                 </Link>
-                <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior>
+                <Link href={`/admin/orcamentos/${clienteId ?? cliente.id}`} legacyBehavior>
                   <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2">
                     ← Voltar
                   </a>
