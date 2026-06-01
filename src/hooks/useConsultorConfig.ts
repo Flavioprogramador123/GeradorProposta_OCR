@@ -1,4 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  calcularPdespesaProposta,
+  calcularPerformanceProposta,
+  calcularPrecosProposta,
+  normalizePropostaConfig,
+} from '@/lib/propostaOrcamentoProcessor';
 
 export interface ConsultorConfig {
   // Parâmetros Técnicos
@@ -72,38 +78,19 @@ export function useConsultorConfig() {
   };
 
   const calcularPrecos = (totalFinal: number) => {
-    const ppix = totalFinal * (1 - config.descontoPix);
-    const pavista = totalFinal;
-    const priscado = totalFinal * config.fatorParcelado;
-    const p12x_total = ppix / config.fator12x;
-    const p12x = p12x_total / 12;
-    const p18x_total = ppix / config.fator18x;
-    const p18x_parcela = p18x_total / 18;
-
-    return { ppix, pavista, priscado, p12x, p18x_parcela, p12x_total, p18x_total };
+    return calcularPrecosProposta(totalFinal, normalizePropostaConfig(config));
   };
 
   const calcularPerformance = (potenciaKw: number, investimentoPix: number) => {
-    const geracaoMensal = potenciaKw * config.hsp * 30.4 * config.performanceRate;
-    const cobertura = (geracaoMensal / config.consumoMensal) * 100;
-    const economiaMensal = geracaoMensal * config.tarifa;
-    const paybackMeses = investimentoPix / economiaMensal;
-    const tirAnual = (12 / paybackMeses) * 100;
-    
-    return { geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual };
+    return calcularPerformanceProposta(
+      potenciaKw,
+      normalizePropostaConfig(config),
+      investimentoPix
+    );
   };
 
   const calcularPdespesa = (pcusto: number) => {
-    // Se variável é 0, usa só o fixo
-    if (config.pdespesaVariavel === 0) {
-      return config.pdespesaFixo;
-    }
-    // Se fixo é 0, usa só o variável
-    if (config.pdespesaFixo === 0) {
-      return pcusto * config.pdespesaVariavel / 100;
-    }
-    // Caso contrário, usa ambos
-    return config.pdespesaFixo + (pcusto * config.pdespesaVariavel / 100);
+    return calcularPdespesaProposta(pcusto, normalizePropostaConfig(config));
   };
 
   return {

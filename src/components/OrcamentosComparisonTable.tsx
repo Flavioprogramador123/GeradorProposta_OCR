@@ -1,5 +1,11 @@
 import React from 'react';
 import { ConsultorConfig } from '@/hooks/useConsultorConfig';
+import {
+  calcularPdespesaProposta,
+  calcularPerformanceProposta,
+  calcularPrecosProposta,
+  normalizePropostaConfig,
+} from '@/lib/propostaOrcamentoProcessor';
 
 interface OrcamentoComparativo {
   id: string;
@@ -32,38 +38,28 @@ export default function OrcamentosComparisonTable({
 }: OrcamentosComparisonTableProps) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  const calcularPdespesa = (pcusto: number) => {
-    // Se variável é 0, usa só o fixo
-    if (config.pdespesaVariavel === 0) {
-      return config.pdespesaFixo;
-    }
-    // Se fixo é 0, usa só o variável
-    if (config.pdespesaFixo === 0) {
-      return pcusto * config.pdespesaVariavel / 100;
-    }
-    // Caso contrário, usa ambos
-    return config.pdespesaFixo + (pcusto * config.pdespesaVariavel / 100);
-  };
+  const cfgNorm = normalizePropostaConfig(config);
+  const calcularPdespesa = (pcusto: number) => calcularPdespesaProposta(pcusto, cfgNorm);
 
   const calcularPrecos = (totalFinal: number) => {
-    const ppix = totalFinal * (1 - config.descontoPix);
-    const p12x_total = ppix / config.fator12x;
-    const p12x = p12x_total / 12;
-    const p18x_total = ppix / config.fator18x;
-    const p18x_parcela = p18x_total / 18;
-
-    return { ppix, p12x, p18x_parcela, p12x_total, p18x_total };
+    const precos = calcularPrecosProposta(totalFinal, cfgNorm);
+    return {
+      ppix: precos.ppix,
+      p12x: precos.p12x,
+      p18x_parcela: precos.p18x_parcela,
+      p12x_total: precos.p12x_total,
+      p18x_total: precos.p18x_total,
+    };
   };
 
   const calcularPerformance = (potenciaKw: number, investimentoPix: number) => {
-    const geracaoMensal = potenciaKw * config.hsp * 30.4 * config.performanceRate;
-    const economiaMensal = geracaoMensal * config.tarifa;
-    
-    // Evitar divisão por zero
-    const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
-    const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
-    
-    return { geracaoMensal, economiaMensal, paybackMeses, tirAnual };
+    const perf = calcularPerformanceProposta(potenciaKw, cfgNorm, investimentoPix);
+    return {
+      geracaoMensal: perf.geracaoMensal,
+      economiaMensal: perf.economiaMensal,
+      paybackMeses: perf.paybackMeses,
+      tirAnual: perf.tirAnual,
+    };
   };
 
   // Calcular qual sistema tem o melhor payback
