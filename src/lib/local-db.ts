@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';
 import { mkdirSync } from 'fs';
 import path from 'path';
@@ -7,7 +6,22 @@ import path from 'path';
 const DB_DIR = path.join(process.cwd(), 'data', 'local-db');
 const DB_PATH = path.join(DB_DIR, 'propostas.db');
 
-let db: Database.Database | null = null;
+type SqliteDatabase = {
+  prepare: (sql: string) => {
+    run: (...args: unknown[]) => unknown;
+    get: (...args: unknown[]) => unknown;
+    all: (...args: unknown[]) => unknown[];
+  };
+  pragma: (sql: string) => void;
+  close: () => void;
+};
+
+let db: SqliteDatabase | null = null;
+
+function loadSqlite(): new (path: string) => SqliteDatabase {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('better-sqlite3');
+}
 
 /**
  * Verifica se estamos em ambiente serverless (Vercel/Netlify)
@@ -19,7 +33,7 @@ function isServerlessEnvironment(): boolean {
 /**
  * Inicializa o banco de dados local
  */
-function getDatabase(): Database.Database {
+function getDatabase(): SqliteDatabase {
   // ⚠️ Não usar SQLite em ambientes serverless (Vercel/Netlify)
   if (isServerlessEnvironment()) {
     throw new Error('SQLite não é suportado em ambientes serverless. Use Supabase em produção.');
@@ -36,7 +50,7 @@ function getDatabase(): Database.Database {
     console.warn('⚠️ Erro ao criar diretório do banco local:', error);
   }
 
-  // Criar conexão com o banco
+  const Database = loadSqlite();
   db = new Database(DB_PATH);
   
   // Habilitar foreign keys
@@ -51,7 +65,7 @@ function getDatabase(): Database.Database {
 /**
  * Inicializa as tabelas do banco de dados
  */
-function initializeTables(database: Database.Database) {
+function initializeTables(database: SqliteDatabase) {
   // Tabela de clientes
   database.exec(`
     CREATE TABLE IF NOT EXISTS clientes (
