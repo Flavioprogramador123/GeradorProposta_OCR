@@ -64,6 +64,18 @@ async function getClienteFromSupabase(clienteId: string) {
 
   if (!cliente) {
     cliente = clientes.find((c) => {
+      const propostas = (c as any).propostas as Array<{ slug?: string }> | undefined;
+      return propostas?.some(
+        (p) => p.slug === clienteId || (p.slug && sanitizeId(p.slug) === sanitizedId)
+      );
+    });
+    if (cliente) {
+      console.log(`✅ Cliente encontrado por slug da proposta: ${cliente.nome}`);
+    }
+  }
+
+  if (!cliente) {
+    cliente = clientes.find((c) => {
       if (!c.nome) return false;
       const nomeMatch = c.nome.toLowerCase().trim() === clienteId.toLowerCase().trim();
       const nomeSanitizedMatch = sanitizeId(c.nome) === sanitizedId;
@@ -370,6 +382,40 @@ CONSUMO MENSAL: ${consumoKwh} KWH/MES
         message: 'Erro interno do servidor',
         error: error.message,
       });
+    }
+  } else if (req.method === 'PATCH') {
+    // Atualização parcial — ex.: pausar/reativar proposta
+    try {
+      const { propostaPausada } = req.body;
+
+      if (typeof propostaPausada !== 'boolean') {
+        return res.status(400).json({ message: 'Campo propostaPausada (boolean) é obrigatório' });
+      }
+
+      const clienteSupabase = await getClienteFromSupabase(clienteId);
+      if (clienteSupabase?.id) {
+        await updateCliente(clienteSupabase.id, { proposta_pausada: propostaPausada });
+        return res.status(200).json({ message: 'Status da proposta atualizado', propostaPausada });
+      }
+
+      // Fallback filesystem: salvar em cliente.json
+      const clientePath = path.join(process.cwd(), 'src', 'data', 'clientes', clienteId);
+      const clienteJsonPath = path.join(clientePath, 'cliente.json');
+      try {
+        const raw = await fs.readFile(clienteJsonPath, 'utf8');
+        const data = JSON.parse(raw);
+        data.propostaPausada = propostaPausada;
+        await fs.writeFile(clienteJsonPath, JSON.stringify(data, null, 2), 'utf8');
+      } catch {
+        // Se não existir cliente.json cria um mínimo
+        await fs.mkdir(clientePath, { recursive: true });
+        await fs.writeFile(clienteJsonPath, JSON.stringify({ propostaPausada }, null, 2), 'utf8');
+      }
+
+      return res.status(200).json({ message: 'Status da proposta atualizado (filesystem)', propostaPausada });
+    } catch (error: any) {
+      console.error('❌ Erro no PATCH cliente:', error);
+      res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
     }
   } else {
     res.status(405).json({ message: 'Method not allowed' });

@@ -748,7 +748,7 @@ export class TemplateEnginePadrao {
 
             <div class="pricing-section">
               <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div class="current-price">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div class="current-price">à vista R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
               <div class="pix-price"><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
 
@@ -771,7 +771,7 @@ export class TemplateEnginePadrao {
               TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
             </div>
 
-            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;
@@ -820,7 +820,7 @@ export class TemplateEnginePadrao {
 
             <div class="pricing-section">
               <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div class="current-price">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div class="current-price">à vista R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
               <div style="font-size: 18px; font-weight: 700; color: var(--success); margin: 10px 0;">
                 PIX: R$ ${(sistema.ppix || 0).toFixed(2)}
@@ -852,7 +852,7 @@ export class TemplateEnginePadrao {
               </div>
             </div>
 
-            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;

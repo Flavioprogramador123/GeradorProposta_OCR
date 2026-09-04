@@ -3,6 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 import { pythonCalculator } from '@/lib/python-calculator';
+import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
+import { getBonusMicroAtivo } from '@/lib/calcularPerformance';
 
 // Função para mapear tipo de imóvel para template CSS
 function mapearTipoImovelParaTemplate(tipoImovel: string): string {
@@ -218,42 +220,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.warn('⚠️ Validação Python não disponível, continuando sem validação:', validationError);
     }
 
-    // Calcular preços usando configurações dinâmicas do sistema
+    // PIX = base; à vista = total 12× cartão; 12×/18× pela tabela real
     const calcularPrecos = (totalFinal: number) => {
-      const ppix = totalFinal; // PIX = Total Final da tabela
-
-      // 🔧 NOVO: Usar configurações dinâmicas do sistema
-      // Verificar se descontoPix já está em decimal (0.1) ou percentual (10)
-      const descontoPixRaw = configSistema.descontoPix || 10.0;
-      const descontoPix = descontoPixRaw > 1 ? descontoPixRaw / 100 : descontoPixRaw; // Converter se for percentual
-      const markupParcelado = configSistema.fatorParcelado || 1.20; // markup para parcelado
-      const fator12x = configSistema.fator12x || 0.88; // fator 12x
-      const fator18x = configSistema.fator18x || 0.83; // fator 18x
-      
-      console.log('🔧 Parâmetros de cálculo:', {
-        descontoPixRaw,
-        descontoPix,
-        markupParcelado,
-        fator12x,
-        fator18x
-      });
-
-      const pavista = ppix / (1 - descontoPix); // À vista
-      const priscado = ppix * markupParcelado; // Preço riscado
-      const p12x_total = ppix / fator12x; // 12x com taxa
-      const p12x = p12x_total / 12; // Parcela 12x
-      const p18x_total = ppix / fator18x; // 18x com taxa
-      const p18x_parcela = p18x_total / 18; // Parcela 18x
-
-      return {ppix, pavista, priscado, p12x, p18x_parcela, p12x_total, p18x_total};
+      const markup = config?.fatorParcelado ?? configSistema.fatorParcelado ?? 1.20;
+      return calcularPrecosDePix(totalFinal, markup);
     };
 
-     // Calcular performance usando configurações dinâmicas
-     const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
-       // 🔧 NOVO: Usar performanceRate das configurações do sistema
+     // Calcular performance usando configurações dinâmicas (+ bônus micro se ativo)
+     const calcularPerformance = (
+       potenciaKw: number,
+       hsp: number,
+       consumoMensal: number,
+       tarifa: number,
+       investimentoPix: number,
+       bonusMicroAtivo = false
+     ) => {
        const performanceRate = configSistema.performanceRate || config.performanceRate || 0.75;
-       const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate;
-       const cobertura = Math.round(consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0); // ✅ Arredondar para inteiro
+       const bonusMicroPercent = config.bonusMicroPercent ?? configSistema.bonusMicroPercent ?? 5;
+       const fatorBonus = bonusMicroAtivo ? 1 + bonusMicroPercent / 100 : 1;
+       const geracaoMensal = potenciaKw * hsp * 30.4 * performanceRate * fatorBonus;
+       const cobertura = Math.round(consumoMensal > 0 ? (geracaoMensal / consumoMensal) * 100 : 0);
        const economiaMensal = geracaoMensal * (tarifa || 0);
        const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
        const tirAnual = paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
@@ -312,7 +298,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
            cobertura: orc.cobertura !== undefined ? Math.round(orc.cobertura) : Math.round(config.consumoMensal > 0 ? ((orc.geracaoMensal / config.consumoMensal) * 100) : 0), // ✅ Arredondar para inteiro
            economiaMensal: orc.economiaMensal !== undefined ? orc.economiaMensal : ((orc.geracaoMensal * (config.tarifa || 0)) || 0),
           paybackMeses: orc.paybackMeses !== undefined ? orc.paybackMeses : 0,
-          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 && orc.paybackMeses !== Infinity ? (12 / orc.paybackMeses) * 100 : 0)
+          tirAnual: orc.tirAnual !== undefined ? orc.tirAnual : (orc.paybackMeses > 0 && orc.paybackMeses !== Infinity ? (12 / orc.paybackMeses) * 100 : 0),
+          bonusMicroAtivo: orc.bonusMicroAtivo,
+          bonusMicroManual: orc.bonusMicroManual,
         };
       }
 
@@ -322,7 +310,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const totalFinal = orc.total_final || (orc.pcusto + orc.pdespesa_total);
       const pdespesa = orc.pdespesa_total || (config.metodo === 'fixo' ? config.pdespesaFixo : orc.pcusto * (config.pdespesaVariavel / 100));
       const precos = calcularPrecos(totalFinal);
-      const performance = calcularPerformance(potTotal, config.hsp, config.consumoMensal, config.tarifa, precos.ppix);
+      const bonusMicroAtivo = getBonusMicroAtivo(orc);
+      const performance = calcularPerformance(
+        potTotal,
+        config.hsp,
+        config.consumoMensal,
+        config.tarifa,
+        precos.ppix,
+        bonusMicroAtivo
+      );
 
       return {
         nome: orc.nome,
@@ -336,6 +332,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pot_inv: orc.pot_inv,
         marca_inversor: orc.marca_inversor,
         tipo_instalacao: orc.tipo_instalacao || 'Telhado Fibrocimento',
+        bonusMicroAtivo,
+        bonusMicroManual: orc.bonusMicroManual,
         ...precos,
         ...performance
       };
@@ -531,6 +529,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const templateData = {
+        slug,
         cliente: {
           nome: cliente.nome,
           cidade: cliente.cidade,
@@ -804,6 +803,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       slug: slug,
       bannerUrgencia: "Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
       // ✅ SALVAR CONFIGURAÇÕES DA PROPOSTA (para edição/consultor)
+      // À vista / fatores 12×–18× vêm da tabela de cartão (PIX = base)
       config: {
         pdespesaFixo: config.pdespesaFixo || configSistema.pdespesaFixo || 3000,
         pdespesaVariavel: config.pdespesaVariavel || configSistema.pdespesaVariavel || 22,
@@ -812,10 +812,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         performanceRate: config.performanceRate || configSistema.performanceRate || 0.75,
         consumoMensal: config.consumoMensal || cliente.consumo_mensal || 600,
         metodo: config.metodo || 'variavel',
-        descontoPix: configSistema.descontoPix || 10.0,
-        fatorParcelado: configSistema.fatorParcelado || 1.20,
-        fator12x: configSistema.fator12x || 0.88,
-        fator18x: configSistema.fator18x || 0.83
+        descontoPix: (() => {
+          const sample = calcularPrecosDePix(10000, config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.2);
+          return sample.economiaPercent; // percentual aparente PIX vs à vista
+        })(),
+        fatorParcelado: config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.20,
+        fator12x: 1 / 1.117943,
+        fator18x: 1 / 1.179384,
+        bonusMicroPercent: config.bonusMicroPercent ?? configSistema.bonusMicroPercent ?? 5,
+        precificacao: 'pix_base_tabela_cartao_v1',
       }
     };
 

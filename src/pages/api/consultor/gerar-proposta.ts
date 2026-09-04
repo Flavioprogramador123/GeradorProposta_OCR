@@ -11,6 +11,9 @@ import {
   type PropostaConfigInput,
 } from '@/lib/propostaOrcamentoProcessor';
 
+/**
+ * Consultor → mesmo engine do Gerador Rápido (propostaOrcamentoProcessor + templateEngine).
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });

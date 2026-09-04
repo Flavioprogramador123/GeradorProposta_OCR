@@ -2,6 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import MicroInversorToggle from '@/components/MicroInversorToggle';
+import {
+  syncBonusMicroAuto,
+  getBonusMicroAtivo,
+  calcularPerformanceCompleta,
+} from '@/lib/calcularPerformance';
+import { buildPropostaPdfUrl } from '@/lib/propostaPdf';
+import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
+import {
+  applyConfigRapidaToGerador,
+  pickFromGeradorConfig,
+  resolveConfigRapida,
+  saveConfigRapida,
+} from '@/lib/configRapidaShared';
 
 interface Orcamento {
   nome: string;
@@ -13,6 +27,8 @@ interface Orcamento {
   inversores: number;
   pot_inv: number;
   marca_inversor: string;
+  bonusMicroAtivo?: boolean;
+  bonusMicroManual?: boolean;
   pdespesa_fixo: number;
   pdespesa_variavel_percent: number;
   pdespesa_total: number;
@@ -30,6 +46,7 @@ export default function GeradorRapido() {
     hsp: 5.21,
     tarifa: 1.10,
     performanceRate: 0.75,
+    bonusMicroPercent: 5,
     pdespesaFixo: 3000,
     pdespesaVariavel: 22,
     metodo: 'variavel',
@@ -49,6 +66,7 @@ export default function GeradorRapido() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState<string>('padrao');
   const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
+  const [configRapidaReady, setConfigRapidaReady] = useState(false);
   const lastTemplateTapRef = useRef<{ template: string; time: number }>({ template: '', time: 0 });
 
   // Duplo clique / duplo toque no template = confirmar e salvar com esse template
@@ -437,39 +455,55 @@ export default function GeradorRapido() {
     }
   };
 
-  // Carregar configurações do sistema
+  // Carregar configurações do sistema + sessão compartilhada (4a ↔ Gerador)
   useEffect(() => {
     const carregarConfigSistema = async () => {
       try {
         const response = await fetch('/api/admin/config');
+        const configData = response.ok ? await response.json() : {};
         if (response.ok) {
-          const configData = await response.json();
           console.log('🔧 Configurações carregadas:', configData);
           setConfigSistema(configData);
-
-          // ✅ ATUALIZAR config state com valores do Supabase
-          setConfig(prev => ({
-            ...prev,
-            hsp: parseFloat(configData.hspPadrao) || prev.hsp,
-            tarifa: parseFloat(configData.tarifaEnergia) || prev.tarifa,
-            performanceRate: parseFloat(configData.performanceRate) || prev.performanceRate,
-            pdespesaFixo: parseFloat(configData.pdespesaFixo) || prev.pdespesaFixo,
-            pdespesaVariavel: parseFloat(configData.pdespesaVariavel) || prev.pdespesaVariavel
-          }));
-
-          console.log('✅ Config atualizado com valores do Supabase:', {
-            hsp: parseFloat(configData.hspPadrao),
-            performanceRate: parseFloat(configData.performanceRate),
-            pdespesaFixo: parseFloat(configData.pdespesaFixo)
-          });
         }
+
+        const shared = resolveConfigRapida(configData);
+        setConfig((prev) => applyConfigRapidaToGerador(prev, shared));
+        setConfigRapidaReady(true);
+
+        console.log('✅ Config rápida compartilhada:', {
+          hsp: shared.hsp,
+          tarifa: shared.tarifa,
+          pdespesaFixo: shared.pdespesaFixo,
+          fonte: 'admin+localStorage',
+        });
       } catch (error) {
         console.error('Erro ao carregar configurações:', error);
+        const shared = resolveConfigRapida(null);
+        setConfig((prev) => applyConfigRapidaToGerador(prev, shared));
+        setConfigRapidaReady(true);
       }
     };
 
     carregarConfigSistema();
   }, []);
+
+  // Persistir Configurações Rápidas para a 4a (e vice-versa)
+  useEffect(() => {
+    if (!configRapidaReady) return;
+    saveConfigRapida(pickFromGeradorConfig(config));
+  }, [
+    configRapidaReady,
+    config.nomeCliente,
+    config.cidadeCliente,
+    config.consumoMensal,
+    config.tipoImovel,
+    config.hsp,
+    config.tarifa,
+    config.pdespesaFixo,
+    config.pdespesaVariavel,
+    config.performanceRate,
+    config.bonusMicroPercent,
+  ]);
 
   // ✅ CARREGAR PROPOSTA EXISTENTE quando há parâmetro 'cliente' na URL
   // Esta função é usada tanto pelo botão "Editar" em /admin quanto em /admin/orcamentos
@@ -482,6 +516,65 @@ export default function GeradorRapido() {
       console.log('📥 Parâmetro cliente detectado na URL:', clienteSlug);
       carregarPropostaExistente(clienteSlug);
       return; // Não processar outros modos se cliente foi detectado
+    }
+
+    // Bridge V3 → Gerador (5a)
+    if (router.query.modo === 'v3') {
+      const raw = localStorage.getItem('v3-gerador-bridge');
+      if (raw) {
+        try {
+          const dados = JSON.parse(raw);
+          console.log('🔗 Bridge V3 → Gerador:', dados);
+
+          if (dados.cliente) {
+            setConfig((prev) => {
+              const next = {
+                ...prev,
+                nomeCliente: dados.cliente.nomeCliente || prev.nomeCliente,
+                cidadeCliente: dados.cliente.cidadeCliente || prev.cidadeCliente,
+                consumoMensal: dados.cliente.consumoMensal || prev.consumoMensal,
+                tipoImovel: dados.cliente.tipoImovel || prev.tipoImovel,
+                hsp: dados.cliente.hsp ?? prev.hsp,
+                tarifa: dados.cliente.tarifa ?? prev.tarifa,
+                pdespesaFixo: dados.pdespesa?.pdespesaFixo ?? prev.pdespesaFixo,
+                pdespesaVariavel: dados.pdespesa?.pdespesaVariavel ?? prev.pdespesaVariavel,
+              };
+              saveConfigRapida(pickFromGeradorConfig(next));
+              return next;
+            });
+          }
+
+          const lista: Orcamento[] = (dados.orcamentos || []).map((orc: any, index: number) =>
+            syncBonusMicroAuto({
+              nome: orc.titulo_v3 || `V3 ${index + 1} - ${orc.fornecedor || 'kit'}`,
+              distribuidora: orc.fornecedor || 'V3',
+              pcusto: orc.precoCusto || orc.valorTotal || 0,
+              modulos: orc.modulos || 0,
+              pot_modulo: orc.pot_modulo || 550,
+              marca_modulo: orc.marca_modulo || 'Padrão',
+              inversores: orc.inversores || 1,
+              pot_inv: orc.pot_inv || 2.5,
+              marca_inversor: orc.marca_inversor || 'Padrão',
+              // V3 já define o flag; sem travar manual — sync redetecta se faltar
+              bonusMicroAtivo:
+                typeof orc.bonusMicroAtivo === 'boolean' ? orc.bonusMicroAtivo : undefined,
+              bonusMicroManual: typeof orc.bonusMicroAtivo === 'boolean',
+              pdespesa_fixo: dados.pdespesa?.pdespesaFixo ?? config.pdespesaFixo,
+              pdespesa_variavel_percent: dados.pdespesa?.pdespesaVariavel ?? config.pdespesaVariavel,
+              pdespesa_total: 0,
+            })
+          );
+
+          setOrcamentos(lista);
+          localStorage.removeItem('v3-gerador-bridge');
+          alert(
+            `✅ Bridge V3: ${lista.length} orçamento(s) carregado(s).\n\n${dados.origem || ''}\n\nClique em Calcular para ver PIX (mesma pdespesa).`
+          );
+        } catch (error) {
+          console.error('Erro bridge V3:', error);
+          alert('❌ Erro ao carregar bridge V3.');
+        }
+      }
     }
 
     // Verificar se está no modo "reaproveitar" (um único orçamento)
@@ -564,54 +657,52 @@ export default function GeradorRapido() {
     }
   }, [router.isReady, router.query.cliente, router.query.modo]);
 
-  // Função para calcular preços usando configurações dinâmicas do sistema
+  // PIX = base; à vista = total 12× cartão; parcelas pela tabela real
   const calcularPrecos = (totalFinalTabela: number) => {
-    const ppix = totalFinalTabela; // PIX = Valor Total da tabela (P.Custo + Despesas)
-
-    // USAR CONFIGURAÇÕES DINÂMICAS OU FALLBACK PARA PADRÕES
-    // Verificar se descontoPix já está em decimal (0.1) ou percentual (10)
-    const descontoPixRaw = configSistema?.descontoPix || 10.0;
-    const descontoPix = descontoPixRaw > 1 ? descontoPixRaw / 100 : descontoPixRaw; // Converter se for percentual
-    const markupParcelado = configSistema?.fatorParcelado || 1.20; // Ex: 20% markup
-    const fator12x = configSistema?.fator12x || 0.88; // Ex: 12% taxa cartão (fator 0.88)
-    const fator18x = configSistema?.fator18x || 0.83; // Ex: 17% taxa cartão (fator 0.83)
-    
-    console.log('🔧 Frontend - Parâmetros de cálculo:', {
-      descontoPixRaw,
-      descontoPix,
-      markupParcelado,
-      fator12x,
-      fator18x
-    });
-
-    const pavista = ppix / (1 - descontoPix); // À vista (PIX tem desconto)
-    const priscado = ppix * markupParcelado; // Preço de tabela com margem
-    const p12x_total = ppix / fator12x; // 12x com taxa cartão
-    const p12x = p12x_total / 12; // Parcela 12x
-    const p18x_total = ppix / fator18x; // 18x com taxa cartão
-    const p18x_parcela = p18x_total / 18; // Parcela 18x
-
-    return {
-      total_base: totalFinalTabela, // Valor da coluna Total (R$)
-      ppix, // PIX = Total da tabela
-      pavista,
-      priscado,
-      p12x,
-      p12x_total, // Valor total 12x (COM TAXAS)
-      p18x_parcela,
-      p18x_total // Valor total 18x (COM TAXAS)
-    };
+    const markup = configSistema?.fatorParcelado || config.fatorParcelado || 1.20;
+    return calcularPrecosDePix(totalFinalTabela, markup);
   };
 
   // Função para calcular performance
-  const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
-    const geracaoMensal = potenciaKw * hsp * 30.4 * config.performanceRate;
-    const cobertura = (geracaoMensal / consumoMensal) * 100;
-    const economiaMensal = geracaoMensal * tarifa;
-    const paybackMeses = investimentoPix / economiaMensal;
-    const tirAnual = (12 / paybackMeses) * 100;
-    
-    return {geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual};
+  const calcularPerformance = (
+    potenciaKw: number,
+    hsp: number,
+    consumoMensal: number,
+    tarifa: number,
+    investimentoPix: number,
+    bonusMicroAtivo = false
+  ) => {
+    return calcularPerformanceCompleta(
+      potenciaKw,
+      hsp,
+      config.performanceRate,
+      consumoMensal,
+      tarifa,
+      investimentoPix,
+      bonusMicroAtivo,
+      config.bonusMicroPercent
+    );
+  };
+
+  const updateOrcInversor = (index: number, updates: Partial<Orcamento>) => {
+    setOrcamentos((prev) => {
+      const novosOrc = [...prev];
+      novosOrc[index] = syncBonusMicroAuto({ ...novosOrc[index], ...updates });
+      return novosOrc;
+    });
+  };
+
+  const toggleBonusMicro = (index: number) => {
+    setOrcamentos((prev) => {
+      const novosOrc = [...prev];
+      const orc = novosOrc[index];
+      novosOrc[index] = {
+        ...orc,
+        bonusMicroManual: true,
+        bonusMicroAtivo: !getBonusMicroAtivo(orc),
+      };
+      return novosOrc;
+    });
   };
 
   // Calcular resultados
@@ -647,7 +738,14 @@ export default function GeradorRapido() {
       const pdespesaDinamica = config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
       const totalFinalTabela = orc.pcusto + pdespesaDinamica; // MESMO VALOR DA TABELA
       const precos = calcularPrecos(totalFinalTabela); // PIX = TOTAL DA TABELA
-      const performance = calcularPerformance(potTotal, config.hsp, config.consumoMensal, config.tarifa, precos.ppix);
+      const performance = calcularPerformance(
+        potTotal,
+        config.hsp,
+        config.consumoMensal,
+        config.tarifa,
+        precos.ppix,
+        getBonusMicroAtivo(orc)
+      );
 
       return {
         nome: orc.nome,
@@ -664,6 +762,8 @@ export default function GeradorRapido() {
         pot_modulo: orc.pot_modulo,
         inversores: orc.inversores,
         pot_inv: orc.pot_inv,
+        bonusMicroAtivo: getBonusMicroAtivo(orc),
+        bonusMicroManual: orc.bonusMicroManual,
         ...precos,
         ...performance
       };
@@ -999,6 +1099,7 @@ consolidado_orcamentos_distribuidores:
       hsp: 5.21,
       tarifa: 1.10,
       performanceRate: 0.75,
+      bonusMicroPercent: 5,
       pdespesaFixo: 3000,
       pdespesaVariavel: 22,
       metodo: 'variavel',
@@ -1162,7 +1263,9 @@ consolidado_orcamentos_distribuidores:
               cobertura: resultado.cobertura,
               economiaMensal: resultado.economiaMensal,
               paybackMeses: resultado.paybackMeses,
-              tirAnual: resultado.tirAnual
+              tirAnual: resultado.tirAnual,
+              bonusMicroAtivo: resultado.bonusMicroAtivo,
+              bonusMicroManual: resultado.bonusMicroManual,
             };
           }),
           config: config
@@ -1356,6 +1459,13 @@ consolidado_orcamentos_distribuidores:
             {/* Configurações Rápidas */}
             <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">⚙️ Configurações Rápidas</h3>
+              <p className="text-xs text-gray-500 mb-4">
+                HSP, tarifa, pdespesa e dados do cliente sincronizam com a{' '}
+                <Link href="/admin/v3/proposta-auto" className="text-blue-600 underline">
+                  4a · Proposta automática
+                </Link>
+                .
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div>
@@ -1509,12 +1619,15 @@ consolidado_orcamentos_distribuidores:
                               inversores: orc.inversores,
                               pot_inv: orc.pot_inv,
                               marca_inversor: orc.marca_inversor,
+                              bonusMicroAtivo: getBonusMicroAtivo(orc),
+                              bonusMicroManual: orc.bonusMicroManual,
                               status: 'pendente' as const
                             })),
                             config: {
                               hsp: config.hsp,
                               tarifa: config.tarifa,
                               performanceRate: config.performanceRate,
+                              bonusMicroPercent: config.bonusMicroPercent,
                               consumoMensal: config.consumoMensal,
                               pdespesaFixo: config.pdespesaFixo,
                               pdespesaVariavel: config.pdespesaVariavel,
@@ -1547,7 +1660,7 @@ consolidado_orcamentos_distribuidores:
                     <button
                       onClick={() => {
                         // Adicionar novo orçamento vazio
-                        const novoOrc: Orcamento = {
+                        const novoOrc: Orcamento = syncBonusMicroAuto({
                           nome: `Orçamento ${orcamentos.length + 1}`,
                           distribuidora: 'NOVA',
                           pcusto: 0,
@@ -1560,7 +1673,7 @@ consolidado_orcamentos_distribuidores:
                           pdespesa_fixo: config.pdespesaFixo,
                           pdespesa_variavel_percent: config.pdespesaVariavel,
                           pdespesa_total: config.pdespesaFixo
-                        };
+                        });
                         setOrcamentos([...orcamentos, novoOrc]);
                       }}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -1575,6 +1688,9 @@ consolidado_orcamentos_distribuidores:
                     <thead>
                       <tr className="bg-blue-50">
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Nº</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700" title="Bônus de eficiência micro-inversor">
+                          ⚡ Micro
+                        </th>
                         <th className="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Nome/Origem</th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Distribuidora</th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">P.Custo (R$)</th>
@@ -1603,6 +1719,15 @@ consolidado_orcamentos_distribuidores:
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="border border-gray-300 px-2 py-1 text-center text-sm font-bold">
                               {index + 1}
+                            </td>
+
+                            <td className="border border-gray-300 px-1 py-1 text-center">
+                              <MicroInversorToggle
+                                ativo={getBonusMicroAtivo(orc)}
+                                bonusPercent={config.bonusMicroPercent}
+                                onToggle={() => toggleBonusMicro(index)}
+                                compact
+                              />
                             </td>
 
                             {/* Nome/Origem */}
@@ -1661,9 +1786,7 @@ consolidado_orcamentos_distribuidores:
                                 type="number"
                                 value={orc.modulos}
                                 onChange={(e) => {
-                                  const novosOrc = [...orcamentos];
-                                  novosOrc[index].modulos = Number(e.target.value);
-                                  setOrcamentos(novosOrc);
+                                  updateOrcInversor(index, { modulos: Number(e.target.value) });
                                 }}
                                 className="w-12 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
                               />
@@ -1704,9 +1827,7 @@ consolidado_orcamentos_distribuidores:
                                 type="number"
                                 value={orc.inversores}
                                 onChange={(e) => {
-                                  const novosOrc = [...orcamentos];
-                                  novosOrc[index].inversores = Number(e.target.value);
-                                  setOrcamentos(novosOrc);
+                                  updateOrcInversor(index, { inversores: Number(e.target.value) });
                                 }}
                                 className="w-12 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
                               />
@@ -1719,9 +1840,9 @@ consolidado_orcamentos_distribuidores:
                                 step="0.01"
                                 value={orc.pot_inv}
                                 onChange={(e) => {
-                                  const novosOrc = [...orcamentos];
-                                  novosOrc[index].pot_inv = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
-                                  setOrcamentos(novosOrc);
+                                  updateOrcInversor(index, {
+                                    pot_inv: Math.round(Number(e.target.value) * 100) / 100,
+                                  });
                                 }}
                                 className="w-16 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-center"
                               />
@@ -1733,9 +1854,7 @@ consolidado_orcamentos_distribuidores:
                                 type="text"
                                 value={orc.marca_inversor}
                                 onChange={(e) => {
-                                  const novosOrc = [...orcamentos];
-                                  novosOrc[index].marca_inversor = e.target.value;
-                                  setOrcamentos(novosOrc);
+                                  updateOrcInversor(index, { marca_inversor: e.target.value });
                                 }}
                                 className="w-20 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent"
                               />
@@ -1801,6 +1920,7 @@ consolidado_orcamentos_distribuidores:
                   <br />• <strong>Total (R$)</strong> = P.Custo + Despesas (valor base para cálculos financeiros)
                   <br />• Ajuste os valores nas <strong>configurações de Pdespesa</strong> e veja a atualização instantânea
                   <br />• Colunas em cores são <strong>calculadas automaticamente</strong>
+                  <br />• <strong>⚡ Micro</strong> — verde = bônus +{config.bonusMicroPercent}% de geração (micro-inversor); cinza = eficiência string
                 </div>
               </div>
             )}
@@ -1838,6 +1958,17 @@ consolidado_orcamentos_distribuidores:
                   >
                     {loading ? '⏳ Gerando...' : slugAtual ? '📄 Salvar Como' : '🚀 Gerar Proposta HTML'}
                   </button>
+
+                  {slugAtual && (
+                    <button
+                      type="button"
+                      onClick={() => window.open(buildPropostaPdfUrl(slugAtual, true), '_blank')}
+                      className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                      title="Abrir proposta formatada para salvar como PDF"
+                    >
+                      📄 Gerar PDF
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -11,6 +11,9 @@ interface ClienteInfo {
   status: string;
   ultimaModificacao: string;
   temProposta: boolean;
+  email?: string;
+  telefone?: string;
+  propostaPausada?: boolean;
 }
 
 export default function AdminIndex() {
@@ -142,6 +145,30 @@ export default function AdminIndex() {
       }
     } catch (error) {
       alert('Erro ao excluir cliente');
+    }
+  };
+
+  const togglePausarProposta = async (cliente: ClienteInfo) => {
+    const novoPausado = !cliente.propostaPausada;
+    const acao = novoPausado ? 'pausar' : 'reativar';
+    if (!confirm(`Deseja ${acao} a proposta de "${cliente.nome}"?\n\n${novoPausado ? '⏸️ A proposta ficará marcada como desatualizada/suspensa.' : '▶️ A proposta voltará a ficar ativa.'}`)) return;
+
+    try {
+      const response = await fetch(`/api/admin/clientes/${cliente.pasta}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propostaPausada: novoPausado }),
+      });
+
+      if (response.ok) {
+        setClientes(prev =>
+          prev.map(c => c.pasta === cliente.pasta ? { ...c, propostaPausada: novoPausado } : c)
+        );
+      } else {
+        alert('Erro ao alterar status da proposta.');
+      }
+    } catch {
+      alert('Erro ao alterar status da proposta.');
     }
   };
 
@@ -384,6 +411,22 @@ export default function AdminIndex() {
                 <p className="text-sm text-gray-600">Gerenciar orçamentos</p>
               </a></Link>
 
+              <Link href="/admin/soollar-captura" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
+                  <div className="text-3xl mb-3">🛰️</div>
+                  <h3 className="font-semibold mb-1">Captura SOOLLAR</h3>
+                  <p className="text-sm opacity-90">Scraping + terminal ao vivo</p>
+                </a>
+              </Link>
+
+              <Link href="/admin/v3" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border-2 border-amber-300/40">
+                  <div className="text-3xl mb-3">🧪</div>
+                  <h3 className="font-semibold mb-1">V3 Orçamento (espelho)</h3>
+                  <p className="text-sm opacity-90">SQLite · não altera produção</p>
+                </a>
+              </Link>
+
               <Link href="/propostas-publicas" legacyBehavior>
                 <a className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
                   <div className="text-3xl mb-3">🌐</div>
@@ -413,113 +456,161 @@ export default function AdminIndex() {
                   </a></Link>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Cliente
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Localização
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Última Modificação
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {clientes.map((cliente, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900">
-                              {cliente.nome}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Pasta: {cliente.pasta}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {cliente.cidade}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {getStatusBadge(cliente.status)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {cliente.ultimaModificacao}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2 flex-wrap">
-                              {cliente.temProposta ? (
-                                <>
-                                  {/* ✅ Botão "Editar Proposta" - Busca dados do Supabase via /api/propostas/[slug] */}
-                                  <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior><a className="text-orange-600 hover:text-orange-900 px-2 py-1 rounded bg-orange-50 hover:bg-orange-100">
-                                    ✏️ Editar Proposta
-                                  </a></Link>
-                                  <a
-                                    href={`/proposta/${cliente.pasta}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
-                                  >
-                                    👁️ Ver Proposta
-                                  </a>
-                                  <button
-                                    onClick={() => openEnviarPropostaModal(cliente)}
-                                    className="text-pink-600 hover:text-pink-900 px-2 py-1 rounded bg-pink-50 hover:bg-pink-100"
-                                    title="Enviar proposta por email"
-                                  >
-                                    📧 Email
-                                  </button>
-                                  <button
-                                    onClick={() => {
+                <>
+                  {/* ── MOBILE: cards (< md) ── */}
+                  <div className="md:hidden divide-y divide-gray-200">
+                    {clientes.map((cliente, index) => (
+                      <div key={index} className={`p-4 space-y-2 ${cliente.propostaPausada ? 'bg-gray-50 opacity-75' : ''}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className={`font-semibold ${cliente.propostaPausada ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{cliente.nome}</div>
+                            <div className="text-xs text-gray-500">{cliente.cidade}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            {cliente.propostaPausada && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">⏸️ Pausada</span>
+                            )}
+                            <div className="shrink-0">{getStatusBadge(cliente.status)}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-400">{cliente.ultimaModificacao}</div>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {cliente.temProposta && !cliente.propostaPausada ? (
+                            <>
+                              <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior>
+                                <a className="text-orange-600 px-2 py-1 rounded bg-orange-50 text-xs font-medium">✏️ Editar</a>
+                              </Link>
+                              <a href={`/proposta/${cliente.pasta}`} target="_blank" rel="noopener noreferrer"
+                                className="text-blue-600 px-2 py-1 rounded bg-blue-50 text-xs font-medium">
+                                👁️ Ver
+                              </a>
+                              <button onClick={() => openEnviarPropostaModal(cliente)}
+                                className="text-pink-600 px-2 py-1 rounded bg-pink-50 text-xs font-medium">
+                                📧 Email
+                              </button>
+                              <button onClick={() => {
+                                const url = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(`Sua proposta está pronta! 🌞\n${url}`)}`, '_blank');
+                              }} className="text-green-600 px-2 py-1 rounded bg-green-50 text-xs font-medium">
+                                💬 WhatsApp
+                              </button>
+                              <button onClick={() => {
+                                navigator.clipboard.writeText(`https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`);
+                                alert('Link copiado!');
+                              }} className="text-indigo-600 px-2 py-1 rounded bg-indigo-50 text-xs font-medium">
+                                🔗 Copiar
+                              </button>
+                            </>
+                          ) : cliente.temProposta && cliente.propostaPausada ? (
+                            <span className="text-xs text-gray-400 italic">Proposta suspensa — reative para compartilhar</span>
+                          ) : (
+                            <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior>
+                              <a className="text-purple-600 px-2 py-1 rounded bg-purple-50 text-xs font-medium">📋 Criar Orçamento</a>
+                            </Link>
+                          )}
+                          {cliente.temProposta && (
+                            <button onClick={() => togglePausarProposta(cliente)}
+                              className={`px-2 py-1 rounded text-xs font-medium ${cliente.propostaPausada ? 'text-green-700 bg-green-50' : 'text-orange-700 bg-orange-50'}`}>
+                              {cliente.propostaPausada ? '▶️ Reativar' : '⏸️ Pausar'}
+                            </button>
+                          )}
+                          <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior>
+                            <a className="text-yellow-600 px-2 py-1 rounded bg-yellow-50 text-xs font-medium">⚙️ Editar</a>
+                          </Link>
+                          <button onClick={() => deleteCliente(cliente.pasta, cliente.nome)}
+                            className="text-red-600 px-2 py-1 rounded bg-red-50 text-xs font-medium">
+                            🗑️ Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── DESKTOP: tabela normal (≥ md) ── */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localização</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Modificação</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {clientes.map((cliente, index) => (
+                          <tr key={index} className={`hover:bg-gray-50 ${cliente.propostaPausada ? 'bg-gray-50 opacity-80' : ''}`}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className={`font-medium ${cliente.propostaPausada ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{cliente.nome}</div>
+                              <div className="text-sm text-gray-500">Pasta: {cliente.pasta}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cliente.cidade}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex flex-col gap-1">
+                                {cliente.propostaPausada && (
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 w-fit">⏸️ Pausada</span>
+                                )}
+                                {getStatusBadge(cliente.status)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cliente.ultimaModificacao}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex gap-2 flex-wrap">
+                                {cliente.temProposta && !cliente.propostaPausada ? (
+                                  <>
+                                    <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior>
+                                      <a className="text-orange-600 hover:text-orange-900 px-2 py-1 rounded bg-orange-50 hover:bg-orange-100">✏️ Editar Proposta</a>
+                                    </Link>
+                                    <a href={`/proposta/${cliente.pasta}`} target="_blank" rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100">
+                                      👁️ Ver Proposta
+                                    </a>
+                                    <button onClick={() => openEnviarPropostaModal(cliente)}
+                                      className="text-pink-600 hover:text-pink-900 px-2 py-1 rounded bg-pink-50 hover:bg-pink-100">
+                                      📧 Email
+                                    </button>
+                                    <button onClick={() => {
                                       const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
                                       const mensagem = `Olá! Sua proposta de energia solar está pronta! 🌞\n\nAcesse aqui: ${propostaUrl}\n\nQualquer dúvida, estou à disposição!\n\nPIENG Soluções Energéticas`;
-                                      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-                                      window.open(whatsappUrl, '_blank');
-                                    }}
-                                    className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100 flex items-center gap-1"
-                                  >
-                                    💬 WhatsApp
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const propostaUrl = `https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`;
-                                      navigator.clipboard.writeText(propostaUrl);
+                                      window.open(`https://wa.me/?text=${encodeURIComponent(mensagem)}`, '_blank');
+                                    }} className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100">
+                                      💬 WhatsApp
+                                    </button>
+                                    <button onClick={() => {
+                                      navigator.clipboard.writeText(`https://pieng-propostas.vercel.app/proposta/${cliente.pasta}`);
                                       alert('Link copiado! Cole no WhatsApp ou email do cliente.');
-                                    }}
-                                    className="text-indigo-600 hover:text-indigo-900 px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100"
-                                  >
-                                    🔗 Copiar
+                                    }} className="text-indigo-600 hover:text-indigo-900 px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100">
+                                      🔗 Copiar
+                                    </button>
+                                  </>
+                                ) : !cliente.temProposta ? (
+                                  <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior>
+                                    <a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">📋 Criar Orçamento</a>
+                                  </Link>
+                                ) : null}
+                                {cliente.temProposta && (
+                                  <button onClick={() => togglePausarProposta(cliente)}
+                                    title={cliente.propostaPausada ? 'Reativar proposta' : 'Pausar proposta (preço desatualizado)'}
+                                    className={`px-2 py-1 rounded text-sm font-medium ${cliente.propostaPausada ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-orange-700 bg-orange-50 hover:bg-orange-100'}`}>
+                                    {cliente.propostaPausada ? '▶️ Reativar' : '⏸️ Pausar'}
                                   </button>
-                                </>
-                              ) : (
-                                <Link href={`/admin/orcamentos/${cliente.pasta}`} legacyBehavior><a className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded bg-purple-50 hover:bg-purple-100">
-                                  📋 Criar Orçamento
-                                </a></Link>
-                              )}
-                              <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior><a className="text-yellow-600 hover:text-yellow-900 px-2 py-1 rounded bg-yellow-50 hover:bg-yellow-100">
-                                ⚙️ Editar Cliente
-                              </a></Link>
-                              <button
-                                onClick={() => deleteCliente(cliente.pasta, cliente.nome)}
-                                className="text-red-600 hover:text-red-900 px-2 py-1 rounded bg-red-50 hover:bg-red-100"
-                              >
-                                🗑️ Excluir
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                                )}
+                                <Link href={`/admin/clientes/${cliente.pasta}/editar`} legacyBehavior>
+                                  <a className="text-yellow-600 hover:text-yellow-900 px-2 py-1 rounded bg-yellow-50 hover:bg-yellow-100">⚙️ Editar Cliente</a>
+                                </Link>
+                                <button onClick={() => deleteCliente(cliente.pasta, cliente.nome)}
+                                  className="text-red-600 hover:text-red-900 px-2 py-1 rounded bg-red-50 hover:bg-red-100">
+                                  🗑️ Excluir
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
 

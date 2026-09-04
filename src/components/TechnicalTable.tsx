@@ -33,7 +33,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
   };
 
   return (
-    <section className="pieng-card p-8 mb-8">
+    <section className="pieng-card pieng-technical-section p-8 mb-8">
       <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
         🔧 Especificações Técnicas Completas
       </h3>

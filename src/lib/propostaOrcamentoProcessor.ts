@@ -1,6 +1,13 @@
 /**
  * Processamento de orçamentos e montagem de PropostaData — mesma lógica do Gerador Rápido (/api/gerar-proposta).
+ * Único engine usado pelo Consultor e pelo Gerador Rápido.
  */
+
+import {
+  calcularPerformanceCompleta,
+  getBonusMicroAtivo,
+} from '@/lib/calcularPerformance';
+import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
 
 export interface PropostaConfigInput {
   hsp?: number;
@@ -13,6 +20,7 @@ export interface PropostaConfigInput {
   fatorParcelado?: number;
   fator12x?: number;
   fator18x?: number;
+  bonusMicroPercent?: number;
   metodo?: 'fixo' | 'variavel' | string;
 }
 
@@ -44,6 +52,8 @@ export interface OrcamentoInput {
   economiaMensal?: number;
   paybackMeses?: number;
   tirAnual?: number;
+  bonusMicroAtivo?: boolean;
+  bonusMicroManual?: boolean;
   status?: string;
 }
 
@@ -97,7 +107,47 @@ const CONFIG_PADRAO = {
   fatorParcelado: 1.2,
   fator12x: 0.88,
   fator18x: 0.83,
+  bonusMicroPercent: 5,
 };
+
+export function normalizeDescontoPix(raw: unknown, fallback = 0.1): number {
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n > 1 ? n / 100 : n;
+}
+
+function toMoneyNumber(val: unknown): number {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  if (val == null) return 0;
+  let str = String(val).trim().replace(/[^\d,.-]/g, '');
+  if (!str) return 0;
+  if (str.includes(',') && str.includes('.')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',')) {
+    const parts = str.split(',');
+    str = parts[1] && parts[1].length <= 2 ? str.replace(',', '.') : str.replace(',', '');
+  }
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Recupera o desconto PIX real do card (pavista vs PIX). */
+export function inferDescontoPixFromSistemas(
+  sistemas: Array<{ ppix?: number; pavista?: number; precoPixDecimal?: number; priscado?: number }> | undefined
+): number | undefined {
+  if (!Array.isArray(sistemas)) return undefined;
+  for (const sistema of sistemas) {
+    const pix = toMoneyNumber(sistema.ppix ?? sistema.precoPixDecimal);
+    const vista = toMoneyNumber(sistema.pavista);
+    if (pix > 0 && vista > pix) {
+      const desconto = (vista - pix) / vista;
+      if (desconto > 0 && desconto < 0.8) {
+        return Math.round(desconto * 1000) / 1000;
+      }
+    }
+  }
+  return undefined;
+}
 
 export function normalizePropostaConfig(config: PropostaConfigInput = {}) {
   const descontoPixRaw = config.descontoPix ?? CONFIG_PADRAO.descontoPix;
@@ -114,21 +164,14 @@ export function normalizePropostaConfig(config: PropostaConfigInput = {}) {
     fatorParcelado: config.fatorParcelado ?? CONFIG_PADRAO.fatorParcelado,
     fator12x: config.fator12x ?? CONFIG_PADRAO.fator12x,
     fator18x: config.fator18x ?? CONFIG_PADRAO.fator18x,
+    bonusMicroPercent: config.bonusMicroPercent ?? CONFIG_PADRAO.bonusMicroPercent,
     metodo: config.metodo,
   };
 }
 
-/** PIX = total da tabela (P.Custo + Pdespesa); à vista = PIX / (1 - desconto) — igual ao Gerador Rápido */
+/** PIX = base; à vista = total 12× cartão; 12×/18× pela tabela real. */
 export function calcularPrecosProposta(totalFinal: number, config: ReturnType<typeof normalizePropostaConfig>) {
-  const ppix = totalFinal;
-  const pavista = ppix / (1 - config.descontoPix);
-  const priscado = ppix * config.fatorParcelado;
-  const p12x_total = ppix / config.fator12x;
-  const p12x = p12x_total / 12;
-  const p18x_total = ppix / config.fator18x;
-  const p18x_parcela = p18x_total / 18;
-
-  return { ppix, pavista, priscado, p12x, p12x_total, p18x_parcela, p18x_total };
+  return calcularPrecosDePix(totalFinal, config.fatorParcelado);
 }
 
 export function calcularPdespesaProposta(pcusto: number, config: ReturnType<typeof normalizePropostaConfig>) {
@@ -140,17 +183,24 @@ export function calcularPdespesaProposta(pcusto: number, config: ReturnType<type
 export function calcularPerformanceProposta(
   potenciaKw: number,
   config: ReturnType<typeof normalizePropostaConfig>,
-  investimentoPix: number
+  investimentoPix: number,
+  bonusMicroAtivo = false
 ) {
-  const geracaoMensal = potenciaKw * config.hsp * 30.4 * config.performanceRate;
-  const cobertura =
-    config.consumoMensal > 0 ? Math.round((geracaoMensal / config.consumoMensal) * 100) : 0;
-  const economiaMensal = geracaoMensal * config.tarifa;
-  const paybackMeses = economiaMensal > 0 ? investimentoPix / economiaMensal : Infinity;
-  const tirAnual =
-    paybackMeses > 0 && paybackMeses !== Infinity ? (12 / paybackMeses) * 100 : 0;
+  const perf = calcularPerformanceCompleta(
+    potenciaKw,
+    config.hsp,
+    config.performanceRate,
+    config.consumoMensal,
+    config.tarifa,
+    investimentoPix,
+    bonusMicroAtivo,
+    config.bonusMicroPercent
+  );
 
-  return { geracaoMensal, cobertura, economiaMensal, paybackMeses, tirAnual };
+  return {
+    ...perf,
+    cobertura: Math.round(perf.cobertura),
+  };
 }
 
 /** Processa orçamentos com a mesma regra do /api/gerar-proposta */
@@ -192,7 +242,12 @@ export function processarOrcamentosParaSistemas(
         cobertura:
           orc.cobertura !== undefined
             ? Math.round(Number(orc.cobertura))
-            : calcularPerformanceProposta(potTotal, config, orc.ppix).cobertura,
+            : calcularPerformanceProposta(
+                potTotal,
+                config,
+                orc.ppix,
+                getBonusMicroAtivo(orc)
+              ).cobertura,
         economiaMensal: orc.economiaMensal ?? orc.geracaoMensal * config.tarifa,
         paybackMeses: orc.paybackMeses,
         tirAnual:
@@ -210,7 +265,12 @@ export function processarOrcamentosParaSistemas(
       calcularPdespesaProposta(orc.pcusto || 0, config);
     const totalFinal = orc.total_final ?? (orc.pcusto || 0) + pdespesa;
     const precos = calcularPrecosProposta(totalFinal, config);
-    const performance = calcularPerformanceProposta(potTotal, config, precos.ppix);
+    const performance = calcularPerformanceProposta(
+      potTotal,
+      config,
+      precos.ppix,
+      getBonusMicroAtivo(orc)
+    );
 
     return {
       nome: orc.nome || `Sistema ${index + 1}`,

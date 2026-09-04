@@ -63,6 +63,7 @@ export interface Cliente {
   consumo_mensal?: number;
   hsp_local: number;
   pdespesa?: number;
+  proposta_pausada?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -3,6 +3,16 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
 import { loadVariantCss, generateCssTag } from './cssLoader';
+import { injectPdfSupport } from './propostaPdf';
+import { getFormasPagamentoModalScript } from './tabelaJurosCartao';
+
+function injectFormasPagamento(html: string): string {
+  const snippet = getFormasPagamentoModalScript();
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${snippet}\n</body>`);
+  }
+  return html + snippet;
+}
 
 interface ClienteData {
   cliente: {
@@ -495,7 +505,9 @@ export class TemplateEnginePadrao {
       html = this.applyVariant(html);
     }
 
-    return html;
+    return injectFormasPagamento(
+      injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug)
+    );
   }
 
   /**
@@ -735,18 +747,18 @@ export class TemplateEnginePadrao {
 
             <div class="pricing-section">
               <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div class="current-price">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div class="current-price">à vista R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
-              <div class="pix-price"><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
+              <div class="pix-price"><strong>PIX: R$ ${(sistema.ppix || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× no cartão</strong><br>
-                  R$ ${(sistema.p12x || 0).toFixed(2)}
+                  R$ ${(sistema.p12x || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ ${(sistema.p18x_parcela || 0).toFixed(2)}
+                  R$ ${(sistema.p18x_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -758,7 +770,7 @@ export class TemplateEnginePadrao {
               TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
             </div>
 
-            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;
@@ -807,22 +819,22 @@ export class TemplateEnginePadrao {
 
             <div class="pricing-section">
               <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div class="current-price">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div class="current-price">à vista R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
               <div style="font-size: 18px; font-weight: 700; color: var(--success); margin: 10px 0;">
-                PIX: R$ ${(sistema.ppix || 0).toFixed(2)}
+                PIX: R$ ${(sistema.ppix || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× no cartão</strong><br>
-                  R$ ${(sistema.p12x || 0).toFixed(2)}<br>
-                  <small style="color: #666;">Total: R$ ${(sistema.p12x_total || sistema.p12x * 12).toFixed(2)}</small>
+                  R$ ${(sistema.p12x || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+                  <small style="color: #666;">Total: R$ ${(sistema.p12x_total || (sistema.p12x || 0) * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small>
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ ${(sistema.p18x_parcela || 0).toFixed(2)}<br>
-                  <small style="color: #666;">Total: R$ ${(sistema.p18x_total || sistema.p18x_parcela * 18).toFixed(2)}</small>
+                  R$ ${(sistema.p18x_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+                  <small style="color: #666;">Total: R$ ${(sistema.p18x_total || (sistema.p18x_parcela || 0) * 18).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small>
                 </div>
               </div>
             </div>
@@ -839,7 +851,7 @@ export class TemplateEnginePadrao {
               </div>
             </div>
 
-            <button class="cta-button">ESCOLHER ESTA OPÇÃO</button>
+            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;

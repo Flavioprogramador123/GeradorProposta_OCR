@@ -1,12 +1,65 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.1** (11/12/2025)
+## 🎯 **VERSÃO ATUAL: v2.4.3** (04/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.1** - 11/12/2025 ✅ **ATUAL**
+### **v2.4.3** - 04/09/2026 ✅ **ATUAL**
+**⚡ Aprendizado operacional (micro + módulos):**
+- ✅ **Micro com módulos maiores é mais eficiente** — na prática comercial (proposta automática V3 + Gerador), kits micro com Wp mais alto entregam melhor cobertura/geração por arranjo (ex.: preferir 680 Wp vs 630 Wp no mesmo número de placas/micro), além do bônus de geração já configurável para micro
+- ✅ Usar essa regra na escolha de alternativa recomendada e na auditoria de kits (4a/5a)
+
+**🔗 V3 espelho (branch `v3-orcamento`) — bridge 5a:**
+- ✅ Pipeline 1a–4a (equipamentos → preços → orçamento base → proposta auto) + **5a** pdespesa igual ao Gerador
+- ✅ Botão **Abrir no Gerador Rápido** (`modo=v3`) — orçamento na frente do cliente com custo CD + PIX comercial
+- ✅ Piloto: `/proposta/cliente-premium-04-09-2026` (pcusto Feira + pdespesa das configs do sistema)
+
+---
+
+### **v2.4.2** - 02/09/2026
+**⚡ Eficiência Micro-inversor vs String:**
+- ✅ **Bônus configurável de geração** para micro-inversores (+5% padrão, ajustável em Configurações)
+- ✅ **Toggle por linha** na tabela de equipamentos (Gerador Rápido + Consultor)
+  - Verde (`⚡ +5%`) = bônus micro ativo
+  - Cinza (`String`) = eficiência de inversor string
+- ✅ **Detecção automática** por marca, quantidade de inversores e potência unitária
+- ✅ **Override manual** — usuário pode ligar/desligar independente da detecção
+- ✅ **Fórmula centralizada** em `calcularPerformance.ts` propagada para consultor, gerador e API
+
+**📦 Arquivos Criados:**
+- `src/lib/calcularPerformance.ts` — detecção micro, bônus e cálculo de geração
+- `src/components/MicroInversorToggle.tsx` — botão verde/cinza reutilizável
+
+**📄 Exportação PDF para clientes:**
+- ✅ Botão flutuante **Gerar PDF** na página `/proposta/[slug]`
+- ✅ CSS de impressão A4 (`public/styles/proposta-print.css`) — layout limpo, sem botões/CTAs
+- ✅ Botões no **Gerador Rápido** e **Consultor** para abrir versão PDF
+- ✅ URL `?pdf=1` abre diálogo de impressão automaticamente
+- ✅ Toolbar embutida no HTML gerado pelo template engine
+
+**📦 Arquivos Criados (PDF):**
+- `public/styles/proposta-print.css`
+- `src/lib/propostaPdf.ts`
+- `src/components/PropostaPdfToolbar.tsx`
+
+**📦 Arquivos Modificados (PDF + Micro):**
+- `src/pages/gerador-rapido.tsx` — coluna ⚡ Micro + botão Gerar PDF
+- `src/pages/admin/orcamentos/[clienteId]/consultor.tsx` — toggle micro + botão Gerar PDF
+- `src/pages/proposta/[slug].tsx` — toolbar PDF + auto-print
+- `src/lib/templateEngine.ts` — injeta toolbar/CSS no HTML
+- `src/data/knowledge/templates/pieng_proposal_template.html` — print CSS
+
+**🔧 Correção Consultor → Supabase:**
+- ✅ **Engine unificado**: consultor deixa de usar API isolada e passa a chamar `/api/gerar-proposta`
+- ✅ **Persistência no banco**: proposta salva em Supabase (`html_gerado` + `dados_completos`)
+- ✅ **Template engine principal**: `generateTemplateHtmlPadrao` + `generateTemplateHtmlResultados` (mesmo do Gerador Rápido)
+- ✅ **Proxy legado**: `/api/consultor/gerar-proposta` delega para o engine principal (compatibilidade)
+
+---
+
+### **v2.4.1** - 11/12/2025
 **Status**: 🟢 Em Produção (Vercel)
 
 **🔧 Correções Críticas:**

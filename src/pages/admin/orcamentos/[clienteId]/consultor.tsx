@@ -6,6 +6,17 @@ import { useConsultorConfig } from '@/hooks/useConsultorConfig';
 import ConsultorConfigPanel from '@/components/ConsultorConfigPanel';
 import OrcamentosComparisonTable from '@/components/OrcamentosComparisonTable';
 import TemplateSelector from '@/components/TemplateSelector';
+import MicroInversorToggle from '@/components/MicroInversorToggle';
+import {
+  syncBonusMicroAuto,
+  getBonusMicroAtivo,
+  calcularPerformanceCompleta,
+} from '@/lib/calcularPerformance';
+import {
+  inferDescontoPixFromSistemas,
+  normalizeDescontoPix,
+  calcularPrecosProposta as calcularPrecosEngine,
+} from '@/lib/propostaOrcamentoProcessor';
 import type { ClientType, ComercialSubType } from '@/lib/variantConfig';
 
 interface Cliente {
@@ -26,6 +37,8 @@ interface OrcamentoComparativo {
   inversores: number;
   pot_inv: number;
   marca_inversor: string;
+  bonusMicroAtivo?: boolean;
+  bonusMicroManual?: boolean;
   status: 'pendente' | 'analisando' | 'aprovado' | 'rejeitado';
 }
 
@@ -43,7 +56,7 @@ function resolveClienteId(
 export default function ConsultorOrcamentosPage() {
   const router = useRouter();
   const { clienteId: clienteIdParam } = router.query;
-  const { config, updateConfig, resetConfig, calcularPrecos, calcularPerformance, calcularPdespesa } = useConsultorConfig();
+  const { config, updateConfig, resetConfig, calcularPrecos, calcularPerformance, calcularPdespesa } = useConsultorConfig({ persist: false });
   
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [orcamentos, setOrcamentos] = useState<OrcamentoComparativo[]>([]);
@@ -75,89 +88,46 @@ export default function ConsultorOrcamentosPage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        
-        // 🔧 PRIORIDADE 1: Tentar carregar do localStorage (vindo do Gerador Rápido)
-        const dadosLocalStorage = localStorage.getItem(`consultor-${id}`);
-        
-        if (dadosLocalStorage) {
-          try {
-            const dados = JSON.parse(dadosLocalStorage);
-            console.log('✅ Dados carregados do Gerador Rápido:', dados);
-            
-            // Aplicar configurações do Gerador Rápido
-            if (dados.config) {
-              updateConfig(dados.config);
-            }
-            
-            // Configurar cliente
-            const clienteData: Cliente = {
-              id: id,
-              nome: dados.cliente?.nome || 'Cliente Exemplo',
-              cidade: dados.cliente?.cidade || 'São Paulo',
-              consumoMensal: dados.cliente?.consumoMensal || 600
-            };
-            
-            // Configurar orçamentos
-            const orcamentosData: OrcamentoComparativo[] = dados.orcamentos || [];
-            
-            setCliente(clienteData);
-            setOrcamentos(orcamentosData);
-            
-            setLoading(false);
-            return; // Sucesso, não precisa carregar dados simulados
-          } catch (parseError) {
-            console.warn('⚠️ Erro ao parsear dados do localStorage:', parseError);
-          }
-        }
-        
-        // 🔧 FALLBACK: Carregar PROPOSTA GERADA (não orçamentos individuais)
-        console.log('📥 Carregando proposta gerada para:', id);
 
+        const aplicarConfigProposta = (fonte: any, sistemas?: any[]) => {
+          const configProposta = fonte?.config || fonte?.configuracoes || {};
+          const descontoInferido = inferDescontoPixFromSistemas(sistemas);
+          updateConfig({
+            hsp: configProposta.hsp ?? config.hsp,
+            tarifa: configProposta.tarifa ?? config.tarifa,
+            consumoMensal: fonte?.cliente?.consumoMensal ?? configProposta.consumoMensal ?? config.consumoMensal,
+            pdespesaFixo: configProposta.pdespesaFixo ?? config.pdespesaFixo,
+            pdespesaVariavel: configProposta.pdespesaVariavel ?? config.pdespesaVariavel,
+            performanceRate: configProposta.performanceRate ?? config.performanceRate,
+            bonusMicroPercent: configProposta.bonusMicroPercent ?? config.bonusMicroPercent,
+            descontoPix: normalizeDescontoPix(
+              descontoInferido ?? configProposta.descontoPix,
+              config.descontoPix
+            ),
+            fatorParcelado: configProposta.fatorParcelado ?? config.fatorParcelado,
+            fator12x: configProposta.fator12x ?? config.fator12x,
+            fator18x: configProposta.fator18x ?? config.fator18x,
+          });
+        };
+
+        // Fonte da verdade: proposta gerada (Supabase/API)
         try {
-          // Buscar proposta gerada usando a API correta que retorna dados completos
           const propostaRes = await fetch(`/api/propostas/${id}`);
 
-          if (!propostaRes.ok) {
-            throw new Error('Proposta não encontrada');
-          }
+          if (propostaRes.ok) {
+            const proposta = await propostaRes.json();
+            console.log('✅ Proposta encontrada:', proposta);
 
-          const proposta = await propostaRes.json();
-          console.log('✅ Proposta encontrada:', proposta);
+            if (proposta && Array.isArray(proposta.sistemas)) {
+              aplicarConfigProposta(proposta, proposta.sistemas);
 
-          if (!proposta || !proposta.sistemas || !Array.isArray(proposta.sistemas)) {
-            throw new Error('Dados da proposta incompletos - sistemas não encontrados');
-          }
+              const clienteData: Cliente = {
+                id: id,
+                nome: proposta.cliente?.nome || 'Cliente',
+                cidade: proposta.cliente?.cidade || 'N/A',
+                consumoMensal: proposta.cliente?.consumoMensal || 600
+              };
 
-          // Configurar cliente
-          const clienteData: Cliente = {
-            id: id,
-            nome: proposta.cliente?.nome || 'Cliente',
-            cidade: proposta.cliente?.cidade || 'N/A',
-            consumoMensal: proposta.cliente?.consumoMensal || 600
-          };
-
-          // ✅ CARREGAR CONFIG DA PROPOSTA (valores originais usados na geração)
-          const configProposta = proposta.config || {};
-          
-          console.log('✅ Config da proposta carregada no consultor:', {
-            pdespesaFixo: configProposta.pdespesaFixo,
-            pdespesaVariavel: configProposta.pdespesaVariavel,
-            hsp: configProposta.hsp,
-            tarifa: configProposta.tarifa
-          });
-          
-          // ✅ Sincronizar configurações da proposta (prioridade: Config Proposta > Cliente > Default)
-          updateConfig({
-            hsp: configProposta.hsp || parseFloat(proposta.cliente?.hsp) || config.hsp,
-            tarifa: configProposta.tarifa || parseFloat(proposta.cliente?.tarifa) || config.tarifa,
-            consumoMensal: proposta.cliente?.consumoMensal || config.consumoMensal,
-            // ✅ CARREGAR PDESPESA DA PROPOSTA (valores originais)
-            pdespesaFixo: configProposta.pdespesaFixo || config.pdespesaFixo,
-            pdespesaVariavel: configProposta.pdespesaVariavel || config.pdespesaVariavel,
-            performanceRate: configProposta.performanceRate || config.performanceRate
-          });
-
-          // ✅ Converter sistemas da proposta em orçamentos usando VALORES EXATOS do Supabase
           const parseValue = (val: any): number => {
             if (typeof val === 'number') return val;
             if (!val) return 0;
@@ -233,19 +203,21 @@ export default function ConsultorOrcamentosPage() {
               }
             });
 
-            return {
+            return syncBonusMicroAuto({
               id: sistema.id || `sistema-${index}`,
               nome: sistema.titulo || sistema.nome || `Sistema ${index + 1}`,
               fornecedor: sistema.distribuidora || sistema.fornecedor || 'SOOLLAR',
-              pcusto: pcusto, // ✅ Valor exato do Supabase
-              modulos: modulos, // ✅ Valor exato do Supabase
+              pcusto: pcusto,
+              modulos: modulos,
               pot_modulo: sistema.pot_modulo || 605,
               marca_modulo: sistema.marca_modulo || sistema.marcaModulo || 'Padrão',
-              inversores: inversores, // ✅ Valor exato do Supabase
+              inversores: inversores,
               pot_inv: sistema.pot_inv || sistema.potInv || 15,
               marca_inversor: sistema.marca_inversor || sistema.marcaInversor || 'Padrão',
-              status: 'aprovado' as const
-            };
+              bonusMicroAtivo: sistema.bonusMicroAtivo,
+              bonusMicroManual: sistema.bonusMicroManual ?? typeof sistema.bonusMicroAtivo === 'boolean',
+              status: 'aprovado' as const,
+            });
           });
 
           console.log('✅ Cliente e sistemas carregados:', {
@@ -255,10 +227,50 @@ export default function ConsultorOrcamentosPage() {
 
           setCliente(clienteData);
           setOrcamentos(orcamentosData);
+          return;
+            }
+          }
+
+          const dadosLocalStorage = localStorage.getItem(`consultor-${id}`);
+          if (dadosLocalStorage) {
+            const dados = JSON.parse(dadosLocalStorage);
+            aplicarConfigProposta(dados, dados.orcamentos);
+            setCliente({
+              id,
+              nome: dados.cliente?.nome || 'Cliente',
+              cidade: dados.cliente?.cidade || 'N/A',
+              consumoMensal: dados.cliente?.consumoMensal || 600,
+            });
+            setOrcamentos(
+              (dados.orcamentos || []).map((orc: OrcamentoComparativo) => syncBonusMicroAuto(orc))
+            );
+            return;
+          }
+
+          throw new Error('Proposta não encontrada');
         } catch (apiError) {
           console.error('❌ Erro ao carregar proposta:', apiError);
 
-          // Se falhar, tentar buscar cliente básico
+          try {
+            const dadosLocalStorage = localStorage.getItem(`consultor-${id}`);
+            if (dadosLocalStorage) {
+              const dados = JSON.parse(dadosLocalStorage);
+              aplicarConfigProposta(dados, dados.orcamentos);
+              setCliente({
+                id,
+                nome: dados.cliente?.nome || 'Cliente',
+                cidade: dados.cliente?.cidade || 'N/A',
+                consumoMensal: dados.cliente?.consumoMensal || 600,
+              });
+              setOrcamentos(
+                (dados.orcamentos || []).map((orc: OrcamentoComparativo) => syncBonusMicroAuto(orc))
+              );
+              return;
+            }
+          } catch {
+            // segue para fallback de cliente
+          }
+
           try {
             const clienteRes = await fetch(`/api/admin/clientes/${id}`);
             if (clienteRes.ok) {
@@ -267,11 +279,10 @@ export default function ConsultorOrcamentosPage() {
                 id: id,
                 nome: clienteApiData.nome || 'Cliente',
                 cidade: clienteApiData.cidade || 'N/A',
-                consumoMensal: clienteApiData.consumoMensal || 600
+                consumoMensal: clienteApiData.consumoMensal || clienteApiData.consumoKwh || 600
               });
             }
           } catch {
-            // Fallback final
             setCliente({
               id: id,
               nome: 'Cliente',
@@ -314,8 +325,29 @@ export default function ConsultorOrcamentosPage() {
     );
   };
 
+  const updateOrcInversor = (index: number, updates: Partial<OrcamentoComparativo>) => {
+    setOrcamentos((prev) => {
+      const updated = [...prev];
+      updated[index] = syncBonusMicroAuto({ ...updated[index], ...updates });
+      return updated;
+    });
+  };
+
+  const toggleBonusMicro = (index: number) => {
+    setOrcamentos((prev) => {
+      const updated = [...prev];
+      const orc = updated[index];
+      updated[index] = {
+        ...orc,
+        bonusMicroManual: true,
+        bonusMicroAtivo: !getBonusMicroAtivo(orc),
+      };
+      return updated;
+    });
+  };
+
   const addNewOrcamento = () => {
-    const novoOrc: OrcamentoComparativo = {
+    const novoOrc: OrcamentoComparativo = syncBonusMicroAuto({
       id: Date.now().toString(),
       nome: `Novo Sistema ${orcamentos.length + 1}`,
       fornecedor: 'SOOLLAR',
@@ -326,8 +358,8 @@ export default function ConsultorOrcamentosPage() {
       inversores: 1,
       pot_inv: 10,
       marca_inversor: '',
-      status: 'pendente'
-    };
+      status: 'pendente',
+    });
     setOrcamentos(prev => [...prev, novoOrc]);
     setShowAddModal(false);
   };
@@ -339,76 +371,120 @@ export default function ConsultorOrcamentosPage() {
       return;
     }
 
+    if (!cliente) {
+      alert('❌ Dados do cliente não encontrados.');
+      return;
+    }
+
     const aprovados = orcamentos.filter(o => o.status === 'aprovado');
     if (aprovados.length === 0) {
       alert('Nenhum orçamento aprovado para gerar propostas');
       return;
     }
 
+    /** PIX = base; à vista = total 12×; parcelas pela tabela do cartão */
+    const calcularPrecosProposta = (totalFinal: number) => {
+      return calcularPrecosEngine(totalFinal, config);
+    };
+
     try {
       setLoading(true);
-      
-      const response = await fetch('/api/consultor/gerar-proposta', {
+
+      const orcamentosProcessados = aprovados.map((orc, index) => {
+        const potTotal = (orc.modulos * orc.pot_modulo) / 1000;
+        const pdespesa = calcularPdespesa(orc.pcusto);
+        const totalFinal = orc.pcusto + pdespesa;
+        const precos = calcularPrecosProposta(totalFinal);
+        const bonusMicroAtivo = getBonusMicroAtivo(orc);
+        const performance = calcularPerformance(potTotal, precos.ppix, bonusMicroAtivo);
+
+        return {
+          nome: orc.nome || `Sistema ${index + 1}`,
+          distribuidora: orc.fornecedor,
+          pcusto: orc.pcusto,
+          modulos: orc.modulos,
+          pot_modulo: orc.pot_modulo,
+          marca_modulo: orc.marca_modulo,
+          inversores: orc.inversores,
+          pot_inv: orc.pot_inv,
+          marca_inversor: orc.marca_inversor,
+          bonusMicroAtivo,
+          bonusMicroManual: orc.bonusMicroManual,
+          pdespesa_total: pdespesa,
+          total_final: totalFinal,
+          pdespesa_fixo: config.pdespesaFixo,
+          pdespesa_variavel_percent: config.pdespesaVariavel,
+          potTotal,
+          ...precos,
+          ...performance,
+        };
+      });
+
+      const templateCliente = templateSelecionado?.subtipo
+        ? `comercial-${templateSelecionado.subtipo}`
+        : templateSelecionado?.tipo || 'padrao';
+
+      const response = await fetch('/api/gerar-proposta', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clienteId: id,
-          orcamentos,
-          config,
-          cliente: cliente
-            ? {
-                nome: cliente.nome,
-                cidade: cliente.cidade,
-                consumoMensal: cliente.consumoMensal,
-              }
-            : undefined,
-          clientType: templateSelecionado?.tipo,
-          subType: templateSelecionado?.subtipo,
+          slugExistente: id,
+          cliente: {
+            nome: cliente.nome,
+            cidade: cliente.cidade,
+            consumo_mensal: config.consumoMensal || cliente.consumoMensal,
+            tipo_imovel: templateSelecionado?.tipo || 'Residencial',
+            hsp: config.hsp,
+            tarifa: config.tarifa,
+            template: templateCliente,
+          },
+          orcamentos: orcamentosProcessados,
+          config: {
+            ...config,
+            consumoMensal: config.consumoMensal || cliente.consumoMensal,
+            metodo: 'variavel',
+          },
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const detalhe = errorData.details ? `: ${errorData.details}` : '';
-        throw new Error((errorData.error || 'Erro ao gerar proposta') + detalhe);
+        const detalhe = errorData.message || errorData.details || errorData.error || '';
+        throw new Error(detalhe || 'Erro ao gerar proposta');
       }
 
       const result = await response.json();
-      
-      if (result.success) {
-        // Em produção (Vercel) o HTML vem no JSON; localmente pode haver URL em disco
-        if (result.html) {
-          const blob = new Blob([result.html], { type: 'text/html;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        } else if (result.propostaUrl) {
-          window.open(result.propostaUrl, '_blank');
-        }
-        
-        // Mostrar mensagem de sucesso com dados completos
-        alert(`✅ Proposta gerada com sucesso!
-        
+
+      if (result.slug) {
+        window.open(`/proposta/${result.slug}`, '_blank');
+      }
+
+      const pdfSlug = result.slug || id;
+
+      const melhor = orcamentosProcessados.reduce((best, cur) =>
+        cur.paybackMeses < best.paybackMeses ? cur : best
+      );
+
+      alert(`✅ Proposta gerada e salva no banco!
+
 📊 Dados da Proposta:
-   • Orçamentos processados: ${result.orcamentosProcessados}
-   • Melhor Payback: ${result.melhorPayback.toFixed(1)} meses
-   • Melhor TIR: ${result.melhorTir.toFixed(1)}%
-   • Preço PIX Melhor: R$ ${result.melhorPrecoPix.toLocaleString('pt-BR')}
-   • Potência Melhor: ${result.melhorPotencia.toFixed(2)} kWp
-   • Geração Mensal: ${result.melhorGeracao.toFixed(0)} kWh
+   • Orçamentos processados: ${orcamentosProcessados.length}
+   • Melhor Payback: ${melhor.paybackMeses.toFixed(1)} meses
+   • Melhor TIR: ${melhor.tirAnual.toFixed(1)}%
+   • Preço PIX Melhor: R$ ${melhor.ppix.toLocaleString('pt-BR')}
+   • Potência Melhor: ${melhor.potTotal.toFixed(2)} kWp
+   • Geração Mensal: ${melhor.geracaoMensal.toFixed(0)} kWh
 
 🔧 Parâmetros Utilizados:
    • HSP: ${config.hsp}
    • Tarifa: R$ ${config.tarifa}/kWh
    • Pdespesa: R$ ${config.pdespesaFixo} + ${config.pdespesaVariavel}%
-   • Desconto PIX: ${(config.descontoPix * 100).toFixed(0)}%
+   • Bônus Micro: ${config.bonusMicroPercent}%
 
-🌐 Proposta aberta em nova aba para avaliação!`);
-      } else {
-        throw new Error('Falha na geração da proposta');
-      }
+🌐 ${result.supabase?.salva ? 'Salva no Supabase' : 'Verifique persistência no banco'}
+   URL: /proposta/${result.slug}
+
+📄 Para PDF: use o botão "Gerar PDF" ou abra /proposta/${pdfSlug}?pdf=1`);
     } catch (error) {
       console.error('Erro ao gerar propostas:', error);
       alert(`❌ Erro ao gerar proposta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
@@ -496,7 +572,7 @@ export default function ConsultorOrcamentosPage() {
             />
 
             {/* Ações Principais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <button
                 onClick={() => setShowAddModal(true)}
                 className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center border-2 border-dashed border-blue-300 hover:border-blue-500"
@@ -554,10 +630,18 @@ export default function ConsultorOrcamentosPage() {
                         const potenciaTotal = (orc.modulos * orc.pot_modulo) / 1000;
                         const pdespesaTotal = config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
                         const totalFinal = orc.pcusto + pdespesaTotal;
-                        const ppix = totalFinal * (1 - config.descontoPix);
-                        const geracaoMensal = potenciaTotal * config.hsp * 30.4 * config.performanceRate;
-                        const economiaMensal = geracaoMensal * config.tarifa;
-                        const paybackMeses = economiaMensal > 0 ? ppix / economiaMensal : Infinity;
+                        const ppix = totalFinal; // PIX = base
+                        const perf = calcularPerformanceCompleta(
+                          potenciaTotal,
+                          config.hsp,
+                          config.performanceRate,
+                          config.consumoMensal,
+                          config.tarifa,
+                          ppix,
+                          getBonusMicroAtivo(orc),
+                          config.bonusMicroPercent
+                        );
+                        const paybackMeses = perf.paybackMeses;
                         
                         if (paybackMeses < melhorPayback && paybackMeses > 0) {
                           melhorPayback = paybackMeses;
@@ -570,6 +654,21 @@ export default function ConsultorOrcamentosPage() {
                   ) : 'N/A'}
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const pdfId = resolveClienteId(clienteIdParam, cliente?.id);
+                  if (pdfId) window.open(buildPropostaPdfUrl(pdfId, true), '_blank');
+                }}
+                disabled={!resolveClienteId(clienteIdParam, cliente?.id)}
+                className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed border-2 border-red-200 hover:border-red-400"
+                title="Abrir proposta formatada para salvar como PDF (ideal para clientes sem acesso digital)"
+              >
+                <div className="text-3xl mb-3 text-red-600">📄</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Gerar PDF</h3>
+                <p className="text-sm text-gray-600">Salvar para enviar</p>
+              </button>
             </div>
 
             {/* Aviso para Aprovação */}
@@ -607,7 +706,7 @@ export default function ConsultorOrcamentosPage() {
                   📋 Tabela de Orçamentos - Controle Detalhado
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">
-                  Edite módulos, inversores e quantidades diretamente na tabela
+                  Edite módulos, inversores e quantidades. Coluna ⚡ Micro: verde = +{config.bonusMicroPercent}% geração.
                 </p>
               </div>
 
@@ -633,6 +732,9 @@ export default function ConsultorOrcamentosPage() {
                     <thead>
                       <tr className="bg-blue-50">
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Nº</th>
+                        <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700" title="Bônus de eficiência micro-inversor">
+                          ⚡ Micro
+                        </th>
                         <th className="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Nome/Origem</th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Distribuidora</th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">P.Custo (R$)</th>
@@ -649,6 +751,14 @@ export default function ConsultorOrcamentosPage() {
                       {orcamentos.map((orc, index) => (
                         <tr key={orc.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs font-bold">{index + 1}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center">
+                            <MicroInversorToggle
+                              ativo={getBonusMicroAtivo(orc)}
+                              bonusPercent={config.bonusMicroPercent}
+                              onToggle={() => toggleBonusMicro(index)}
+                              compact
+                            />
+                          </td>
                           <td className="border border-gray-300 px-3 py-2">
                             <input
                               type="text"
@@ -690,9 +800,7 @@ export default function ConsultorOrcamentosPage() {
                               type="number"
                               value={orc.modulos}
                               onChange={(e) => {
-                                const updated = [...orcamentos];
-                                updated[index] = { ...updated[index], modulos: parseInt(e.target.value) || 0 };
-                                setOrcamentos(updated);
+                                updateOrcInversor(index, { modulos: parseInt(e.target.value) || 0 });
                               }}
                               className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
                             />
@@ -726,9 +834,7 @@ export default function ConsultorOrcamentosPage() {
                               type="number"
                               value={orc.inversores}
                               onChange={(e) => {
-                                const updated = [...orcamentos];
-                                updated[index] = { ...updated[index], inversores: parseInt(e.target.value) || 0 };
-                                setOrcamentos(updated);
+                                updateOrcInversor(index, { inversores: parseInt(e.target.value) || 0 });
                               }}
                               className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
                             />
@@ -739,9 +845,7 @@ export default function ConsultorOrcamentosPage() {
                               step="0.1"
                               value={orc.pot_inv}
                               onChange={(e) => {
-                                const updated = [...orcamentos];
-                                updated[index] = { ...updated[index], pot_inv: parseFloat(e.target.value) || 0 };
-                                setOrcamentos(updated);
+                                updateOrcInversor(index, { pot_inv: parseFloat(e.target.value) || 0 });
                               }}
                               className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
                             />
@@ -751,9 +855,7 @@ export default function ConsultorOrcamentosPage() {
                               type="text"
                               value={orc.marca_inversor}
                               onChange={(e) => {
-                                const updated = [...orcamentos];
-                                updated[index] = { ...updated[index], marca_inversor: e.target.value };
-                                setOrcamentos(updated);
+                                updateOrcInversor(index, { marca_inversor: e.target.value });
                               }}
                               className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />

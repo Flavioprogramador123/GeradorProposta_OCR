@@ -96,7 +96,7 @@ export const SystemCard: React.FC<SystemCardProps> = ({
           TIR: {tir} ao ano
         </div>
 
-        <button className="pieng-button-secondary text-base font-bold py-4">
+        <button className="pieng-button-secondary text-base font-bold py-4 no-print">
           ESCOLHER ESTA OPÇÃO
         </button>
       </div>

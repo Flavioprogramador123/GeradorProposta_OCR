@@ -1,10 +1,10 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --primary: #3366CC;
+    --primary: #338fcc;
     --secondary: #FF6B35;
     --success: #2ecc71;
     --danger: #e74c3c;
@@ -21,7 +21,7 @@
   body {
     @apply font-sans leading-relaxed;
     color: #0d2847;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #66c0ea 0%, #764ba2 100%);
     min-height: 100vh;
   }
 }
@@ -81,7 +81,7 @@
   }
 
   .pieng-specs-list li::before {
-    content: "✓";
+    content: "\2713";
     @apply absolute left-0 text-pieng-success font-bold;
   }
 
@@ -164,7 +164,7 @@
     @apply bg-green-50 font-bold;
   }
 
-  /* Dica de rolagem: só no mobile */
+  /* Dica de rolagem: sÃ³ no mobile */
   .pieng-table-scroll-hint {
     @apply hidden text-center py-3 px-4 rounded-xl font-semibold text-sm mb-3;
     background: linear-gradient(90deg, #3366CC, #4f46e5);

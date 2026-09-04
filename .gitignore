@@ -93,6 +93,14 @@ nul
 *.tmp
 *.log
 SESSAO_*.md
+/temp/
+/.temp/
+
+# V3 espelho (SQLite local)
+/data/v3/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 
 # Playwright MCP
 .playwright-mcp/

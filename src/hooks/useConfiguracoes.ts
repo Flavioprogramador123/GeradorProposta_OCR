@@ -42,7 +42,7 @@ export function useConfiguracoes() {
     // Helpers para acessar valores comuns sem precisar verificar null
     getHSP: (estado?: string) => {
       if (!config) return CONFIG_PADRAO.hspPadrao;
-      if (estado && config.hspPorEstado[estado]) {
+      if (estado && config.hspPorEstado?.[estado]) {
         return config.hspPorEstado[estado];
       }
       return config.hspPadrao;

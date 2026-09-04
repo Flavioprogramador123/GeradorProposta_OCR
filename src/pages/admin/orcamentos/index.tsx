@@ -7,6 +7,10 @@ interface SistemaItem {
   potencia: number;
   modulos: number;
   inversores: number;
+  marca_modulo?: string;
+  pot_modulo?: number;
+  marca_inversor?: string;
+  pot_inversor?: number;
   valorTotal?: number;
   total_final?: number;
   ppix?: number;
@@ -319,11 +323,12 @@ export default function TodosOrcamentos() {
                               ✏️ Editar
                             </a>
                           </Link>
-                          <Link href={`/admin/orcamentos/${orc.clientePasta}`} legacyBehavior>
-                            <a className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                              📋 Gerenciar
-                            </a>
-                          </Link>
+                          <a
+                            href={`/admin/orcamentos/${encodeURIComponent(orc.clientePasta)}`}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                          >
+                            📋 Gerenciar
+                          </a>
                           <Link href={`/admin/orcamentos/${orc.clientePasta}/consultor`} legacyBehavior>
                             <a className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
                               🎛️ Consultor
@@ -372,12 +377,32 @@ export default function TodosOrcamentos() {
                               <span className="text-gray-600">Potência:</span>
                               <span className="font-medium text-gray-800">{sistema.potencia.toFixed(2)} kWp</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Módulos:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">
+                                Módulos:{' '}
+                                {sistema.marca_modulo && (
+                                  <span className="font-medium text-blue-600" title={sistema.marca_modulo}>
+                                    {sistema.marca_modulo.length > 6 ? sistema.marca_modulo.slice(0, 6) + '…' : sistema.marca_modulo}
+                                  </span>
+                                )}
+                                {sistema.pot_modulo ? (
+                                  <span className="text-xs text-gray-500 ml-0.5">{sistema.pot_modulo}wp</span>
+                                ) : null}
+                              </span>
                               <span className="font-medium text-gray-800">{sistema.modulos} un</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Inversores:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">
+                                Inversores:{' '}
+                                {sistema.marca_inversor && (
+                                  <span className="font-medium text-indigo-600" title={sistema.marca_inversor}>
+                                    {sistema.marca_inversor.length > 6 ? sistema.marca_inversor.slice(0, 6) + '…' : sistema.marca_inversor}
+                                  </span>
+                                )}
+                                {sistema.pot_inversor ? (
+                                  <span className="text-xs text-gray-500 ml-0.5">{sistema.pot_inversor}kW</span>
+                                ) : null}
+                              </span>
                               <span className="font-medium text-gray-800">{sistema.inversores} un</span>
                             </div>
                             <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">

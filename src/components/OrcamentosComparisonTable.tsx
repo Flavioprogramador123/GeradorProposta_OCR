@@ -6,6 +6,7 @@ import {
   calcularPrecosProposta,
   normalizePropostaConfig,
 } from '@/lib/propostaOrcamentoProcessor';
+import { getBonusMicroAtivo } from '@/lib/calcularPerformance';
 
 interface OrcamentoComparativo {
   id: string;
@@ -18,6 +19,8 @@ interface OrcamentoComparativo {
   inversores: number;
   pot_inv: number;
   marca_inversor: string;
+  bonusMicroAtivo?: boolean;
+  bonusMicroManual?: boolean;
   status: 'pendente' | 'analisando' | 'aprovado' | 'rejeitado';
 }
 
@@ -52,8 +55,17 @@ export default function OrcamentosComparisonTable({
     };
   };
 
-  const calcularPerformance = (potenciaKw: number, investimentoPix: number) => {
-    const perf = calcularPerformanceProposta(potenciaKw, cfgNorm, investimentoPix);
+  const calcularPerformance = (
+    potenciaKw: number,
+    investimentoPix: number,
+    orc: OrcamentoComparativo
+  ) => {
+    const perf = calcularPerformanceProposta(
+      potenciaKw,
+      cfgNorm,
+      investimentoPix,
+      getBonusMicroAtivo(orc)
+    );
     return {
       geracaoMensal: perf.geracaoMensal,
       economiaMensal: perf.economiaMensal,
@@ -74,7 +86,7 @@ export default function OrcamentosComparisonTable({
       const pdespesaTotal = calcularPdespesa(orc.pcusto);
       const totalFinal = orc.pcusto + pdespesaTotal;
       const precos = calcularPrecos(totalFinal);
-      const performance = calcularPerformance(potenciaTotal, precos.ppix);
+      const performance = calcularPerformance(potenciaTotal, precos.ppix, orc);
       
       if (performance.paybackMeses < melhorPayback && performance.paybackMeses > 0) {
         melhorPayback = performance.paybackMeses;
@@ -185,7 +197,7 @@ export default function OrcamentosComparisonTable({
               const pdespesaTotal = calcularPdespesa(orc.pcusto);
               const totalFinal = orc.pcusto + pdespesaTotal;
               const precos = calcularPrecos(totalFinal);
-              const performance = calcularPerformance(potenciaTotal, precos.ppix);
+              const performance = calcularPerformance(potenciaTotal, precos.ppix, orc);
 
               return (
                 <tr key={orc.id} className="hover:bg-gray-50">

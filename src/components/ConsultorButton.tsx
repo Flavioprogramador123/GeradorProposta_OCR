@@ -22,7 +22,7 @@ export const ConsultorButton: React.FC<ConsultorButtonProps> = ({
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensagem)}`;
 
   return (
-    <div className="pieng-card p-8 mb-8">
+    <div className="pieng-card p-8 mb-8 no-print">
       <div className="text-center">
         <div className="mb-4">
           <span className="text-4xl">💬</span>

@@ -66,6 +66,20 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
                 title="Taxa de performance do sistema (0.0 a 1.0)"
               />
             </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1 opacity-80">Bônus Micro-inversor (%)</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="20"
+                value={config.bonusMicroPercent}
+                onChange={(e) => onConfigChange({ bonusMicroPercent: Number(e.target.value) })}
+                className="w-full px-2 py-1 text-sm bg-white/20 border border-white/30 rounded text-white placeholder-white/70 focus:border-white focus:outline-none"
+                title="Ganho extra de geração para micro-inversores (padrão 5%)"
+              />
+            </div>
             
             <div>
               <label className="block text-xs font-medium mb-1 opacity-80">Consumo Mensal (kWh)</label>
@@ -123,17 +137,18 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
           
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium mb-1 opacity-80">Desconto PIX (%)</label>
+              <label className="block text-xs font-medium mb-1 opacity-80">Economia PIX vs à vista (%)</label>
               <input
                 type="number"
                 step="0.1"
                 min="0"
                 max="100"
-                value={config.descontoPix * 100}
-                onChange={(e) => onConfigChange({ descontoPix: Number(e.target.value) / 100 })}
-                className="w-full px-2 py-1 text-sm bg-white/20 border border-white/30 rounded text-white placeholder-white/70 focus:border-white focus:outline-none"
-                title="Desconto para pagamento via PIX em percentual"
+                value={Number(((1 - 1 / 1.117943) * 100).toFixed(1))}
+                readOnly
+                className="w-full px-2 py-1 text-sm bg-white/10 border border-white/30 rounded text-white/90 opacity-90 cursor-not-allowed"
+                title="Derivado automaticamente da tabela 12× do cartão (PIX = base)"
               />
+              <p className="text-[10px] opacity-70 mt-1">Automático: à vista = total 12× cartão</p>
             </div>
             
             <div>
@@ -149,27 +164,10 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
             </div>
             
             <div>
-              <label className="block text-xs font-medium mb-1 opacity-80">Fator 12x</label>
-              <input
-                type="number"
-                step="0.01"
-                value={config.fator12x}
-                onChange={(e) => onConfigChange({ fator12x: Number(e.target.value) })}
-                className="w-full px-2 py-1 text-sm bg-white/20 border border-white/30 rounded text-white placeholder-white/70 focus:border-white focus:outline-none"
-                title="Fator de desconto para parcelamento em 12x"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium mb-1 opacity-80">Fator 18x</label>
-              <input
-                type="number"
-                step="0.01"
-                value={config.fator18x}
-                onChange={(e) => onConfigChange({ fator18x: Number(e.target.value) })}
-                className="w-full px-2 py-1 text-sm bg-white/20 border border-white/30 rounded text-white placeholder-white/70 focus:border-white focus:outline-none"
-                title="Fator de desconto para parcelamento em 18x"
-              />
+              <label className="block text-xs font-medium mb-1 opacity-80">Tabela cartão 12× / 18×</label>
+              <div className="text-xs opacity-90 px-2 py-1 bg-white/10 rounded border border-white/20">
+                Mult. 12× 1,1179 · Mult. 18× 1,1794
+              </div>
             </div>
           </div>
         </div>

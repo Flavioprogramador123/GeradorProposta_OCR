@@ -110,14 +110,29 @@ export default function GerenciarOrcamentos() {
   };
 
   const loadClienteData = async () => {
+    const slug = typeof clienteId === 'string' ? clienteId : '';
     try {
-      const response = await fetch(`/api/admin/clientes/${clienteId}`);
+      const response = await fetch(`/api/admin/clientes/${encodeURIComponent(slug)}`);
       if (response.ok) {
         const data = await response.json();
-        setCliente(data);
+        setCliente({
+          nome: data.nome || slug,
+          cidade: data.cidade || 'N/A',
+          consumoMensal: Number(data.consumoMensal ?? data.consumoKwh ?? 0),
+          pasta: data.pasta || slug,
+        });
+        return;
       }
     } catch (error) {
       console.error('Erro ao carregar dados do cliente:', error);
+    }
+    if (slug) {
+      setCliente({
+        nome: slug,
+        cidade: 'N/A',
+        consumoMensal: 0,
+        pasta: slug,
+      });
     }
   };
 

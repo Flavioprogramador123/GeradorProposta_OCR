@@ -84,6 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 status,
                 ultimaModificacao: new Date(ultimaData).toLocaleDateString('pt-BR'),
                 temProposta: cliente.temProposta || (cliente.propostas?.length > 0) || false,
+                propostaPausada: cliente.proposta_pausada || false,
                 id: cliente.id
               };
             })

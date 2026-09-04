@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { carregarConfiguracoes, aplicarMarkup, calcularPayback, calcularTIR } from '@/utils/configuracoes';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
+import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
 
 interface OrcamentoAprovado {
   id: string;
@@ -120,37 +121,19 @@ async function gerarSistemasAPartirDosOrcamentos(
     const pdespesaTotal = pdespesaFixo + (pcusto * pdespesaVariavel / 100);
     const precoFinal = pcusto + pdespesaTotal; // Total = P.Custo + Pdespesa
     
-    // Calcular preço PIX com desconto
-    const precoPixDecimal = precoFinal * (1 - config.descontoPix);
-    
-    // Calcular parcelas
-    const valor12x = precoFinal * (1 + config.jurosParcela12x / 100);
-    const valor18x = precoFinal * (1 + config.jurosParcela18x / 100);
-    
-    const parcela12x = valor12x / 12;
-    const parcela18x = valor18x / 18;
-    
-    // Calcular economia anual (estimativa)
+    // PIX = base (total final); à vista / parcelas pela tabela do cartão
+    const precos = calcularPrecosDePix(precoFinal, config.fatorParcelado || 1.20);
+    const precoPixDecimal = precos.ppix;
+    const { ppix, pavista, priscado, p12x, p12x_total, p18x_parcela, p18x_total } = precos;
+    const parcela12x = p12x;
+    const parcela18x = p18x_parcela;
+    const valor12x = p12x_total;
+    const valor18x = p18x_total;
+
     const consumoAnual = parseFloat(clienteData.consumoKwh) * 12;
-    const economiaAnual = consumoAnual * 0.8 * 0.7; // Estimativa simplificada
-    
-    // Calcular payback e TIR
+    const economiaAnual = consumoAnual * 0.8 * 0.7;
     const paybackMeses = calcularPayback(precoPixDecimal, economiaAnual, config);
     const tir = calcularTIR(precoPixDecimal, economiaAnual);
-    
-    // 🔧 NOVO: Calcular preços usando a mesma lógica do gerador rápido
-    const descontoPix = config.descontoPix || 0.1;
-    const fatorParcelado = config.fatorParcelado || 1.20;
-    const fator12x = config.fator12x || 0.88;
-    const fator18x = config.fator18x || 0.83;
-    
-    const ppix = precoFinal * (1 - descontoPix); // PIX = Total com desconto
-    const pavista = precoFinal; // À vista = Total
-    const priscado = precoFinal * fatorParcelado; // Preço riscado
-    const p12x_total = ppix / fator12x; // Total 12x
-    const p12x = p12x_total / 12; // Parcela 12x
-    const p18x_total = ppix / fator18x; // Total 18x
-    const p18x_parcela = p18x_total / 18; // Parcela 18x
     
     // Calcular geração mensal (estimativa)
     const geracaoMensal = potenciaKwp * parseFloat(clienteData.hspLocal) * 30 * 0.75; // Performance rate 75%

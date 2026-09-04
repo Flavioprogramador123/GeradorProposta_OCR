@@ -519,10 +519,12 @@
 
         @media print {
             body { background: white !important; }
-            .container { box-shadow: none !important; }
+            .container { box-shadow: none !important; padding: 0 !important; }
             .urgency-banner { animation: none !important; }
+            .cta-button, .table-scroll-hint { display: none !important; }
         }
     </style>
+    <link rel="stylesheet" href="/styles/proposta-print.css" />
 </head>
 <body>
     <div class="container">

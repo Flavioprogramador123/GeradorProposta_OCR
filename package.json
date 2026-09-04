@@ -1,12 +1,14 @@
 {
   "name": "pieng-propostas",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
+    "v3:captura": "npx --yes tsx scripts/v3-captura-agendada.ts",
+    "v3:captura:force": "npx --yes tsx scripts/v3-captura-agendada.ts --force",
     "build:exe": "next build && pkg . --output dist/pieng-propostas.exe",
     "build:standalone": "next build && next-standalone"
   },
@@ -45,6 +47,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/js-yaml": "^4.0.5",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
@@ -54,12 +57,12 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^13.5.6",
     "pkg": "^5.8.1",
+    "playwright": "^1.49.1",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.0.0"
   },
   "optionalDependencies": {
-    "@next/swc-linux-x64-gnu": "^13.5.9",
-    "better-sqlite3": "^11.10.0"
+    "@next/swc-linux-x64-gnu": "^13.5.9"
   }
 }

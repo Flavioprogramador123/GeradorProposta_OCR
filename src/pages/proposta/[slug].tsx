@@ -15,6 +15,8 @@ import { PropostaData } from '@/lib/types';
 import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/lib/propostaUtils';
 import { getPropostaBySlug } from '@/lib/supabase';
 import { getLogoMetaTags } from '@/lib/logoConfig';
+import PropostaPdfToolbar from '@/components/PropostaPdfToolbar';
+import { abrirDialogoPdf } from '@/lib/propostaPdf';
 
 interface PropostaPageProps {
   proposta?: PropostaData;
@@ -91,6 +93,17 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
       };
     }
   }, [router.query.template]);
+
+  // Abrir diálogo PDF automaticamente (?pdf=1)
+  useEffect(() => {
+    if (router.query.pdf !== '1') return;
+    const nome = proposta?.cliente?.nome;
+    const propostaSlug = slug || proposta?.slug || (router.query.slug as string);
+    const timer = window.setTimeout(() => {
+      abrirDialogoPdf(nome, propostaSlug);
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [router.query.pdf, slug, proposta?.cliente?.nome, proposta?.slug, router.query.slug]);
 
   useEffect(() => {
     const propostaSlug = slug || proposta?.slug;
@@ -209,8 +222,10 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           
           {/* Fallback image para compatibilidade */}
           <link rel="image_src" href={ogImage} />
+          <link rel="stylesheet" href="/styles/proposta-print.css" />
         </Head>
         <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        <PropostaPdfToolbar clienteNome={slug} slug={slug} />
       </>
     );
   }
@@ -299,6 +314,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         
         {/* Fallback image para compatibilidade */}
         <link rel="image_src" href={ogImage} />
+        <link rel="stylesheet" href="/styles/proposta-print.css" />
       </Head>
 
       <div className="pieng-container">
@@ -363,6 +379,8 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           dataGeracao={proposta?.dataGeracao || '30/09/2025'}
         />
       </div>
+
+      <PropostaPdfToolbar clienteNome={cliente.nome} slug={slug || proposta?.slug} />
     </>
   );
 }

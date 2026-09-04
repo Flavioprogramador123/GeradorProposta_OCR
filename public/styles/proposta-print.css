@@ -1,0 +1,742 @@
+/**
+ * Estilos para impressão / exportação PDF das propostas PIENG
+ *
+ * Foco: legibilidade para o cliente final (fonte ~14–16px).
+ * Layout: cards horizontais largos, 1 a 6 sistemas.
+ */
+
+/* ── Toolbar (só tela) ── */
+.pieng-pdf-toolbar {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: min(320px, calc(100vw - 2rem));
+}
+
+.pieng-pdf-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.pieng-pdf-toolbar__btn {
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pieng-pdf-toolbar__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.pieng-pdf-toolbar__btn--primary {
+  background: linear-gradient(135deg, #3366cc, #1a4d8f);
+  color: #fff;
+}
+
+.pieng-pdf-toolbar__btn--secondary {
+  background: #fff;
+  color: #1a4d8f;
+  border: 2px solid #3366cc;
+}
+
+.pieng-pdf-toolbar__hint {
+  background: rgba(255, 255, 255, 0.96);
+  color: #475569;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: right;
+}
+
+@page {
+  /* Landscape ajuda a manter texto legível sem “espremido” */
+  size: A4 landscape;
+  margin: 8mm 8mm;
+}
+
+@media print {
+  .pieng-pdf-toolbar,
+  .no-print,
+  .table-scroll-hint,
+  .pieng-table-scroll-hint,
+  .cta-button,
+  .cta-section,
+  .cta-buttons,
+  button.cta-button,
+  .cta-primary,
+  .pieng-button-secondary,
+  .pieng-pay-modal,
+  #pieng-pay-modal,
+  .recharts-tooltip-wrapper,
+  .recharts-default-tooltip {
+    display: none !important;
+  }
+}
+
+body.proposta-pdf-mode .pieng-pdf-toolbar,
+body.proposta-pdf-mode .no-print,
+body.proposta-pdf-mode .pieng-button-secondary,
+body.proposta-pdf-mode .recharts-tooltip-wrapper {
+  display: none !important;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #0f172a !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    min-height: auto !important;
+  }
+
+  .text-xs { font-size: 12px !important; }
+  .text-sm { font-size: 13px !important; }
+  .text-base { font-size: 14px !important; }
+  .text-lg { font-size: 15px !important; }
+  .text-xl { font-size: 17px !important; }
+  .text-2xl { font-size: 19px !important; }
+
+  .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 3px !important; }
+  .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px !important; }
+  .mb-2, .mb-3, .mb-4, .mb-5, .mb-6, .mb-8, .mb-10 { margin-bottom: 8px !important; }
+  .mt-4, .mt-5, .mt-6, .mt-8 { margin-top: 8px !important; }
+  .pt-4, .pt-5, .pt-8 { padding-top: 8px !important; }
+  .leading-relaxed { line-height: 1.4 !important; }
+  .gap-4 { gap: 8px !important; }
+  .grid.grid-cols-1.md\:grid-cols-3 { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
+  .grid.grid-cols-1.md\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
+
+  .container,
+  .pieng-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  .header,
+  .pieng-header,
+  header,
+  header.bg-white {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    padding: 8px 0 !important;
+    margin-bottom: 8px !important;
+    box-shadow: none !important;
+    border-bottom: 2px solid #3366cc !important;
+  }
+
+  header .flex.items-center.justify-between > div:last-child,
+  header svg,
+  header [class*="lucide"] {
+    display: none !important;
+  }
+
+  .header h1,
+  header h1 {
+    font-size: 20px !important;
+    margin: 0 !important;
+  }
+
+  .header img,
+  header img {
+    max-height: 48px !important;
+    width: auto !important;
+  }
+
+  .subtitle,
+  .client-info,
+  .company-tagline {
+    font-size: 14px !important;
+    margin: 4px 0 !important;
+  }
+
+  .pieng-logo-real img {
+    max-width: 160px !important;
+  }
+
+  .urgency-banner,
+  .pieng-urgency-banner {
+    animation: none !important;
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border: 1px solid #fcd34d !important;
+    padding: 8px 12px !important;
+    margin: 0 0 10px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    break-inside: avoid !important;
+  }
+
+  /* Cards: faixa horizontal legível */
+  .systems-grid,
+  .pieng-system-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin: 0 0 10px !important;
+    width: 100% !important;
+  }
+
+  .systems-grid:has(.system-card:nth-child(4)) .system-card:nth-child(3),
+  .systems-grid:has(.system-card:nth-child(4)) .pieng-system-card:nth-child(3),
+  .pieng-system-grid:has(.pieng-system-card:nth-child(4)) .pieng-system-card:nth-child(3) {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  .system-card,
+  .pieng-system-card {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    width: 100% !important;
+    min-height: 110px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    scale: none !important;
+    border: 1.5px solid #94a3b8 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .pieng-system-grid:has(.pieng-system-card:nth-child(5)),
+  .systems-grid:has(.system-card:nth-child(5)) {
+    gap: 8px !important;
+  }
+
+  .pieng-system-grid:has(.pieng-system-card:nth-child(5)) .pieng-system-card,
+  .systems-grid:has(.system-card:nth-child(5)) .system-card {
+    min-height: 96px !important;
+  }
+
+  .card-header,
+  .pieng-card-header {
+    flex: 0 0 16% !important;
+    min-width: 110px !important;
+    max-width: 130px !important;
+    padding: 10px 8px !important;
+    background: linear-gradient(180deg, #3366cc, #1a4d8f) !important;
+    color: #fff !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .card-title,
+  .pieng-card-header .text-xl,
+  .pieng-card-header > div:first-child {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    margin: 0 0 4px !important;
+    line-height: 1.25 !important;
+  }
+
+  .card-power,
+  .pieng-card-header .text-base,
+  .pieng-card-header > div:last-child {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  .card-body,
+  .pieng-system-card > .p-6 {
+    flex: 1 1 auto !important;
+    display: grid !important;
+    grid-template-columns: 1.15fr 1.25fr 1.1fr !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .specs-list li,
+  .pieng-specs-list li {
+    position: static !important;
+    padding-left: 0 !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+  }
+
+  .specs-list li::before,
+  .pieng-specs-list li::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .specs-list,
+  .pieng-specs-list {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    column-gap: 10px !important;
+    row-gap: 4px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    align-content: center !important;
+    height: 100% !important;
+  }
+
+  .pieng-specs-list.mb-5 {
+    margin-bottom: 0 !important;
+  }
+
+  .pricing-section,
+  .pieng-pricing-section {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    height: 100% !important;
+    background: #e8f8fa !important;
+    border: 1px solid #94dce3 !important;
+    padding: 10px 12px !important;
+    margin: 0 !important;
+    border-radius: 6px !important;
+    text-align: left !important;
+  }
+
+  .original-price,
+  .pieng-original-price {
+    font-size: 12px !important;
+  }
+
+  .current-price,
+  .pieng-current-price {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+
+  .pix-price,
+  .pieng-pricing-section > .font-bold,
+  .pieng-pricing-section .font-bold.text-lg {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    margin: 4px 0 !important;
+  }
+
+  .discount-tag,
+  .pieng-discount-tag {
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+    margin: 2px 0 !important;
+  }
+
+  .payment-option,
+  .pieng-payment-option {
+    flex: 1 !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    text-align: center !important;
+  }
+
+  .performance-box,
+  .pieng-performance-box {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    height: 100% !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-left: 3px solid #2ecc71 !important;
+    background: #f0fdf4 !important;
+  }
+
+  .performance-box strong,
+  .pieng-performance-box strong {
+    font-size: 14px !important;
+    margin-bottom: 4px !important;
+    display: block !important;
+  }
+
+  .system-card.recommended,
+  .pieng-system-recommended {
+    border: 2px solid #2ecc71 !important;
+  }
+
+  .card-badge,
+  .pieng-badge {
+    position: absolute !important;
+    top: 6px !important;
+    right: 6px !important;
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    z-index: 2 !important;
+    animation: none !important;
+  }
+
+  .comparison-table,
+  .pieng-comparison-table,
+  .pieng-technical-section,
+  .technical-section {
+    overflow: visible !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 10px !important;
+    margin: 0 0 10px !important;
+    box-shadow: none !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .comparison-table h3,
+  .pieng-comparison-table h3,
+  .pieng-technical-section h3,
+  section h3.text-xl {
+    font-size: 16px !important;
+    margin: 0 0 8px !important;
+  }
+
+  .pieng-technical-section h4,
+  .technical-section h4 {
+    font-size: 14px !important;
+    margin: 0 0 6px !important;
+  }
+
+  .pieng-technical-section .bg-pieng-light,
+  .pieng-technical-section .bg-blue-50,
+  .pieng-technical-section .bg-yellow-50 {
+    padding: 8px 10px !important;
+    margin-bottom: 8px !important;
+    border-radius: 4px !important;
+  }
+
+  .pieng-technical-section ul,
+  .pieng-technical-section .text-xs {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .table,
+  .pieng-table,
+  table {
+    width: 100% !important;
+    font-size: 12px !important;
+    border-collapse: collapse !important;
+  }
+
+  .table th,
+  .table td,
+  .pieng-table th,
+  .pieng-table td,
+  table th,
+  table td {
+    border: 1px solid #94a3b8 !important;
+    padding: 6px 5px !important;
+    white-space: normal !important;
+    word-break: break-word;
+  }
+
+  .table th,
+  .pieng-table th,
+  table th {
+    background: #3366cc !important;
+    color: #fff !important;
+    font-size: 12px !important;
+  }
+
+  .pieng-technical-section .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 > div {
+    padding: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+  }
+
+  .insights-section,
+  .pieng-card:has(.pieng-insights-grid) {
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+    break-inside: avoid !important;
+  }
+
+  .insights-grid,
+  .pieng-insights-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .insight-item,
+  .pieng-insight-item {
+    border: 1px solid #e2e8f0 !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-radius: 4px !important;
+  }
+
+  .insight-item h4,
+  .pieng-insight-item strong,
+  .insight-title,
+  .pieng-insight-item .font-bold {
+    font-size: 14px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .footer,
+  .pieng-footer {
+    background: #1e293b !important;
+    color: #fff !important;
+    padding: 12px 14px !important;
+    margin-top: 8px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    break-inside: avoid !important;
+    border-radius: 6px !important;
+  }
+
+  .footer strong,
+  .pieng-footer strong {
+    font-size: 14px !important;
+  }
+
+  .pieng-footer .border-t {
+    font-size: 11px !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+  }
+
+  h1, h2, h3, h4, h5 {
+    page-break-after: avoid;
+  }
+
+  .pieng-card {
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .p-6, .p-8 {
+    padding: 10px !important;
+  }
+
+  .footer-content,
+  .pieng-footer-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 10px !important;
+    text-align: left !important;
+  }
+
+  .footer img,
+  .pieng-footer img {
+    max-width: 36px !important;
+    max-height: 36px !important;
+  }
+
+  .payment-options,
+  .pieng-payment-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    margin-top: 4px !important;
+    width: 100% !important;
+  }
+
+  .pieng-performance-charts,
+  .charts-section {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .pieng-performance-charts h3,
+  .charts-section .section-title {
+    font-size: 16px !important;
+    margin: 0 0 8px !important;
+  }
+
+  .pieng-performance-charts h4 {
+    font-size: 13px !important;
+    margin: 0 0 6px !important;
+    text-align: center !important;
+  }
+
+  .pieng-charts-grid,
+  .pieng-performance-charts .grid,
+  .charts-section {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  .pieng-chart-box {
+    width: 100% !important;
+    height: 200px !important;
+    min-height: 200px !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  .pieng-chart-box .recharts-wrapper,
+  .pieng-chart-box svg.recharts-surface {
+    overflow: visible !important;
+  }
+
+  .pieng-performance-charts .text-xs.text-pieng-muted {
+    font-size: 11px !important;
+    margin-top: 4px !important;
+  }
+
+  .pieng-performance-charts .mt-6.p-4,
+  .pieng-performance-charts .bg-pieng-light.rounded-lg {
+    margin-top: 8px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .pieng-performance-charts .flex.flex-wrap.gap-4 {
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+
+  .pieng-performance-charts .recharts-bar-rectangle,
+  .pieng-performance-charts .recharts-rectangle {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Pré-visualização PDF — mesmas fontes legíveis */
+body.proposta-pdf-mode {
+  font-size: 14px !important;
+}
+
+body.proposta-pdf-mode .systems-grid,
+body.proposta-pdf-mode .pieng-system-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+body.proposta-pdf-mode .system-card,
+body.proposta-pdf-mode .pieng-system-card {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  min-height: 110px !important;
+  position: relative !important;
+  border: 1.5px solid #94a3b8 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+
+body.proposta-pdf-mode .card-header,
+body.proposta-pdf-mode .pieng-card-header {
+  flex: 0 0 16% !important;
+  min-width: 110px !important;
+  padding: 10px 8px !important;
+  background: linear-gradient(180deg, #3366cc, #1a4d8f) !important;
+  color: #fff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+body.proposta-pdf-mode .card-body,
+body.proposta-pdf-mode .pieng-system-card > .p-6 {
+  flex: 1 !important;
+  display: grid !important;
+  grid-template-columns: 1.15fr 1.25fr 1.1fr !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  align-items: stretch !important;
+}
+
+body.proposta-pdf-mode .specs-list,
+body.proposta-pdf-mode .pieng-specs-list {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  column-gap: 10px !important;
+}
+
+body.proposta-pdf-mode .specs-list li,
+body.proposta-pdf-mode .pieng-specs-list li {
+  padding-left: 0 !important;
+  position: static !important;
+  font-size: 13px !important;
+}
+
+body.proposta-pdf-mode .specs-list li::before,
+body.proposta-pdf-mode .pieng-specs-list li::before {
+  content: none !important;
+  display: none !important;
+}
+
+body.proposta-pdf-mode .pricing-section,
+body.proposta-pdf-mode .pieng-pricing-section,
+body.proposta-pdf-mode .performance-box,
+body.proposta-pdf-mode .pieng-performance-box {
+  height: 100% !important;
+}
+
+body.proposta-pdf-mode .pieng-pricing-section .font-bold.text-lg {
+  font-size: 18px !important;
+}
+
+body.proposta-pdf-mode .performance-box,
+body.proposta-pdf-mode .pieng-performance-box {
+  font-size: 13px !important;
+}
+
+body.proposta-pdf-mode .card-title,
+body.proposta-pdf-mode .pieng-card-header > div:first-child {
+  font-size: 15px !important;
+}
+
+body.proposta-pdf-mode .pieng-system-recommended,
+body.proposta-pdf-mode .system-card.recommended {
+  border: 2px solid #2ecc71 !important;
+  scale: 1 !important;
+}
+
+body.proposta-pdf-mode .pieng-charts-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+}
+
+body.proposta-pdf-mode .pieng-chart-box {
+  height: 200px !important;
+  min-height: 200px !important;
+}

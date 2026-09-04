@@ -1,5 +1,5 @@
 import type { Cliente } from '@/lib/supabase';
-import { getAllClientes } from '@/lib/supabase';
+import { getAllClientes, supabase } from '@/lib/supabase';
 
 export type OrcamentoStatus = 'pendente' | 'analisando' | 'aprovado' | 'rejeitado';
 
@@ -56,7 +56,7 @@ export async function resolveClienteSupabase(clienteId: string): Promise<Cliente
 
   const sanitizedId = sanitizeId(clienteId);
 
-  const cliente = clientes.find((c: Cliente | (Cliente & { slug?: string; pasta?: string })) => {
+  let cliente = clientes.find((c: Cliente | (Cliente & { slug?: string; pasta?: string })) => {
     const slug = (c as any).slug as string | undefined;
     const pasta = (c as any).pasta as string | undefined;
     const matchesId = c.id === clienteId;
@@ -66,6 +66,18 @@ export async function resolveClienteSupabase(clienteId: string): Promise<Cliente
     const matchesRaw = sanitizeId(c.id) === sanitizedId;
     return matchesId || matchesNome || matchesSlug || matchesPasta || matchesRaw;
   });
+
+  if (!cliente && supabase) {
+    const { data: proposta } = await supabase
+      .from('propostas')
+      .select('cliente_id, slug')
+      .eq('slug', clienteId)
+      .maybeSingle();
+
+    if (proposta?.cliente_id) {
+      cliente = clientes.find((c) => c.id === proposta.cliente_id) || null;
+    }
+  }
 
   if (!cliente) {
     return null;

@@ -1,94 +1,39 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-
-interface ConfiguracaoSistema {
-  // Parâmetros Técnicos
-  performanceRate: number;
-  hspPadrao: number;
-  margemSeguranca: number;
-  eficienciaInversor: number;
-
-  // Parâmetros Financeiros
-  taxaSelic: number;
-  inflacaoAnual: number;
-  reajusteEnergia: number;
-
-  // Markups Comerciais
-  markupEconomico: number;
-  markupStandard: number;
-  markupPremium: number;
-
-  // Parcelamento e Taxas de Cartão
-  taxaCartao12x: number;    // % da operadora de cartão para 12x
-  taxaCartao18x: number;    // % da operadora de cartão para 18x
-  descontoPix: number;
-  fatorAvista: number;      // Calculado: 1 - descontoPix
-  fatorParcelado: number;   // Markup para parcelado
-
-  // Campos calculados automaticamente
-  fator12x: number;         // Calculado: 1 - taxaCartao12x
-  fator18x: number;         // Calculado: 1 - taxaCartao18x
-
-  // Textos de Marketing (Variáveis)
-  textoEconomiaAnual: string;
-  textoPayback: string;
-  textoTIR: string;
-  textoValorizacaoImovel: string;
-  textoSustentabilidade: string;
-
-  // Configurações Regionais
-  estadosPadrao: string[];
-  hspPorEstado: { [key: string]: number };
-}
+import {
+  CONFIG_PADRAO,
+  ESTADOS_PADRAO,
+  HSP_POR_ESTADO_PADRAO,
+  mergeConfiguracoes,
+  type ConfiguracaoSistema,
+} from '@/utils/configuracoes';
 
 const configPadrao: ConfiguracaoSistema = {
-  // Técnico
-  performanceRate: 0.75,
-  hspPadrao: 5.21,
-  margemSeguranca: 1.1,
-  eficienciaInversor: 0.95,
-
-  // Financeiro
-  taxaSelic: 11.25,
-  inflacaoAnual: 4.5,
-  reajusteEnergia: 8.2,
-
-  // Comercial
-  markupEconomico: 1.8,
-  markupStandard: 2.0,
-  markupPremium: 2.3,
-
-  // Parcelamento e Taxas de Cartão
-  taxaCartao12x: 12.0,        // 12% da operadora para 12x
-  taxaCartao18x: 17.0,        // 17% da operadora para 18x
-  descontoPix: 10.0,          // 10% desconto PIX
-  fatorAvista: 0.9,           // 1 - 0.10
-  fatorParcelado: 1.20,       // 20% markup parcelado
-
-  // Calculados automaticamente
-  fator12x: 0.88,             // 1 - 0.12
-  fator18x: 0.83,             // 1 - 0.17
-
-  // Textos Marketing
-  textoEconomiaAnual: 'Economia anual de R$ {valorEconomia} na conta de energia',
-  textoPayback: 'Investimento se paga em apenas {mesesPayback} meses',
-  textoTIR: 'Taxa Interna de Retorno de {percentualTIR}% ao ano',
-  textoValorizacaoImovel: 'Valorização do imóvel em até {percentualValorizacao}%',
-  textoSustentabilidade: 'Evita emissão de {tonelaCO2} toneladas de CO₂ em 25 anos',
-
-  // Regional
-  estadosPadrao: ['GO', 'DF', 'MG', 'MT', 'MS', 'BA', 'TO'],
-  hspPorEstado: {
-    'GO': 5.21,
-    'DF': 5.08,
-    'MG': 4.95,
-    'MT': 5.43,
-    'MS': 5.12,
-    'BA': 5.67,
-    'TO': 5.34
-  }
+  ...CONFIG_PADRAO,
+  // UI comercial usa desconto PIX em % (0–100); util legado guarda 0–1
+  descontoPix: 10,
+  taxaCartao12x: CONFIG_PADRAO.taxaCartao12x ?? 12,
+  taxaCartao18x: CONFIG_PADRAO.taxaCartao18x ?? 17,
+  fatorAvista: CONFIG_PADRAO.fatorAvista ?? 0.9,
+  fatorParcelado: CONFIG_PADRAO.fatorParcelado ?? 1.2,
+  fator12x: CONFIG_PADRAO.fator12x ?? 0.88,
+  fator18x: CONFIG_PADRAO.fator18x ?? 0.83,
 };
+
+function mergeConfig(saved: Partial<ConfiguracaoSistema> | Record<string, unknown>): ConfiguracaoSistema {
+  const merged = mergeConfiguracoes(saved);
+  // Normaliza descontoPix: se veio como fração (0.05–0.2), vira %
+  if (merged.descontoPix > 0 && merged.descontoPix <= 1) {
+    merged.descontoPix = merged.descontoPix * 100;
+  }
+  return {
+    ...configPadrao,
+    ...merged,
+    estadosPadrao: merged.estadosPadrao,
+    hspPorEstado: merged.hspPorEstado,
+  };
+}
 
 export default function Configuracoes() {
   const router = useRouter();
@@ -104,7 +49,7 @@ export default function Configuracoes() {
         const response = await fetch('/api/admin/config');
         if (response.ok) {
           const savedConfig = await response.json();
-          setConfig({ ...configPadrao, ...savedConfig });
+          setConfig(mergeConfig(savedConfig));
         }
       } catch (error) {
         console.log('Usando configuração padrão');
@@ -349,7 +294,72 @@ export default function Configuracoes() {
                           max="99"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Eficiência média dos inversores</p>
+                        <p className="text-sm text-gray-500 mt-1">Eficiência média dos inversores string</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Bônus Micro-inversor (%)
+                        </label>
+                        <input
+                          type="number"
+                          value={config.bonusMicroPercent}
+                          onChange={(e) => handleInputChange('bonusMicroPercent', parseFloat(e.target.value))}
+                          step="0.5"
+                          min="0"
+                          max="20"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Ganho extra de geração quando micro-inversor está ativo (padrão 5%)
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Dias / mês (geração)
+                        </label>
+                        <input
+                          type="number"
+                          value={config.diasMes}
+                          onChange={(e) => handleInputChange('diasMes', parseFloat(e.target.value))}
+                          step="0.1"
+                          min="28"
+                          max="31"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Usado em kWp × HSP × dias × PR (padrão 30,4)</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Placas por micro
+                        </label>
+                        <input
+                          type="number"
+                          value={config.placasPorMicro}
+                          onChange={(e) => handleInputChange('placasPorMicro', parseInt(e.target.value, 10))}
+                          step="1"
+                          min="1"
+                          max="8"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">V3 kit micro (ex.: 4 módulos / micro)</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Estoque mínimo SOOLLAR
+                        </label>
+                        <input
+                          type="number"
+                          value={config.estoqueMinimoSoolar}
+                          onChange={(e) => handleInputChange('estoqueMinimoSoolar', parseInt(e.target.value, 10))}
+                          step="1"
+                          min="0"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Preço válido só com estoque &gt; este valor (padrão 20)</p>
                       </div>
                     </div>
                   </div>
@@ -361,6 +371,21 @@ export default function Configuracoes() {
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">Parâmetros Financeiros</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tarifa padrão R$/kWh
+                        </label>
+                        <input
+                          type="number"
+                          value={config.tarifaPadrao}
+                          onChange={(e) => handleInputChange('tarifaPadrao', parseFloat(e.target.value))}
+                          step="0.01"
+                          min="0"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Default Gerador / V3 proposta automática</p>
+                      </div>
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Taxa SELIC (% a.a.)
@@ -420,6 +445,60 @@ export default function Configuracoes() {
                 {activeTab === 'comercial' && (
                   <div className="space-y-8">
                     <div>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                        🧾 Despesa PIENG (Gerador / V3)
+                      </h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        PIX = (kit + frete) + pdespesa. Frete da transportadora pode ser ajustado por orçamento;
+                        aqui fica só o padrão inicial.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            pdespesa fixo (R$)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.pdespesaFixo}
+                            onChange={(e) => handleInputChange('pdespesaFixo', parseFloat(e.target.value))}
+                            step="100"
+                            min="0"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            pdespesa variável (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.pdespesaVariavel}
+                            onChange={(e) => handleInputChange('pdespesaVariavel', parseFloat(e.target.value))}
+                            step="1"
+                            min="0"
+                            max="100"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">% sobre pcusto (kit + frete)</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Frete padrão (R$)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.fretePadrao}
+                            onChange={(e) => handleInputChange('fretePadrao', parseFloat(e.target.value))}
+                            step="50"
+                            min="0"
+                            className="w-full px-4 py-3 border border-amber-300 rounded-lg bg-amber-50/40"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Sugestão inicial; editável por proposta</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-4">💳 Taxas de Cartão e PIX</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -436,7 +515,7 @@ export default function Configuracoes() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
                           <p className="text-sm text-gray-500 mt-1">
-                            Taxa da operadora • Fator: {config.fator12x.toFixed(3)}
+                            Taxa da operadora • Fator: {(config.fator12x ?? 0.88).toFixed(3)}
                           </p>
                         </div>
 
@@ -454,7 +533,7 @@ export default function Configuracoes() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
                           <p className="text-sm text-gray-500 mt-1">
-                            Taxa da operadora • Fator: {config.fator18x.toFixed(3)}
+                            Taxa da operadora • Fator: {(config.fator18x ?? 0.83).toFixed(3)}
                           </p>
                         </div>
 
@@ -553,8 +632,8 @@ export default function Configuracoes() {
                         <div>• <strong>À Vista:</strong> PIX = Custo + Despesa</div>
                         <div>• <strong>À Vista (cartão):</strong> PIX ÷ {config.fatorAvista.toFixed(3)}</div>
                         <div>• <strong>Parcelado:</strong> PIX × {config.fatorParcelado.toFixed(2)}</div>
-                        <div>• <strong>12x no cartão:</strong> PIX ÷ {config.fator12x.toFixed(3)}</div>
-                        <div>• <strong>18x no cartão:</strong> PIX ÷ {config.fator18x.toFixed(3)}</div>
+                        <div>• <strong>12x no cartão:</strong> PIX ÷ {(config.fator12x ?? 0.88).toFixed(3)}</div>
+                        <div>• <strong>18x no cartão:</strong> PIX ÷ {(config.fator18x ?? 0.83).toFixed(3)}</div>
                       </div>
                     </div>
                   </div>
@@ -650,18 +729,20 @@ export default function Configuracoes() {
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">Configurações por Estado</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {config.estadosPadrao.map((estado) => (
+                      {(config.estadosPadrao || ESTADOS_PADRAO).map((estado) => (
                         <div key={estado} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             HSP - {estado}
                           </label>
                           <input
                             type="number"
-                            value={config.hspPorEstado[estado] || 5.21}
-                            onChange={(e) => handleInputChange('hspPorEstado', {
-                              ...config.hspPorEstado,
-                              [estado]: parseFloat(e.target.value)
-                            })}
+                            value={(config.hspPorEstado && config.hspPorEstado[estado]) || HSP_POR_ESTADO_PADRAO[estado] || config.hspPadrao}
+                            onChange={(e) =>
+                              handleInputChange('hspPorEstado', {
+                                ...(config.hspPorEstado || {}),
+                                [estado]: parseFloat(e.target.value),
+                              })
+                            }
                             step="0.01"
                             className="w-full px-3 py-2 border border-gray-300 rounded"
                           />
