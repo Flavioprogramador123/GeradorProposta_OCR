@@ -146,6 +146,16 @@ export function estimarStringsInversor(potKw?: number | null): number {
   return 24;
 }
 
+/**
+ * Cabo preto 25 m (bolas) para microinversor — extensão CC.
+ * 1 micro → 0; 2–3 → 2; 4–5 → 3; 6–7 → 4 … (`floor((n+2)/2)` se n≥2).
+ */
+export function bolasCaboPretoMicro(nMicros: number): number {
+  const n = Math.max(0, Math.floor(nMicros) || 0);
+  if (n <= 1) return 0;
+  return Math.floor((n + 2) / 2);
+}
+
 /** Sugere estrutura/cabos/conectores a partir de módulos + inversor (editável depois). */
 export function sugerirComplementos(opts: {
   cdId: number;
@@ -187,8 +197,8 @@ export function sugerirComplementos(opts: {
     if (kitsMc4 > 0) {
       out.push({ sku_interno: 'MC4-PAR', quantidade: kitsMc4 });
     }
-    // Extensão quase sempre cabo preto: vermelho = 0; pretos = max(0, nMicros - 1)
-    const bolasPretas = Math.max(0, qtdInv - 1);
+    // Cabo vermelho = 0; preto 25 m por faixas (1→0 · 2–3→2 · 4–5→3 …)
+    const bolasPretas = bolasCaboPretoMicro(qtdInv);
     if (bolasPretas > 0) {
       out.push({ sku_interno: 'CABO-4MM-25-P', quantidade: bolasPretas });
     }

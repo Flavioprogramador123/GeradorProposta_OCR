@@ -12,7 +12,9 @@ import { buildPropostaPdfUrl } from '@/lib/propostaPdf';
 import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
 import {
   applyConfigRapidaToGerador,
+  pickDefinedConfigRapida,
   pickFromGeradorConfig,
+  preferNomeCliente,
   resolveConfigRapida,
   saveConfigRapida,
 } from '@/lib/configRapidaShared';
@@ -520,7 +522,7 @@ export default function GeradorRapido() {
   // Esta função é usada tanto pelo botão "Editar" em /admin quanto em /admin/orcamentos
   // Ambos buscam dados do Supabase através da API /api/propostas/[slug]
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || !configRapidaReady) return;
 
     const clienteSlug = router.query.cliente as string;
     if (clienteSlug) {
@@ -529,7 +531,7 @@ export default function GeradorRapido() {
       return; // Não processar outros modos se cliente foi detectado
     }
 
-    // Bridge V3 → Gerador (5a)
+    // Bridge V3 → Gerador (5a) — só depois do resolve (evita gravar PR/bonus hardcoded)
     if (router.query.modo === 'v3') {
       const raw = localStorage.getItem('v3-gerador-bridge');
       if (raw) {
@@ -541,10 +543,22 @@ export default function GeradorRapido() {
             setConfig((prev) => {
               const next = {
                 ...prev,
-                nomeCliente: dados.cliente.nomeCliente || prev.nomeCliente,
-                cidadeCliente: dados.cliente.cidadeCliente || prev.cidadeCliente,
-                consumoMensal: dados.cliente.consumoMensal || prev.consumoMensal,
-                tipoImovel: dados.cliente.tipoImovel || prev.tipoImovel,
+                nomeCliente: preferNomeCliente(
+                  dados.cliente.nomeCliente,
+                  prev.nomeCliente
+                ),
+                cidadeCliente:
+                  dados.cliente.cidadeCliente != null && dados.cliente.cidadeCliente !== ''
+                    ? dados.cliente.cidadeCliente
+                    : prev.cidadeCliente,
+                consumoMensal:
+                  dados.cliente.consumoMensal != null
+                    ? Number(dados.cliente.consumoMensal)
+                    : prev.consumoMensal,
+                tipoImovel:
+                  dados.cliente.tipoImovel != null && dados.cliente.tipoImovel !== ''
+                    ? dados.cliente.tipoImovel
+                    : prev.tipoImovel,
                 hsp: dados.cliente.hsp ?? prev.hsp,
                 tarifa: dados.cliente.tarifa ?? prev.tarifa,
                 pdespesaFixo: dados.pdespesa?.pdespesaFixo ?? prev.pdespesaFixo,
@@ -554,7 +568,20 @@ export default function GeradorRapido() {
                     ? Number(dados.fretePadrao)
                     : prev.fretePadrao,
               };
-              saveConfigRapida(pickFromGeradorConfig(next));
+              // Só persiste o que veio do bridge (não regrava PR/bonus do state)
+              saveConfigRapida(
+                pickDefinedConfigRapida({
+                  nomeCliente: next.nomeCliente,
+                  cidadeCliente: next.cidadeCliente,
+                  consumoMensal: next.consumoMensal,
+                  tipoImovel: next.tipoImovel,
+                  hsp: next.hsp,
+                  tarifa: next.tarifa,
+                  pdespesaFixo: next.pdespesaFixo,
+                  pdespesaVariavel: next.pdespesaVariavel,
+                  fretePadrao: next.fretePadrao,
+                })
+              );
               return next;
             });
           }
@@ -687,7 +714,7 @@ export default function GeradorRapido() {
         }
       }
     }
-  }, [router.isReady, router.query.cliente, router.query.modo]);
+  }, [router.isReady, router.query.cliente, router.query.modo, configRapidaReady]);
 
   // PIX = base; à vista = total 12× cartão; parcelas pela taxa mensal configurada
   const calcularPrecos = (totalFinalTabela: number) => {
@@ -1380,17 +1407,22 @@ consolidado_orcamentos_distribuidores:
           <div className="max-w-7xl mx-auto">
             
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-3xl font-bold admin-title mb-2">
-                  📝 Proposta manual
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-8">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wider text-sky-700/80 mb-1">
+                  Proposta manual
+                </p>
+                <h1 className="text-2xl sm:text-3xl font-bold admin-title mb-1 truncate">
+                  {config.nomeCliente?.trim() || 'Novo cliente'}
                 </h1>
-                <p className="admin-subtitle">
-                  Geração rápida de propostas solares
+                <p className="admin-subtitle text-sm">
+                  {[config.cidadeCliente, config.tipoImovel, config.consumoMensal ? `${config.consumoMensal} kWh/mês` : null]
+                    .filter(Boolean)
+                    .join(' · ') || 'Geração rápida de propostas solares'}
                 </p>
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-shrink-0">
                 <Link href="/admin" className="admin-btn-ghost">
                   🏠 Admin
                 </Link>

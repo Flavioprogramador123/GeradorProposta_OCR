@@ -53,10 +53,11 @@ Resolver: `orcamentos/skuCanonico.ts` (`resolveEquipPorSkuCanonico` + aliases).
    Kits MC4 = `ceil(pares / 2)` porque o pacote traz 2 pares.  
    Ex.: 2 micros · 8 módulos → 8 strings − 2 = **6 pares** → **3 kits** MC4.
 3. **Cabo vermelho:** default **0** (extensões quase sempre com preto).
-4. **Cabo preto (25 m):** `max(0, nMicros − 1)`  
-   - 1 micro → 0  
-   - 2 micros → 1 bola  
-   - 3 micros → 2 bolas  
+4. **Cabo preto (25 m):** faixas por nº de micros  
+   - 1 micro → **0** bola  
+   - 2–3 micros → **2** bolas  
+   - 4–5 micros → **3** bolas  
+   - 6–7 → 4 … (`bolasCaboPretoMicro` = `floor((n+2)/2)` se n≥2)
 
 ### Inversor string
 1. **Strings por potência CA** (aprox. — despreza modelo/MPPT; usa “Total de strings” típico):
@@ -83,6 +84,7 @@ Ordem ao escolher inversor/micro: **SAJ → DEye → demais** (`INVERSOR_MARCAS_
 - Ajuste manual no card sempre prevalece (`editado_manual`).
 
 ## Changelog / aprendizados
+- **2026-09-05:** Cabo preto micro 25 m: 1→0 · 2–3→2 · 4–5→3 (`bolasCaboPretoMicro`).
 - **2026-09-05:** Strings por faixa de kW CA (+ atalho **6–8 kW → 2**) + cabo 25 m V/P = nº strings; preferência SAJ/DEye na 4a.
 - **2026-09-04:** Premissas MC4/cabos micro vs string documentadas e aplicadas em `sugerirComplementos`.
 - **2026-09-04:** SKUs canônicos do kit (estrutura/cabo/MC4/trilho) resolvem para `*-AUTO-*` da captura SOOLLAR (`skuCanonico.ts`).

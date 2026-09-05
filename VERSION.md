@@ -125,10 +125,10 @@ Arquivo: `src/modules/v3/precos/regrasCaptura.ts`.
 |------|---------|
 | Strings | ≈ qtd módulos |
 | MC4 kits | `ceil(max(0, módulos − micros) / 2)` — pacote = 2 pares (`MC4-PAR` → `MC4-AUTO-440111`) |
-| Cabo preto 25 m | `max(0, micros − 1)` → `CAB-AUTO-97081` |
+| Cabo preto 25 m | 1→**0** · 2–3→**2** · 4–5→**3** (`bolasCaboPretoMicro`) → `CAB-AUTO-97081` |
 | Cabo vermelho | **0** (omitido) |
 
-Ex.: 2 micros · 8 módulos → 6 pares → **3** MC4; **1** bola preta; **2** kits estrutura; **8** trilhos.
+Ex.: 2 micros · 8 módulos → 6 pares → **3** MC4; **2** bolas pretas; **2** kits estrutura; **8** trilhos.
 
 **Inversor string:**
 | Item | Fórmula |

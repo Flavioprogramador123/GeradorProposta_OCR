@@ -46,6 +46,33 @@ export const CONFIG_RAPIDA_DEFAULTS: ConfigRapidaShared = {
   geracaoMax: 1200,
 };
 
+/** Placeholder genérico — não deve ganhar de um nome digitado na tela. */
+export function isNomeClienteGenerico(nome?: string | null): boolean {
+  const t = (nome || '').trim().toLowerCase();
+  if (!t) return true;
+  return (
+    t === 'cliente padrão' ||
+    t === 'cliente padrao' ||
+    t === 'cliente premium' ||
+    t === 'cliente'
+  );
+}
+
+/** Primeiro nome real (não genérico); senão o primeiro preenchido; senão default. */
+export function preferNomeCliente(
+  ...candidatos: Array<string | null | undefined>
+): string {
+  for (const c of candidatos) {
+    const t = (c || '').trim();
+    if (t && !isNomeClienteGenerico(t)) return t;
+  }
+  for (const c of candidatos) {
+    const t = (c || '').trim();
+    if (t) return t;
+  }
+  return CONFIG_RAPIDA_DEFAULTS.nomeCliente;
+}
+
 function num(v: unknown, fallback: number): number {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'));
   return Number.isFinite(n) ? n : fallback;
@@ -164,22 +191,39 @@ export function pickFromGeradorConfig(config: {
   };
 }
 
+/**
+ * Só grava chaves presentes (evita bridge gravar performanceRate/bonus do state inicial).
+ */
+export function pickDefinedConfigRapida(
+  partial: Partial<ConfigRapidaShared>
+): Partial<ConfigRapidaShared> {
+  const out: Partial<ConfigRapidaShared> = {};
+  (Object.keys(partial) as (keyof ConfigRapidaShared)[]).forEach((k) => {
+    const v = partial[k];
+    if (v !== undefined && v !== null) {
+      (out as Record<string, unknown>)[k] = v;
+    }
+  });
+  return out;
+}
+
 export function applyConfigRapidaToGerador<T extends Record<string, any>>(
   prev: T,
   shared: ConfigRapidaShared
 ): T {
   return {
     ...prev,
-    nomeCliente: shared.nomeCliente,
-    cidadeCliente: shared.cidadeCliente,
-    consumoMensal: shared.consumoMensal,
-    tipoImovel: shared.tipoImovel,
-    hsp: shared.hsp,
-    tarifa: shared.tarifa,
-    pdespesaFixo: shared.pdespesaFixo,
-    pdespesaVariavel: shared.pdespesaVariavel,
-    fretePadrao: shared.fretePadrao,
-    performanceRate: shared.performanceRate,
-    bonusMicroPercent: shared.bonusMicroPercent,
+    // Nome digitado na tela / bridge não deve perder para "Cliente Padrão" da sessão
+    nomeCliente: preferNomeCliente(shared.nomeCliente, prev.nomeCliente),
+    cidadeCliente: shared.cidadeCliente || prev.cidadeCliente,
+    consumoMensal: shared.consumoMensal ?? prev.consumoMensal,
+    tipoImovel: shared.tipoImovel || prev.tipoImovel,
+    hsp: shared.hsp ?? prev.hsp,
+    tarifa: shared.tarifa ?? prev.tarifa,
+    pdespesaFixo: shared.pdespesaFixo ?? prev.pdespesaFixo,
+    pdespesaVariavel: shared.pdespesaVariavel ?? prev.pdespesaVariavel,
+    fretePadrao: shared.fretePadrao ?? prev.fretePadrao,
+    performanceRate: shared.performanceRate ?? prev.performanceRate,
+    bonusMicroPercent: shared.bonusMicroPercent ?? prev.bonusMicroPercent,
   };
 }

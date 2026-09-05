@@ -40,29 +40,64 @@
         }
 
         .header {
-            background: white;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 55%, #f0f9ff 100%);
             border-radius: 16px;
-            padding: 30px;
+            padding: 0;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 0 rgba(15,23,42,0.04), 0 10px 28px -12px rgba(15,23,42,0.14);
             text-align: center;
             position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(226,232,240,0.9);
+        }
+
+        .header::before {
+            content: '';
+            display: block;
+            height: 5px;
+            background: linear-gradient(90deg, #0284c7, #10b981, #f59e0b);
+        }
+
+        .header-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 10px;
+            padding: 28px 24px 26px;
+        }
+
+        .header-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
         }
 
         .pieng-logo-real {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 0;
+            flex-shrink: 0;
         }
 
         .pieng-logo-real img {
-            max-width: 250px;
+            max-width: 140px;
+            width: 140px;
             height: auto;
-            margin-bottom: 15px;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+            margin-bottom: 0;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
             display: block;
             margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .pieng-logo-real img {
+                max-width: 168px;
+                width: 168px;
+            }
         }
 
         .pieng-logo-real img:not([src]),
@@ -78,13 +113,25 @@
             margin-bottom: 15px;
         }
 
-        .company-tagline {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary);
-            letter-spacing: 2px;
+        .brand-eyebrow {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
             text-transform: uppercase;
-            margin-top: 10px;
+            color: #0369a1;
+            margin: 0;
+        }
+
+        .brand-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .company-tagline {
+            display: none;
         }
 
         .company-name {
@@ -95,18 +142,57 @@
         }
 
         .subtitle {
-            font-size: 16px;
-            color: var(--muted);
-            margin-bottom: 20px;
+            display: none;
+        }
+
+        .header-cliente {
+            background: #fff;
+            border: 1px solid #e0f2fe;
+            border-radius: 16px;
+            padding: 16px 22px;
+            box-shadow: 0 1px 4px rgba(15,23,42,0.08);
+            text-align: center;
+            width: min(100%, 520px);
+            margin-top: 10px;
+        }
+
+        .cliente-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin: 0 0 6px;
+        }
+
+        .cliente-nome {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .cliente-meta {
+            margin: 10px 0 0;
+            font-size: 0.95rem;
+            color: #475569;
+            line-height: 1.35;
         }
 
         .client-info {
-            background: var(--light);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: var(--dark);
-            margin-top: 15px;
+            display: none;
+        }
+
+        @media (max-width: 640px) {
+            .pieng-logo-real img {
+                max-width: 112px;
+                width: 112px;
+            }
+            .cliente-nome {
+                font-size: 1.45rem;
+            }
         }
 
         .urgency-banner {
@@ -554,16 +640,21 @@
     <div class="container">
         <!-- HEADER -->
         <header class="header">
-            <div class="pieng-logo-real">
-                <img src="/assets/logos/logo-pieng-principal.jpg" alt="PIENG Soluções Energéticas">
-                <div class="company-tagline">Soluções Energéticas</div>
-            </div>
-            <div class="subtitle">35+ anos de experiência em sistemas elétricos de potência</div>
-            <div class="client-info">
-                <strong>Cliente:</strong> {{CLIENTE_NOME}} | 
-                <strong>Cidade:</strong> {{CLIENTE_CIDADE}} | 
-                <strong>Consumo:</strong> {{CLIENTE_CONSUMO_KWH}} kWh/mês | 
-                <strong>Tipo:</strong> {{CLIENTE_CONSUMO_TIPO}}
+            <div class="header-inner">
+                <div class="header-brand">
+                    <div class="pieng-logo-real">
+                        <img src="/assets/logos/logo-pieng-principal.jpg" alt="PIENG Soluções Energéticas">
+                    </div>
+                    <div>
+                        <p class="brand-eyebrow">PIENG Soluções Energéticas</p>
+                        <h1 class="brand-title">Proposta solar personalizada</h1>
+                    </div>
+                </div>
+                <div class="header-cliente">
+                    <p class="cliente-label">Preparada para</p>
+                    <p class="cliente-nome">{{CLIENTE_NOME}}</p>
+                    <p class="cliente-meta">{{CLIENTE_CIDADE}} · {{CLIENTE_CONSUMO_KWH}} kWh/mês · {{CLIENTE_CONSUMO_TIPO}}</p>
+                </div>
             </div>
         </header>
 

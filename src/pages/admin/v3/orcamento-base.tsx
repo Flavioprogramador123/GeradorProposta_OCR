@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   resolveConfigRapida,
   saveConfigRapida,
+  preferNomeCliente,
 } from '@/lib/configRapidaShared';
 import { formatBRL } from '@/lib/formatBRL';
 import { V3_GERADOR_STORAGE_KEY } from '@/modules/v3/bridge/toGerador';
@@ -66,6 +67,26 @@ const CDS = [
 ];
 
 const STORAGE_KEY = 'v3-kits-incluidos';
+/** Limite comercial: módulos por microinversor (config placasPorMicro). */
+const PLACAS_POR_MICRO = 4;
+
+function avisoCapacidadeMicro(
+  qtdModulos: number,
+  qtdInversores: number,
+  isMicro: boolean
+): string | null {
+  if (!isMicro || qtdModulos <= 0 || qtdInversores <= 0) return null;
+  const capacidade = qtdInversores * PLACAS_POR_MICRO;
+  if (qtdModulos <= capacidade) return null;
+  const necessarios = Math.ceil(qtdModulos / PLACAS_POR_MICRO);
+  return `${qtdModulos} mód. com ${qtdInversores} micro(s) ultrapassa ${PLACAS_POR_MICRO}/micro (máx. ${capacidade}). Sugestão: ${necessarios} micros.`;
+}
+
+function mergeAvisoMicro(calc: Calc, aviso: string | null): Calc {
+  if (!aviso) return calc;
+  const rest = (calc.avisos || []).filter((a) => !a.includes('ultrapassa') && !a.includes('/micro'));
+  return { ...calc, avisos: [...rest, aviso] };
+}
 
 function recalcCalcLocal(itens: CalcItem[]): Calc {
   const breakdown: Record<string, number> = {};
@@ -120,6 +141,16 @@ export default function AdminV3OrcamentoBase() {
   const cardAtivo = useMemo(
     () => cards.find((c) => c.id === cardAtivoId) || null,
     [cards, cardAtivoId]
+  );
+
+  const invSelecionado = useMemo(
+    () => invs.find((i) => i.sku_interno === skuInv),
+    [invs, skuInv]
+  );
+  const isMicroSelecionado = invSelecionado?.categoria === 'microinversor';
+  const avisoMicro = useMemo(
+    () => avisoCapacidadeMicro(qtdMod, qtdInv, Boolean(isMicroSelecionado)),
+    [qtdMod, qtdInv, isMicroSelecionado]
   );
 
   const loadCatalogo = useCallback(async () => {
@@ -231,8 +262,14 @@ export default function AdminV3OrcamentoBase() {
         autoComplementos: autoComp,
         itens: buildItens(),
       });
-      setCalc(data);
-      return data;
+      if (!data) return null;
+      const inv = invs.find((i) => i.sku_interno === skuInv);
+      const withAviso = mergeAvisoMicro(
+        data,
+        avisoCapacidadeMicro(qtdMod, qtdInv, inv?.categoria === 'microinversor')
+      );
+      setCalc(withAviso);
+      return withAviso;
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       return null;
@@ -295,17 +332,25 @@ export default function AdminV3OrcamentoBase() {
       const mod = mods.find((m) => m.sku_interno === cardRef.sku_modulo);
       const tipo = cardRef.categoria_inv === 'microinversor' ? 'Micro' : 'String';
       const tituloNovo = `${titulo} · ${tipo} ${qtdModulos}×${mod?.potencia_w || '?'}W`;
+      const withAviso = mergeAvisoMicro(
+        data,
+        avisoCapacidadeMicro(
+          qtdModulos,
+          qtdInversores,
+          cardRef.categoria_inv === 'microinversor'
+        )
+      );
       atualizarCardNaLista(id, {
         qtd_modulos: qtdModulos,
         qtd_inversores: qtdInversores,
-        custo_total: data.custo_total,
-        calc: data,
+        custo_total: withAviso.custo_total,
+        calc: withAviso,
         titulo: tituloNovo,
       });
-      setCalc(data);
+      setCalc(withAviso);
       setQtdMod(qtdModulos);
       setQtdInv(qtdInversores);
-      setMsg(`Card atualizado · ${money(data.custo_total)}`);
+      setMsg(`Card atualizado · ${money(withAviso.custo_total)}`);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -322,18 +367,26 @@ export default function AdminV3OrcamentoBase() {
     );
     const next = recalcCalcLocal(itens);
     next.cd_nome = calc.cd_nome;
-    next.avisos = calc.avisos;
-    setCalc(next);
-
     const modLine = next.itens.find((i) => i.categoria === 'modulo');
     const invLine = next.itens.find(
       (i) => i.categoria === 'inversor' || i.categoria === 'microinversor'
     );
+    const qMod = modLine?.quantidade ?? qtdMod;
+    const qInv = invLine?.quantidade ?? qtdInv;
+    const isMicro =
+      invLine?.categoria === 'microinversor' ||
+      cardAtivo?.categoria_inv === 'microinversor';
+    const withAviso = mergeAvisoMicro(
+      { ...next, avisos: calc.avisos },
+      avisoCapacidadeMicro(qMod, qInv, Boolean(isMicro))
+    );
+    setCalc(withAviso);
+
     atualizarCardNaLista(cardAtivoId, {
-      calc: next,
-      custo_total: next.custo_total,
-      qtd_modulos: modLine?.quantidade ?? qtdMod,
-      qtd_inversores: invLine?.quantidade ?? qtdInv,
+      calc: withAviso,
+      custo_total: withAviso.custo_total,
+      qtd_modulos: qMod,
+      qtd_inversores: qInv,
     });
     if (modLine) setQtdMod(modLine.quantidade);
     if (invLine) setQtdInv(invLine.quantidade);
@@ -356,12 +409,20 @@ export default function AdminV3OrcamentoBase() {
           })),
       });
       if (!data) return;
+      const withAviso = mergeAvisoMicro(
+        data,
+        avisoCapacidadeMicro(
+          cardAtivo.qtd_modulos,
+          cardAtivo.qtd_inversores,
+          cardAtivo.categoria_inv === 'microinversor'
+        )
+      );
       atualizarCardNaLista(cardAtivoId, {
-        calc: data,
-        custo_total: data.custo_total,
+        calc: withAviso,
+        custo_total: withAviso.custo_total,
       });
-      setCalc(data);
-      setMsg(`Preços atualizados no servidor · ${money(data.custo_total)}`);
+      setCalc(withAviso);
+      setMsg(`Preços atualizados no servidor · ${money(withAviso.custo_total)}`);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -506,9 +567,11 @@ export default function AdminV3OrcamentoBase() {
       }
       const shared = resolveConfigRapida(admin);
       const freteOk = Math.max(0, Number(frete) || 0);
+      // Título da tela (kits) prevalece sobre "Cliente Padrão" da sessão
+      const nomeOk = preferNomeCliente(titulo, shared.nomeCliente);
       saveConfigRapida({
         ...shared,
-        nomeCliente: shared.nomeCliente || titulo,
+        nomeCliente: nomeOk,
         fretePadrao: freteOk,
       });
 
@@ -544,7 +607,7 @@ export default function AdminV3OrcamentoBase() {
         origem: `V3 Proposta por kits · ${cards.length} kit(s)`,
         quantidadeTotal: cards.length,
         cliente: {
-          nomeCliente: shared.nomeCliente || titulo,
+          nomeCliente: nomeOk,
           cidadeCliente: shared.cidadeCliente,
           consumoMensal: shared.consumoMensal,
           tipoImovel: shared.tipoImovel,
@@ -576,6 +639,13 @@ export default function AdminV3OrcamentoBase() {
       setQtdInv(Math.max(1, Math.ceil(qtdMod / 4)));
     }
   }, [skuInv, qtdMod, invs, cardAtivoId]);
+
+  // Espelha título digitado na sessão (não deixa "Cliente Padrão" ganhar depois)
+  useEffect(() => {
+    const nome = (titulo || '').trim();
+    if (!nome || nome === 'Cliente Premium') return;
+    saveConfigRapida({ nomeCliente: nome });
+  }, [titulo]);
 
   const resumoTitulo = cardAtivo
     ? `Resumo · Card ${cards.findIndex((c) => c.id === cardAtivo.id) + 1}`
@@ -690,8 +760,20 @@ export default function AdminV3OrcamentoBase() {
                 min={1}
                 value={qtdInv}
                 onChange={(e) => setQtdInv(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
+                className={`mt-1 w-full rounded-lg bg-white border px-3 py-2 ${
+                  avisoMicro ? 'border-amber-400' : 'border-gray-300'
+                }`}
               />
+              {avisoMicro && (
+                <span className="mt-1 block text-[11px] leading-snug text-amber-700">
+                  {avisoMicro}
+                </span>
+              )}
+              {isMicroSelecionado && !avisoMicro && (
+                <span className="mt-1 block text-[11px] text-gray-500">
+                  Limite: {PLACAS_POR_MICRO} módulos / micro
+                </span>
+              )}
             </label>
             <label className="text-sm">
               <span className="text-gray-500 text-xs">Frete (R$)</span>
@@ -818,6 +900,15 @@ export default function AdminV3OrcamentoBase() {
                           {c.categoria_inv === 'microinversor' ? 'Micro' : 'String'} · {c.qtd_modulos}{' '}
                           mód. · {c.qtd_inversores} inv.
                         </div>
+                        {avisoCapacidadeMicro(
+                          c.qtd_modulos,
+                          c.qtd_inversores,
+                          c.categoria_inv === 'microinversor'
+                        ) && (
+                          <div className="text-[11px] text-amber-700 leading-snug">
+                            Micros insuficientes (máx. {PLACAS_POR_MICRO}/micro)
+                          </div>
+                        )}
                         <div className="truncate" title={c.nome_modulo}>
                           M: {c.nome_modulo}
                         </div>
