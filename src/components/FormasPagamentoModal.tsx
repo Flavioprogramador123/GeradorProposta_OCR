@@ -185,8 +185,8 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
           )}
 
           <p className="text-xs text-slate-500 mt-2">
-            PIX é a condição à vista mais vantajosa. Demais condições no cartão conforme tabela vigente
-            ({PARCELAS_CARTAO_MIN}× a {PARCELAS_CARTAO_MAX}×).
+            PIX é a condição à vista mais vantajosa. Parcelamento no cartão de {PARCELAS_CARTAO_MIN}× a{' '}
+            {PARCELAS_CARTAO_MAX}× conforme condições vigentes.
           </p>
         </div>
       </div>

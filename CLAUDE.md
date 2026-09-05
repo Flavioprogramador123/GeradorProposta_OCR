@@ -10,6 +10,10 @@ PIENG-PROPOSTAS is a solar proposal generation system with AI-powered data extra
 **Main Branch**: `clean-main`
 **Deploy**: Auto-deploy on push to `clean-main`
 
+### 🔒 Client-facing restrictions (mandatory)
+
+See `RESTRICOES_CLIENTE.md`. **Never** put internal pricing/marketing mechanics on client proposals (HTML/PDF/cards): no “à vista = total 12×”, no “juros da maquininha embutidos”, no markup/multiplicadores/taxa a.m./custo. Client sees only final prices + PIX benefit tag. Internal rules stay in admin/code/changelog only.
+
 ---
 
 ## Development Commands

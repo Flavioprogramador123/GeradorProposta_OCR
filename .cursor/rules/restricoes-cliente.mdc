@@ -1,0 +1,12 @@
+---
+description: Nunca expor mecânica de precificação/marketing no HTML do cliente
+alwaysApply: true
+---
+
+# Restrições do card/proposta ao cliente
+
+Antes de alterar `SystemCard`, `templateEngine*`, `gerar-proposta` ou HTML público:
+
+- **Proibido** explicar ao cliente: à vista = total 12×, juros/taxa da maquininha, multiplicadores, markup, pdespesa, custo.
+- **Permitido**: valores finais (PIX, à vista, 12×, 18×) e tag de economia no PIX sem fórmula.
+- Detalhes internos só em `/admin` e docs técnicas. Fonte: `RESTRICOES_CLIENTE.md`.

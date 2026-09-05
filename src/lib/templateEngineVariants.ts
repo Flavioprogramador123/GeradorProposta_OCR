@@ -752,7 +752,6 @@ export class TemplateEnginePadrao {
             <div class="pricing-section">
               <div class="original-price">Promoção de <span class="valor-riscado">${formatBRL(sistema.priscado)}</span></div>
               <div class="current-price">à vista ${formatBRL(sistema.pavista)}</div>
-              <div class="payment-hint" style="font-size:11px;color:#64748b;margin:-4px 0 8px;">À vista = total das 12× no cartão</div>
               <div class="discount-tag">${tagEconomiaPix(sistema.ppix || 0, sistema.pavista || 0)}</div>
               <div class="pix-price"><strong>PIX: ${formatBRL(sistema.ppix)}</strong></div>
 
@@ -760,7 +759,6 @@ export class TemplateEnginePadrao {
                 <div class="payment-option pix-highlight">
                   <strong>12× no cartão</strong><br>
                   ${formatBRL(sistema.p12x)}
-                  <div style="font-size:11px;opacity:.85;margin-top:4px;">total = à vista</div>
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
@@ -826,7 +824,6 @@ export class TemplateEnginePadrao {
             <div class="pricing-section">
               <div class="original-price">Promoção de <span class="valor-riscado">${formatBRL(sistema.priscado)}</span></div>
               <div class="current-price">à vista ${formatBRL(sistema.pavista)}</div>
-              <div class="payment-hint" style="font-size:11px;color:#64748b;margin:-4px 0 8px;">À vista = total das 12× no cartão</div>
               <div class="discount-tag">${tagEconomiaPix(sistema.ppix || 0, sistema.pavista || 0)}</div>
               <div style="font-size: 18px; font-weight: 700; color: var(--success); margin: 10px 0;">
                 PIX: ${formatBRL(sistema.ppix)}
@@ -836,7 +833,6 @@ export class TemplateEnginePadrao {
                 <div class="payment-option pix-highlight">
                   <strong>12× no cartão</strong><br>
                   ${formatBRL(sistema.p12x)}
-                  <div style="font-size:11px;opacity:.85;margin-top:4px;">total = à vista</div>
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>

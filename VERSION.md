@@ -1,12 +1,22 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.5** (04/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.6** (05/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.5** - 04/09/2026 ✅ **ATUAL** (branch `v3-orcamento`)
+### **v2.4.6** - 05/09/2026 ✅ **ATUAL**
+**🔒 Restrição cliente — dados de marketing/precificação:**
+- ✅ Removidos do card público textos que explicavam mecânica interna (“à vista = total das 12×”, “juros da maquininha embutidos”, “total = à vista”)
+- ✅ Regra documentada em `RESTRICOES_CLIENTE.md` — **jamais** expor ao cliente fórmula/maquininha/markup; só valores finais + benefício PIX
+- ✅ Admin continua podendo ver premissas em `/admin/configuracoes`
+
+**📦 Arquivos:** `SystemCard.tsx`, `templateEngine.ts`, `templateEngineVariants.ts`, `RESTRICOES_CLIENTE.md`
+
+---
+
+### **v2.4.5** - 04/09/2026 (branch `v3-orcamento`)
 **🎨 UI Admin / navegação / coerência comercial:**
 - ✅ Tema admin azul tecnologia (`#070f1c` → `#0b2a4a`) + cards `slate-100`
 - ✅ **3 paletas CSS** (`admin-themes.css`): Corporativo · Tecnologia · Solar — seletor no Admin/Configurações (localStorage)
@@ -14,7 +24,7 @@
 - ✅ Hub **Módulo V3** removido — atalhos no `/admin` (orçamento base, proposta auto, preços, equipamentos)
 - ✅ `/admin/v3` redireciona para `/admin`; seed YAML na tela Equipamentos
 - ✅ Tag do card PIX = `(à vista − PIX) / PIX` (ex.: mult 1,117943 → ~12%; 1,11 → 11%) + `formatBRL`
-- ✅ Taxa cartão mensal editável regenera multiplicadores; à vista = total 12×
+- ✅ Taxa cartão mensal editável regenera multiplicadores; à vista = total 12× (**só uso interno — não expor no HTML do cliente**, ver v2.4.6 / `RESTRICOES_CLIENTE.md`)
 
 **📦 Arquivos principais:** `admin-themes.css`, `adminTheme.ts`, `AdminThemePicker`, `admin/index.tsx`, `configuracoes.tsx`, `tabelaJurosCartao.ts`, `SystemCard.tsx`, `templateEngine*.ts`, `gerar-proposta.ts`, páginas `admin/v3/*`, `soollar-captura.tsx`, `gerador-rapido.tsx`
 
