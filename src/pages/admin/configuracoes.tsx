@@ -35,12 +35,87 @@ function mergeConfig(saved: Partial<ConfiguracaoSistema> | Record<string, unknow
   if (merged.descontoPix > 0 && merged.descontoPix <= 1) {
     merged.descontoPix = merged.descontoPix * 100;
   }
+  // Performance / eficiência: se veio como % (ex. 75), vira ratio 0–1
+  if (merged.performanceRate > 1 && merged.performanceRate <= 100) {
+    merged.performanceRate = merged.performanceRate / 100;
+  }
+  if (merged.eficienciaInversor > 1 && merged.eficienciaInversor <= 100) {
+    merged.eficienciaInversor = merged.eficienciaInversor / 100;
+  }
   return {
     ...configPadrao,
     ...merged,
     estadosPadrao: merged.estadosPadrao,
     hspPorEstado: merged.hspPorEstado,
   };
+}
+
+/** Ratio 0–1 no state; UI em % sem recalcular a cada tecla (evita zeros/NaN). */
+function PercentRatioInput({
+  value01,
+  onCommit,
+  min = 0,
+  max = 100,
+  step = '0.1',
+  className = 'w-full px-4 py-3 border border-gray-300 rounded-lg',
+}: {
+  value01: number;
+  onCommit: (ratio01: number) => void;
+  min?: number;
+  max?: number;
+  step?: string;
+  className?: string;
+}) {
+  const toDisplay = (ratio: number) => {
+    if (!Number.isFinite(ratio)) return '';
+    return String(Number((ratio * 100).toFixed(4)));
+  };
+
+  const [text, setText] = useState(() => toDisplay(value01));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setText(toDisplay(value01));
+  }, [value01, focused]);
+
+  const commit = () => {
+    const normalized = text.replace(',', '.').trim();
+    if (normalized === '' || normalized === '.') {
+      setText(toDisplay(value01));
+      return;
+    }
+    const n = parseFloat(normalized);
+    if (!Number.isFinite(n)) {
+      setText(toDisplay(value01));
+      return;
+    }
+    const clamped = Math.min(max, Math.max(min, n));
+    onCommit(clamped / 100);
+    setText(toDisplay(clamped / 100));
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onFocus={() => setFocused(true)}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^\d.,]/g, '');
+        setText(raw);
+      }}
+      onBlur={() => {
+        setFocused(false);
+        commit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+      }}
+      className={className}
+    />
+  );
 }
 
 export default function Configuracoes() {
@@ -297,14 +372,12 @@ export default function Configuracoes() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Performance Rate (%)
                         </label>
-                        <input
-                          type="number"
-                          value={config.performanceRate * 100}
-                          onChange={(e) => handleInputChange('performanceRate', parseFloat(e.target.value) / 100)}
+                        <PercentRatioInput
+                          value01={config.performanceRate}
+                          onCommit={(ratio) => handleInputChange('performanceRate', ratio)}
+                          min={50}
+                          max={100}
                           step="0.1"
-                          min="50"
-                          max="100"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Eficiência do sistema considerando perdas</p>
                       </div>
@@ -343,14 +416,12 @@ export default function Configuracoes() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Eficiência Inversor (%)
                         </label>
-                        <input
-                          type="number"
-                          value={config.eficienciaInversor * 100}
-                          onChange={(e) => handleInputChange('eficienciaInversor', parseFloat(e.target.value) / 100)}
+                        <PercentRatioInput
+                          value01={config.eficienciaInversor}
+                          onCommit={(ratio) => handleInputChange('eficienciaInversor', ratio)}
+                          min={80}
+                          max={99}
                           step="0.1"
-                          min="80"
-                          max="99"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">Eficiência média dos inversores string</p>
                       </div>
