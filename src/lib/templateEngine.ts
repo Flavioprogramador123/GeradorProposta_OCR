@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
 import { loadVariantCss, generateCssTag } from './cssLoader';
 import { injectPdfSupport } from './propostaPdf';
+import { injectPropostaAnalytics } from './propostaAnalytics';
 import { getFormasPagamentoModalScript, tagEconomiaPix } from './tabelaJurosCartao';
 import { formatBRL } from './formatBRL';
 import { getSolarDataByCidade, resolveSolarCidadeKey } from './solarProjection';
@@ -532,9 +533,12 @@ export class TemplateEnginePadrao {
       html = this.injectProjecaoGeracao(html, data);
     }
 
-    return injectFormasPagamento(
-      injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug),
-      (data as PropostaData & { taxaCartaoMensal?: number }).taxaCartaoMensal
+    return injectPropostaAnalytics(
+      injectFormasPagamento(
+        injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug),
+        (data as PropostaData & { taxaCartaoMensal?: number }).taxaCartaoMensal
+      ),
+      (data as PropostaData & { slug?: string }).slug
     );
   }
 

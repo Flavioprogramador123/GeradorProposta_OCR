@@ -32,6 +32,16 @@
 
 ## 📋 Como Usar
 
+### Passo 0 (obrigatório): liberar RLS para o track
+
+No Supabase → SQL Editor, execute `sql/7_proposta_analytics_rls_track.sql`.
+
+Sem isso o endpoint `/api/propostas/[slug]/track` falha com **42501** (RLS) e o Admin
+nunca marca a proposta como aberta — mesmo com o cliente visualizando.
+
+Opcional (servidor): configure `SUPABASE_SERVICE_ROLE_KEY` na Vercel para o track
+bypassar RLS.
+
 ### Passo 1: Criar Tabela no Supabase
 
 Execute o SQL em `criar_tabela_proposta_analytics.sql` no Supabase Dashboard:

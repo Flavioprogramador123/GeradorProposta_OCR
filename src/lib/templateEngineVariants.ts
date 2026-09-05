@@ -25,6 +25,7 @@ import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
 import { getFormasPagamentoModalScript, tagEconomiaPix } from './tabelaJurosCartao';
 import { formatBRL } from './formatBRL';
+import { injectPropostaAnalytics } from './propostaAnalytics';
 
 function injectFormasPagamento(html: string, taxaCartaoMensal?: number): string {
   const snippet = getFormasPagamentoModalScript(taxaCartaoMensal);
@@ -514,10 +515,13 @@ export class TemplateEnginePadrao {
       html = this.applyVariant(html);
     }
 
-    return injectFormasPagamento(
-      html,
-      (data as { taxaCartaoMensal?: number; config?: { taxaCartaoMensal?: number } }).taxaCartaoMensal ??
-        (data as { config?: { taxaCartaoMensal?: number } }).config?.taxaCartaoMensal
+    return injectPropostaAnalytics(
+      injectFormasPagamento(
+        html,
+        (data as { taxaCartaoMensal?: number; config?: { taxaCartaoMensal?: number } }).taxaCartaoMensal ??
+          (data as { config?: { taxaCartaoMensal?: number } }).config?.taxaCartaoMensal
+      ),
+      (data as { slug?: string }).slug
     );
   }
 

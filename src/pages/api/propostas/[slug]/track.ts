@@ -69,14 +69,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    // Preferir service role no servidor (bypassa RLS); fallback anon se a policy pública existir
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Variáveis Supabase não configuradas');
       return res.status(500).json({ message: 'Configuração do servidor incompleta' });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const { data: proposta, error: propostaError } = await supabase
       .from('propostas')
@@ -238,7 +244,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (insertError) {
       console.error('Erro ao criar analytics:', insertError);
-      return res.status(500).json({ message: 'Erro ao criar analytics' });
+      const msg =
+        insertError.code === '42501'
+          ? 'RLS bloqueou insert em proposta_analytics. Execute sql/7_proposta_analytics_rls_track.sql no Supabase (ou configure SUPABASE_SERVICE_ROLE_KEY).'
+          : 'Erro ao criar analytics';
+      return res.status(500).json({
+        message: msg,
+        code: insertError.code,
+        details: insertError.message,
+      });
     }
 
     if (pareceCompartilhado) {
