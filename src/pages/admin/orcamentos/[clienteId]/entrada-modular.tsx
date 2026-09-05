@@ -264,8 +264,10 @@ export default function EntradaModular() {
 
       if (response.ok) {
         const result = await response.json();
-        alert('Proposta gerada com sucesso!');
         console.log('Proposta gerada:', result);
+        if (result.slug) {
+          window.open(`/proposta/${result.slug}?from=admin`, '_blank');
+        }
       } else {
         throw new Error('Erro ao gerar proposta');
       }

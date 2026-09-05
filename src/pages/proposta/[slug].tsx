@@ -7,6 +7,8 @@ import { UrgencyBanner } from '@/components/UrgencyBanner';
 import { SystemCard } from '@/components/SystemCard';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { PerformanceChart } from '@/components/PerformanceChart';
+import { ProjecaoGeracaoChart } from '@/components/ProjecaoGeracaoChart';
+import { PaybackFioBChart } from '@/components/PaybackFioBChart';
 import { TechnicalTable } from '@/components/TechnicalTable';
 import { ConsultorButton } from '@/components/ConsultorButton';
 import { InsightsSection } from '@/components/InsightsSection';
@@ -16,7 +18,15 @@ import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/
 import { getPropostaBySlug } from '@/lib/supabase';
 import { getLogoMetaTags } from '@/lib/logoConfig';
 import PropostaPdfToolbar from '@/components/PropostaPdfToolbar';
-import { abrirDialogoPdf } from '@/lib/propostaPdf';
+import { abrirDialogoPdf, stripPdfToolbar } from '@/lib/propostaPdf';
+import { parseTarifaKwh } from '@/lib/performanceMensalCopy';
+
+function parseTarifaFromAnalise(economiaTarifa: unknown): number | undefined {
+  const n = parseTarifaKwh(economiaTarifa);
+  if (!n || n <= 0) return undefined;
+  // Ex.: "R$ 1.170" interpretado como 1.17
+  return n > 20 ? n / 1000 : n;
+}
 
 interface PropostaPageProps {
   proposta?: PropostaData;
@@ -29,12 +39,18 @@ interface PropostaPageProps {
 export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slug, templateUsado }: PropostaPageProps) {
   const router = useRouter();
   const [templateCss, setTemplateCss] = useState<string | null>(null);
+  const showPdfToolbar = router.query.from === 'admin';
+  const htmlPublico = htmlContent ? stripPdfToolbar(htmlContent) : htmlContent;
   
   // ✅ Tracking de Analytics (para HTML direto também)
   const trackingRef = useRef({
     startTime: Date.now(),
     primeiraVisualizacao: new Date().toISOString(),
     tempoNaPagina: 0,
+    /** Segundos com a aba visível (mais fiel ao “tempo olhando”) */
+    tempoAtivoAcumulado: 0,
+    ativoDesde: Date.now(),
+    abaVisivel: true,
     scrollMax: 0,
     cliques: 0,
     intervalId: null as NodeJS.Timeout | null
@@ -110,81 +126,122 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
     if (!propostaSlug) return;
 
     const startTime = Date.now();
+    trackingRef.current.startTime = startTime;
+    trackingRef.current.ativoDesde = startTime;
+    trackingRef.current.abaVisivel = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
 
-    // Função para enviar tracking
-    const enviarTracking = async (isFinal = false) => {
+    const sessionKey = `pieng_view_${propostaSlug}`;
+    let novaSessao = true;
+    try {
+      novaSessao = !sessionStorage.getItem(sessionKey);
+      if (novaSessao) sessionStorage.setItem(sessionKey, '1');
+    } catch {
+      /* sessionStorage indisponível */
+    }
+    let sessaoJaContada = false;
+
+    const tempoAtivoAgora = () => {
+      let total = trackingRef.current.tempoAtivoAcumulado;
+      if (trackingRef.current.abaVisivel) {
+        total += Math.floor((Date.now() - trackingRef.current.ativoDesde) / 1000);
+      }
+      return Math.max(0, total);
+    };
+
+    const enviarTracking = (isFinal = false) => {
       const tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
+      const tempoAtivoSegundos = tempoAtivoAgora();
       const scrollPercentage = Math.max(
         trackingRef.current.scrollMax,
-        Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100)
+        Math.round(
+          ((window.scrollY || 0) /
+            Math.max(1, document.documentElement.scrollHeight - window.innerHeight)) *
+            100
+        )
       );
+      const contarSessao = novaSessao && !sessaoJaContada;
+      const payload = JSON.stringify({
+        tempoNaPagina,
+        tempoAtivoSegundos,
+        scrollPercentage,
+        cliques: trackingRef.current.cliques,
+        primeiraVisualizacao: trackingRef.current.primeiraVisualizacao,
+        novaSessao: contarSessao,
+      });
 
-      try {
-        await fetch(`/api/propostas/${propostaSlug}/track`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tempoNaPagina: isFinal ? trackingRef.current.tempoNaPagina + tempoNaPagina : tempoNaPagina,
-            scrollPercentage,
-            cliques: trackingRef.current.cliques,
-            primeiraVisualizacao: trackingRef.current.primeiraVisualizacao
-          })
+      const url = `/api/propostas/${propostaSlug}/track`;
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      })
+        .then(() => {
+          if (contarSessao) sessaoJaContada = true;
+        })
+        .catch((error) => {
+          console.error('Erro ao enviar tracking:', error);
         });
-      } catch (error) {
-        console.error('Erro ao enviar tracking:', error);
+    };
+
+    const handleVisibility = () => {
+      const visivel = document.visibilityState === 'visible';
+      if (!visivel && trackingRef.current.abaVisivel) {
+        trackingRef.current.tempoAtivoAcumulado += Math.floor(
+          (Date.now() - trackingRef.current.ativoDesde) / 1000
+        );
+        trackingRef.current.abaVisivel = false;
+        enviarTracking(false);
+      } else if (visivel && !trackingRef.current.abaVisivel) {
+        trackingRef.current.ativoDesde = Date.now();
+        trackingRef.current.abaVisivel = true;
       }
     };
 
-    // Rastrear scroll
     const handleScroll = () => {
-      const scrollPercent = Math.round(
-        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
-      );
+      const denom = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const scrollPercent = Math.round(((window.scrollY || 0) / denom) * 100);
       trackingRef.current.scrollMax = Math.max(trackingRef.current.scrollMax, scrollPercent);
     };
 
-    // Rastrear cliques
     const handleClick = () => {
       trackingRef.current.cliques++;
     };
 
-    // Enviar tracking a cada 30 segundos
     trackingRef.current.intervalId = setInterval(() => {
       trackingRef.current.tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
       enviarTracking(false);
-    }, 30000);
+    }, 15000);
 
-    // Enviar tracking inicial
     enviarTracking(false);
 
-    // Event listeners
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('click', handleClick);
+    document.addEventListener('visibilitychange', handleVisibility);
 
-    // Enviar tracking final ao sair
     const handleBeforeUnload = () => {
       trackingRef.current.tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
       enviarTracking(true);
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
 
-    // Cleanup
     return () => {
       if (trackingRef.current.intervalId) {
         clearInterval(trackingRef.current.intervalId);
       }
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('click', handleClick);
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      // Enviar tracking final
+      window.removeEventListener('pagehide', handleBeforeUnload);
       trackingRef.current.tempoNaPagina = Math.floor((Date.now() - startTime) / 1000);
       enviarTracking(true);
     };
   }, [slug, proposta?.slug]);
 
   // Se temos HTML direto, renderizar diretamente
-  if (useHtmlDirect && htmlContent) {
+  if (useHtmlDirect && htmlPublico) {
     const baseUrl = 'https://pieng-propostas.vercel.app';
     const logoMeta = getLogoMetaTags();
     const ogImage = logoMeta.url;
@@ -226,9 +283,9 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         </Head>
         <div
           suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          dangerouslySetInnerHTML={{ __html: htmlPublico }}
         />
-        <PropostaPdfToolbar clienteNome={slug} slug={slug} />
+        {showPdfToolbar && <PropostaPdfToolbar clienteNome={slug} slug={slug} />}
       </>
     );
   }
@@ -332,13 +389,100 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
 
         <section className="pieng-system-grid">
           {sistemas.map((sistema, index) => (
-            <SystemCard key={index} {...sistema} />
+            <SystemCard
+              key={index}
+              {...sistema}
+              tarifaEnergia={
+                (cliente as { tarifa?: number; tarifaEnergia?: number }).tarifa ??
+                (cliente as { tarifaEnergia?: number }).tarifaEnergia ??
+                parseTarifaFromAnalise(analise.economiaTarifa) ??
+                (proposta as { config?: { tarifa?: number } })?.config?.tarifa
+              }
+              performanceRate={
+                (proposta as { config?: { performanceRate?: number }; performanceRate?: number })
+                  ?.config?.performanceRate ??
+                (proposta as { performanceRate?: number })?.performanceRate ??
+                0.78
+              }
+            />
           ))}
         </section>
 
         <ComparisonTable systems={tableData} />
 
         <PerformanceChart sistemas={sistemas} />
+
+        <ProjecaoGeracaoChart
+          potenciaKwp={(() => {
+            const raw =
+              bestSystem?.potencia ||
+              (bestSystem as { potTotal?: number })?.potTotal ||
+              sistemas.find((s) => s.isRecommended)?.potencia ||
+              sistemas[0]?.potencia ||
+              0;
+            if (typeof raw === 'number') return raw;
+            const n = parseFloat(String(raw).replace(',', '.').replace(/[^\d.]/g, ''));
+            return Number.isFinite(n) ? n : 0;
+          })()}
+          cidade={cliente.cidade}
+          performanceRate={
+            (proposta as { config?: { performanceRate?: number }; performanceRate?: number })
+              ?.config?.performanceRate ??
+            (proposta as { performanceRate?: number })?.performanceRate ??
+            0.78
+          }
+        />
+
+        <PaybackFioBChart
+          potenciaKwp={(() => {
+            const raw =
+              bestSystem?.potencia ||
+              (bestSystem as { potTotal?: number })?.potTotal ||
+              sistemas.find((s) => s.isRecommended)?.potencia ||
+              sistemas[0]?.potencia ||
+              0;
+            if (typeof raw === 'number') return raw;
+            const n = parseFloat(String(raw).replace(',', '.').replace(/[^\d.]/g, ''));
+            return Number.isFinite(n) ? n : 0;
+          })()}
+          investimentoPix={
+            bestSystem?.precoPixDecimal ||
+            sistemas.find((s) => s.isRecommended)?.precoPixDecimal ||
+            sistemas[0]?.precoPixDecimal ||
+            0
+          }
+          tarifaCheia={
+            (cliente as { tarifa?: number; tarifaEnergia?: number }).tarifa ??
+            (cliente as { tarifaEnergia?: number }).tarifaEnergia ??
+            parseTarifaFromAnalise(analise.economiaTarifa) ??
+            (proposta as { config?: { tarifa?: number } })?.config?.tarifa ??
+            1.17
+          }
+          hsp={
+            parseFloat(String(cliente.hspLocal ?? (cliente as { hsp?: number }).hsp ?? 5.3).replace(',', '.')) ||
+            5.3
+          }
+          performanceRate={
+            (proposta as { config?: { performanceRate?: number } })?.config?.performanceRate ?? 0.78
+          }
+          reajusteEnergiaPct={
+            (proposta as { config?: { reajusteEnergia?: number } })?.config?.reajusteEnergia ?? 8.2
+          }
+          geracaoAnualKwh={(() => {
+            const g =
+              parseFloat(
+                String(
+                  bestSystem?.geracao ||
+                    sistemas.find((s) => s.isRecommended)?.geracao ||
+                    sistemas[0]?.geracao ||
+                    ''
+                )
+                  .replace(/[^\d,.-]/g, '')
+                  .replace(',', '.')
+              ) || 0;
+            return g > 0 ? g * 12 : undefined;
+          })()}
+        />
 
         <TechnicalTable
           sistemas={sistemas}
@@ -383,7 +527,9 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         />
       </div>
 
-      <PropostaPdfToolbar clienteNome={cliente.nome} slug={slug || proposta?.slug} />
+      {showPdfToolbar && (
+        <PropostaPdfToolbar clienteNome={cliente.nome} slug={slug || proposta?.slug} />
+      )}
     </>
   );
 }

@@ -328,7 +328,7 @@ export default function AdminV3PropostaAuto() {
 
   const abrirGerador = () => {
     if (!geradorPayload) {
-      setMsg('Dimensionar antes de abrir o Gerador');
+      setMsg('Dimensionar antes de abrir a Proposta manual');
       return;
     }
     try {
@@ -424,9 +424,13 @@ export default function AdminV3PropostaAuto() {
             <div>
               <h1 className="text-3xl font-bold admin-title">Proposta automática</h1>
               <p className="text-sm admin-subtitle">
-                Dimensionamento automático puro (faixa de geração). Kits da 3a vão direto ao{' '}
+                Dimensionamento automático por faixa de geração. Kits da{' '}
+                <Link href="/admin/v3/orcamento-base" className="text-sky-400 hover:underline">
+                  Proposta por kits
+                </Link>{' '}
+                vão direto à{' '}
                 <Link href="/gerador-rapido" className="text-sky-400 hover:underline">
-                  Gerador 5a
+                  Proposta manual
                 </Link>
                 {' '}· configs compartilhadas
               </p>
@@ -451,7 +455,7 @@ export default function AdminV3PropostaAuto() {
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-emerald-800">⚙️ Configurações Rápidas (shared)</h2>
-              <span className="text-[10px] text-gray-500">mesmos campos do Gerador · localStorage</span>
+              <span className="text-[10px] text-gray-500">mesmos campos da Proposta manual · localStorage</span>
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <label className="text-sm">
@@ -522,7 +526,7 @@ export default function AdminV3PropostaAuto() {
             </div>
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-xs text-amber-800 mb-2">
-                Pdespesa Total = Fixo + (Variável% × P.Custo) — mesma fórmula do Gerador
+                Pdespesa Total = Fixo + (Variável% × P.Custo) — mesma fórmula da Proposta manual
               </p>
               <div className="grid md:grid-cols-3 gap-3">
                 <label className="text-sm">
@@ -546,7 +550,7 @@ export default function AdminV3PropostaAuto() {
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="text-xs text-gray-500">Frete padrão R$ (só 4a/V3)</span>
+                  <span className="text-xs text-gray-500">Frete padrão R$ (V3)</span>
                   <input
                     type="number"
                     step={50}
@@ -664,7 +668,7 @@ export default function AdminV3PropostaAuto() {
           {params && (
             <p className="text-xs text-gray-500 mb-4">
               PR {params.performanceRate} · dias {params.diasMes} · pdespesa comercial R$ {pdespesaFixo} +{' '}
-              {pdespesaVariavel}% · frete padrão {formatBRL(fretePadrao)} · (legado 4a: despesa{' '}
+              {pdespesaVariavel}% · frete padrão {formatBRL(fretePadrao)} · (legado: despesa{' '}
               {params.percentualDespesa}% / PIX -{params.descontoPix}
               %) · até {params.maxAlternativas} alt. · {params.placasPorMicro} placas/micro
             </p>
@@ -685,7 +689,7 @@ export default function AdminV3PropostaAuto() {
               onClick={() => gerar(true)}
               className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
             >
-              Dimensionar e salvar orçamentos base
+              Dimensionar e salvar
             </button>
             <button
               type="button"
@@ -693,7 +697,7 @@ export default function AdminV3PropostaAuto() {
               onClick={abrirGerador}
               className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
             >
-              Abrir no Gerador Rápido (5a)
+              Abrir na Proposta manual
             </button>
           </div>
 
@@ -766,7 +770,7 @@ export default function AdminV3PropostaAuto() {
                         </span>
                         {a.origem === 'manual_3a' && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                            3a
+                            por kits
                           </span>
                         )}
                         {a.faixa_alvo_kwh != null && (
@@ -792,7 +796,7 @@ export default function AdminV3PropostaAuto() {
                       </div>
                       {a.comercial && (
                         <div className="text-[10px] text-gray-500 mt-0.5">
-                          (legado 4a {money(a.precos.pix)})
+                          (legado {money(a.precos.pix)})
                         </div>
                       )}
                     </div>
@@ -831,10 +835,10 @@ export default function AdminV3PropostaAuto() {
                         </div>
                       </div>
 
-                      {/* Precificação comercial 5a */}
+                      {/* Precificação comercial = Proposta manual */}
                       <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
                         <div className="text-xs font-semibold text-emerald-700 mb-2">
-                          Precificação comercial (igual Gerador) · 5a
+                          Precificação comercial (igual Proposta manual)
                         </div>
                         {a.comercial ? (
                           <>
@@ -885,7 +889,7 @@ export default function AdminV3PropostaAuto() {
                         )}
                         <div className="mt-3 pt-3 border-t border-gray-200 grid sm:grid-cols-4 gap-2 font-mono text-[11px] text-gray-500">
                           <div>
-                            <div>legado 4a custo</div>
+                            <div>legado custo</div>
                             <div>{money(a.precos.custo)}</div>
                           </div>
                           <div>

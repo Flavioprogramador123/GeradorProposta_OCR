@@ -349,7 +349,7 @@ export default function TodosOrcamentos() {
                           </Link>
                           <button
                             type="button"
-                            onClick={() => window.open(`/proposta/${orc.clientePasta}`, '_blank')}
+                            onClick={() => window.open(`/proposta/${orc.clientePasta}?from=admin`, '_blank')}
                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                             title="Ver proposta"
                           >

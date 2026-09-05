@@ -6,6 +6,11 @@ import { loadVariantCss, generateCssTag } from './cssLoader';
 import { injectPdfSupport } from './propostaPdf';
 import { getFormasPagamentoModalScript, tagEconomiaPix } from './tabelaJurosCartao';
 import { formatBRL } from './formatBRL';
+import { getSolarDataByCidade, resolveSolarCidadeKey } from './solarProjection';
+import { generateProjecaoGeracaoClienteHtml } from './chartGenerator';
+import { generatePaybackFioBChartHtml } from '@/components/PaybackFioBChart';
+import { CONFIG_PADRAO } from '@/utils/configuracoes';
+import { buildPerformanceMensalView } from './performanceMensalCopy';
 
 function injectFormasPagamento(html: string, taxaCartaoMensal?: number): string {
   const snippet = getFormasPagamentoModalScript(taxaCartaoMensal);
@@ -352,6 +357,8 @@ interface PropostaData {
     tipo: string;
     tipoInstalacao?: string;
     hsp?: number;
+    tarifa?: number;
+    tarifaEnergia?: number;
   };
   sistemas: Sistema[];
   empresa?: {
@@ -362,6 +369,16 @@ interface PropostaData {
   bannerUrgencia?: string;
   dataGeracao?: string;
   dataValidade?: string;
+  /** PR das configs / proposta (gráfico sazonal) */
+  performanceRate?: number;
+  config?: {
+    performanceRate?: number;
+    hsp?: number;
+    tarifa?: number;
+  };
+  analise?: {
+    economiaTarifa?: string;
+  };
 }
 
 export class TemplateEnginePadrao {
@@ -468,11 +485,11 @@ export class TemplateEnginePadrao {
     variables['TABELA_RESULTADOS_FINANCEIROS'] = this.generateResultadosFinanceirosTable(data.sistemas);
 
     // Gerar cartões de sistemas dinamicamente
-    variables['SISTEMAS_CARDS'] = this.generateSystemCards(data.sistemas);
-    variables['SISTEMAS_HTML'] = this.generateSystemCards(data.sistemas); // Para compatibilidade com template padrão
+    variables['SISTEMAS_CARDS'] = this.generateSystemCards(data.sistemas, data);
+    variables['SISTEMAS_HTML'] = this.generateSystemCards(data.sistemas, data);
 
     // NOVO: Gerar cartões baseados nos Resultados Financeiros
-    variables['SISTEMAS_CARDS_RESULTADOS'] = this.generateSystemCardsResultados(data.sistemas);
+    variables['SISTEMAS_CARDS_RESULTADOS'] = this.generateSystemCardsResultados(data.sistemas, data);
 
     return variables;
   }
@@ -495,10 +512,77 @@ export class TemplateEnginePadrao {
       html = this.applyVariant(html);
     }
 
+    // Gráfico sazonal compacto (só barras) — HTML do cliente
+    const showProjecao =
+      !this.variantConfig || this.variantConfig.features.projecaoSolar !== false;
+    if (showProjecao) {
+      html = this.injectProjecaoGeracao(html, data);
+    }
+
     return injectFormasPagamento(
       injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug),
       (data as PropostaData & { taxaCartaoMensal?: number }).taxaCartaoMensal
     );
+  }
+
+  /** Insere gráficos de geração + payback Fio B antes do footer */
+  private injectProjecaoGeracao(html: string, data: PropostaData): string {
+    const best = this.getBestSystem(data.sistemas) || data.sistemas[0];
+    const pot = best?.potTotal || 0;
+    if (!pot || pot <= 0) return html;
+
+    const pr =
+      data.performanceRate ??
+      data.config?.performanceRate ??
+      CONFIG_PADRAO.performanceRate ??
+      0.78;
+
+    const cidadeKey = resolveSolarCidadeKey(data.cliente?.cidade);
+    const solar = getSolarDataByCidade(cidadeKey) || getSolarDataByCidade('goiania-go');
+    if (!solar) return html;
+
+    const section = generateProjecaoGeracaoClienteHtml({
+      potenciaKwp: pot,
+      hspMensal: solar.hspMensal,
+      performanceRate: pr,
+      cidadeLabel: solar.cidade,
+    });
+
+    const investimento = best?.ppix || 0;
+    const tarifa = this.resolveTarifaKwh(data);
+    const hsp = data.cliente?.hsp || data.config?.hsp || CONFIG_PADRAO.hspPadrao || 5.3;
+    const geracaoAnual = (best?.geracaoMensal || 0) * 12;
+
+    const paybackSection =
+      investimento > 0
+        ? generatePaybackFioBChartHtml({
+            potenciaKwp: pot,
+            investimentoPix: investimento,
+            tarifaCheia: tarifa,
+            hsp,
+            performanceRate: pr,
+            reajusteEnergiaPct: CONFIG_PADRAO.reajusteEnergia ?? 8.2,
+            geracaoAnualKwh: geracaoAnual > 0 ? geracaoAnual : undefined,
+          })
+        : '';
+
+    const block = `${section}\n${paybackSection}`;
+
+    if (!section && !paybackSection) return html;
+
+    if (html.includes('{{PROJECAO_GERACAO_HTML}}')) {
+      return html.replace(/\{\{PROJECAO_GERACAO_HTML\}\}/g, block);
+    }
+    if (html.includes('<!-- FOOTER -->')) {
+      return html.replace('<!-- FOOTER -->', `${block}\n        <!-- FOOTER -->`);
+    }
+    if (html.includes('<footer')) {
+      return html.replace('<footer', `${block}\n<footer`);
+    }
+    if (html.includes('</body>')) {
+      return html.replace('</body>', `${block}\n</body>`);
+    }
+    return html + block;
   }
 
   /**
@@ -701,7 +785,48 @@ export class TemplateEnginePadrao {
     }).join('');
   }
 
-  private generateSystemCards(sistemas: Sistema[]): string {
+  private resolveTarifaKwh(data?: PropostaData): number {
+    const fromCliente = data?.cliente?.tarifa ?? data?.cliente?.tarifaEnergia;
+    if (typeof fromCliente === 'number' && fromCliente > 0) return fromCliente;
+    const fromConfig = data?.config?.tarifa;
+    if (typeof fromConfig === 'number' && fromConfig > 0) return fromConfig;
+    const fromAnalise = data?.analise?.economiaTarifa;
+    if (fromAnalise) {
+      const n = parseFloat(
+        String(fromAnalise)
+          .replace(/R\$\s?/gi, '')
+          .replace(/\s/g, '')
+          .replace(',', '.')
+      );
+      // "R$ 1.170" com ponto de milhar errado → se > 20, tratar como 1.17
+      if (Number.isFinite(n) && n > 0) return n > 20 ? n / 1000 : n;
+    }
+    return CONFIG_PADRAO.tarifaPadrao ?? 0.98;
+  }
+
+  private resolvePerformanceRate(data?: PropostaData): number {
+    return (
+      data?.performanceRate ??
+      data?.config?.performanceRate ??
+      CONFIG_PADRAO.performanceRate ??
+      0.78
+    );
+  }
+
+  private performanceBoxHtml(sistema: Sistema, data?: PropostaData): string {
+    const view = buildPerformanceMensalView({
+      geracaoKwh: sistema.geracaoMensal || 0,
+      coberturaPct: Number(sistema.cobertura) || 0,
+      economiaMensal: sistema.economiaMensal || 0,
+      paybackTexto: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
+      tirTexto: `${(sistema.tirAnual || 0).toFixed(1)}%`,
+      tarifaKwh: this.resolveTarifaKwh(data),
+      performanceRateRef: this.resolvePerformanceRate(data),
+    });
+    return `<div class="performance-box">${view.html}</div>`;
+  }
+
+  private generateSystemCards(sistemas: Sistema[], data?: PropostaData): string {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     
@@ -725,15 +850,15 @@ export class TemplateEnginePadrao {
           ${badge}
           <div class="card-header">
             <div class="card-title">SISTEMA ${index + 1} ${isRecommended ? '⭐ RECOMENDADO' : ''}</div>
-            <div class="card-power">Potência: ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
+            <div class="card-subtitle">Potência: ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
           </div>
           <div class="card-body">
             <ul class="specs-list">
-              <li>${modulosReais} módulos ${potModuloReal}W ${marcaModuloReal}</li>
+              <li>${modulosReais} módulos ${marcaModuloReal} ${potModuloReal}W</li>
               <li>${inversoresReais} inversor${inversoresReais > 1 ? 'es' : ''} ${marcaInversorReal} ${potInversorReal}kW</li>
               <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
               <li>Cabeamento CC/CA completo</li>
-              <li>String box DC/AC</li>
+              <li>String box DC/AC + proteções</li>
             </ul>
 
             <div class="pricing-section">
@@ -754,12 +879,7 @@ export class TemplateEnginePadrao {
               </div>
             </div>
 
-            <div class="performance-box">
-              <strong>Performance Mensal</strong><br>
-              Geração: ${(sistema.geracaoMensal || 0).toFixed(0)} kWh | Cobertura: ${Math.round(Number(sistema.cobertura) || 0)}%<br>
-              Economia: R$ ${(sistema.economiaMensal || 0).toFixed(2)} | Payback: ${(sistema.paybackMeses || 0).toFixed(1)} meses<br>
-              TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
-            </div>
+            ${this.performanceBoxHtml(sistema, data)}
 
             <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
@@ -769,7 +889,7 @@ export class TemplateEnginePadrao {
   }
 
   // NOVO: Gerar cartões baseados nos Resultados Financeiros (estilo Gerador Rápido)
-  private generateSystemCardsResultados(sistemas: Sistema[]): string {
+  private generateSystemCardsResultados(sistemas: Sistema[], data?: PropostaData): string {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     
@@ -792,20 +912,18 @@ export class TemplateEnginePadrao {
         <div class="system-card ${recommendedClass}">
           ${badge}
           <div class="card-header">
-            <div class="card-title">
-              ${index === 0 ? '<span style="color: #f39c12;">🏆</span>' : ''}
-              ${sistema.nome || `Sistema ${index + 1}`}
+            <div class="card-title">${sistema.nome || `Sistema ${index + 1}`}
               ${isRecommended ? ' ⭐ RECOMENDADO' : ''}
             </div>
-            <div class="card-power">Potência: ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
+            <div class="card-subtitle">Potência: ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
           </div>
           <div class="card-body">
             <ul class="specs-list">
-              <li>${modulosReais} módulos ${potModuloReal}W ${marcaModuloReal}</li>
+              <li>${modulosReais} módulos ${marcaModuloReal} ${potModuloReal}W</li>
               <li>${inversoresReais} inversor${inversoresReais > 1 ? 'es' : ''} ${marcaInversorReal} ${potInversorReal}kW</li>
               <li>Estrutura de alumínio para ${tipoInstalacao.toLowerCase()}</li>
               <li>Cabeamento CC/CA completo</li>
-              <li>String box DC/AC</li>
+              <li>String box DC/AC + proteções</li>
             </ul>
 
             <div class="pricing-section">
@@ -828,17 +946,7 @@ export class TemplateEnginePadrao {
               </div>
             </div>
 
-            <div class="performance-box">
-              <strong>📊 Análise Financeira Completa</strong><br>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 13px;">
-                <div><strong>Geração:</strong> ${(sistema.geracaoMensal || 0).toFixed(0)} kWh</div>
-                <div><strong>Cobertura:</strong> ${(Number(sistema.cobertura) || 0).toFixed(0)}%</div>
-                <div><strong>Economia:</strong> R$ ${(sistema.economiaMensal || 0).toFixed(2)}</div>
-                <div><strong>Payback:</strong> ${(sistema.paybackMeses || 0).toFixed(1)} meses</div>
-                <div><strong>TIR:</strong> ${(sistema.tirAnual || 0).toFixed(1)}%</div>
-                <div><strong>Potência:</strong> ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
-              </div>
-            </div>
+            ${this.performanceBoxHtml(sistema, data)}
 
             <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>

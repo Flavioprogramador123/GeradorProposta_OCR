@@ -118,16 +118,32 @@ function pushItem(map: Map<string, KitItemCalculado>, item: KitItemCalculado, me
 }
 
 /**
- * Premissas MC4 / cabos (3a semi-auto + 4a auto) — ver README V3.
- * MC4-PAR no catálogo = kit com 2 pares.
+ * Premissas MC4 / cabos (3a semi-auto + 4a auto) — ver README V3 + VERSION.md.
+ *
+ * Strings por potência CA (orçamento aproximado — despreza modelo/MPPT):
+ * | Potência CA     | Total strings |
+ * | ≤3,5 kW         | 1  |
+ * | 6–8 kW          | 2  |  ← atalho comercial
+ * | demais ≤25 kW   | 4  |
+ * | ≤36 kW          | 6  |
+ * | ≤49 kW          | 8  |
+ * | ≤55 kW (~50)    | 12 |
+ * | ≤65 kW (~60)    | 18 |
+ * | >65 kW (70+)    | 24 |
+ *
+ * Cabo 25 m: 1 bola preta + 1 bola vermelha **por string** (`cabo_25m_por_string` = 1).
  */
 export function estimarStringsInversor(potKw?: number | null): number {
-  if (potKw == null || !Number.isFinite(potKw)) return 1;
-  // 3–7,5 kW → 1 string; acima escala por faixas típicas
-  if (potKw <= 7.5) return 1;
-  if (potKw <= 12) return 2;
-  if (potKw <= 20) return 3;
-  return Math.max(3, Math.ceil(potKw / 7.5));
+  if (potKw == null || !Number.isFinite(potKw) || potKw <= 0) return 1;
+  if (potKw <= 3.5) return 1;
+  // Atalho: 6–8 kW → 2 strings (+/−)
+  if (potKw >= 6 && potKw <= 8) return 2;
+  if (potKw <= 25) return 4;
+  if (potKw <= 36) return 6;
+  if (potKw <= 49) return 8;
+  if (potKw <= 55) return 12;
+  if (potKw <= 65) return 18;
+  return 24;
 }
 
 /** Sugere estrutura/cabos/conectores a partir de módulos + inversor (editável depois). */
@@ -183,6 +199,7 @@ export function sugerirComplementos(opts: {
     if (strings > 0) {
       out.push({ sku_interno: 'MC4-PAR', quantidade: strings });
     }
+    // Bola 25 m: par (V + P) = nº de strings
     const paresCabo = strings * caboPorString;
     if (paresCabo > 0) {
       out.push({ sku_interno: 'CABO-4MM-25-V', quantidade: paresCabo });

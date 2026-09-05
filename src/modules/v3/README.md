@@ -59,9 +59,23 @@ Resolver: `orcamentos/skuCanonico.ts` (`resolveEquipPorSkuCanonico` + aliases).
    - 3 micros → 2 bolas  
 
 ### Inversor string
-1. **Strings por inversor:** **3–7,5 kW → 1 string**; faixas maiores sobem (≤12 → 2; ≤20 → 3; …).
+1. **Strings por potência CA** (aprox. — despreza modelo/MPPT; usa “Total de strings” típico):
+   | Potência CA | Strings |
+   |-------------|---------|
+   | ≤ 3,5 kW | **1** |
+   | **6–8 kW** | **2** (atalho) |
+   | demais até 25 kW | **4** |
+   | ≤ 36 kW | **6** |
+   | ≤ 49 kW | **8** |
+   | ~50 kW | **12** |
+   | ~60 kW | **18** |
+   | ≥ 70 kW | **24** |
+   Código: `estimarStringsInversor` em `kitEngine.ts`.
 2. **MC4:** quantidade de kits = **quantidade de strings**.
-3. **Cabos vermelho e preto:** seguem a **quantidade de strings** (1 V + 1 P por string).
+3. **Cabos bola 25 m (preto + vermelho):** **1 par (V+P) = nº de strings** (`cabo_25m_por_string` = 1).
+
+### Preferência de marca (4a automática)
+Ordem ao escolher inversor/micro: **SAJ → DEye → demais** (`INVERSOR_MARCAS_PREFERENCIA` em `propostaAuto.ts`).
 
 ### Fluxos
 - **3a** usa essas sugestões ao Incluir/Recalcular (editável no card).
@@ -69,6 +83,7 @@ Resolver: `orcamentos/skuCanonico.ts` (`resolveEquipPorSkuCanonico` + aliases).
 - Ajuste manual no card sempre prevalece (`editado_manual`).
 
 ## Changelog / aprendizados
+- **2026-09-05:** Strings por faixa de kW CA (+ atalho **6–8 kW → 2**) + cabo 25 m V/P = nº strings; preferência SAJ/DEye na 4a.
 - **2026-09-04:** Premissas MC4/cabos micro vs string documentadas e aplicadas em `sugerirComplementos`.
 - **2026-09-04:** SKUs canônicos do kit (estrutura/cabo/MC4/trilho) resolvem para `*-AUTO-*` da captura SOOLLAR (`skuCanonico.ts`).
 - **2026-09-04:** 3a → Gerador 5a; 4a só dimensionamento automático (sem kits forçados da 3a).

@@ -7,6 +7,12 @@
 ## 📋 **HISTÓRICO DE VERSÕES**
 
 ### **v2.4.6** - 05/09/2026 ✅ **ATUAL**
+**🔧 Premissas V3 — strings / cabos / marcas (3a + 4a):**
+- ✅ **Strings por potência CA** (aprox., sem modelo): ≤3,5→1 · **6–8→2** · demais≤25→4 · ≤36→6 · ≤49→8 · ~50→12 · ~60→18 · ≥70→24 (`estimarStringsInversor`)
+- ✅ **Cabo bola 25 m:** 1 vermelho + 1 preto **por string** (par = nº de strings)
+- ✅ Preferência de marca na automática: **SAJ → DEye → demais**
+- ✅ Documentado em `kitEngine.ts`, `propostaAuto.ts`, `modules/v3/README.md`, `VERSION.md` § PREMISSAS
+
 **🔒 Restrição cliente — dados de marketing/precificação:**
 - ✅ Removidos do card público textos que explicavam mecânica interna (“à vista = total das 12×”, “juros da maquininha embutidos”, “total = à vista”)
 - ✅ Regra documentada em `RESTRICOES_CLIENTE.md` + `CLAUDE.md` + `.cursor/rules/restricoes-cliente.mdc`
@@ -26,7 +32,7 @@
 - ✅ Limpeza 680/670Wp: só **Feira de Santana** (removidos do Aeroporto); sem fallback cross-CD em módulo/inversor
 - ✅ Fluxo diário desejado: scrape PC → push Supabase → Vercel vê estoque atualizado (push automático pós-captura = próximo passo)
 
-**📦 Arquivos:** `SystemCard.tsx`, `templateEngine*.ts`, `RESTRICOES_CLIENTE.md`, `serverlessFs.ts`, `catalogSnapshot.ts`, `sqlite.ts`, `catalog-sync.ts`, `sql/6_*.sql`, scripts `v3-push-*` / `v3-limpar-*`
+**📦 Arquivos:** `SystemCard.tsx`, `templateEngine*.ts`, `RESTRICOES_CLIENTE.md`, `serverlessFs.ts`, `catalogSnapshot.ts`, `sqlite.ts`, `catalog-sync.ts`, `sql/6_*.sql`, scripts `v3-push-*` / `v3-limpar-*`, `kitEngine.ts`, `propostaAuto.ts`
 
 ---
 
@@ -111,11 +117,12 @@ Ex.: 2 micros · 8 módulos → 6 pares → **3** MC4; **1** bola preta; **2** k
 **Inversor string:**
 | Item | Fórmula |
 |------|---------|
-| Strings | 3–7,5 kW → 1; ≤12 → 2; ≤20 → 3; senão `ceil(kW/7.5)` × qtd inversores |
+| Strings (por kW CA, aprox.) | ≤3,5→**1** · **6–8→2** · demais≤25→**4** · ≤36→**6** · ≤49→**8** · ~50→**12** · ~60→**18** · ≥70→**24** (`estimarStringsInversor`) |
 | MC4 kits | = nº de strings |
-| Cabo V + P 25 m | 1 vermelho + 1 preto **por string** |
+| Cabo bola 25 m V + P | **1 vermelho + 1 preto por string** (par = nº strings) |
+| Marca preferida (4a) | **SAJ → DEye → demais** |
 
-**Observação comercial:** defaults fibro/inox são **só para preço**; troca de tipo de telha / qtd no fechamento é manual no card (`editado_manual` prevalece).
+**Observação comercial:** defaults fibro/inox são **só para preço**; troca de tipo de telha / qtd no fechamento é manual no card (`editado_manual` prevalece). Orçamento de strings/cabos é **aproximado** (despreza modelo/MPPT).
 
 ##### 5) Mapa SKU canônico → SOOLLAR (`skuCanonico.ts`)
 | Canônico | Preferência atual |

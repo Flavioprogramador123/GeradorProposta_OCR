@@ -1,5 +1,5 @@
 {
-  "performanceRate": 0.75,
+  "performanceRate": 0.78,
   "hspPadrao": 5.3,
   "margemSeguranca": 1.12,
   "eficienciaInversor": 0.95,
@@ -17,7 +17,7 @@
   "markupPremium": 2.3,
   "jurosParcela12x": 2.5,
   "jurosParcela18x": 3.2,
-  "descontoPix": 10.55,
+  "descontoPix": 11.79,
   "taxaCartaoMensal": 1.51,
   "taxaCartao12x": 10.6,
   "taxaCartao18x": 15.2,
@@ -57,7 +57,7 @@
   "empresaNome": "PIENG Soluções Energéticas",
   "empresaCNPJ": "XX.XXX.XXX/0001-XX",
   "metadata": {
-    "lastUpdate": "2026-09-05T02:03:21.447Z",
+    "lastUpdate": "2026-09-05T12:46:42.158Z",
     "version": "2.0"
   },
   "empresaTelefone": "(62) 99167-0536",

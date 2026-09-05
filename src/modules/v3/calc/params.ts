@@ -28,6 +28,10 @@ const DEFAULTS: CalcParams = {
   maxAlternativas: 3,
 };
 
+/**
+ * Seed V3 (4a) — HSP/PR/tarifa aqui são fallback se admin não sobrescrever.
+ * Strings/cabos: ver `kitEngine.estimarStringsInversor` (não duplicar neste objeto).
+ */
 const KEY = 'calc_params_v3';
 
 export function getCalcParams(): CalcParams {

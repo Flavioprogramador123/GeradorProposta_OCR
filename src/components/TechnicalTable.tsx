@@ -56,8 +56,12 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
       </div>
 
       {/* Tabela Detalhada */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+      <p className="pieng-table-scroll-hint">
+        👆 Deslize na tabela ou use a barra abaixo para ver todas as colunas
+      </p>
+      <div className="pieng-table-scroll-shell">
+        <div className="overflow-x-auto pieng-table-wrapper">
+        <table className="pieng-table w-full border-collapse min-w-[720px]">
           <thead>
             <tr className="bg-gradient-to-r from-pieng-primary to-purple-600 text-white">
               <th className="p-3 text-left text-sm font-bold">Sistema</th>
@@ -120,6 +124,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
             })}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* Legendas e Notas Técnicas */}

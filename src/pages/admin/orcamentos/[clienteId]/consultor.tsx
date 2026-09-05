@@ -18,6 +18,7 @@ import {
   calcularPrecosProposta as calcularPrecosEngine,
 } from '@/lib/propostaOrcamentoProcessor';
 import type { ClientType, ComercialSubType } from '@/lib/variantConfig';
+import { buildPropostaPdfUrl } from '@/lib/propostaPdf';
 
 interface Cliente {
   id: string;
@@ -367,7 +368,7 @@ export default function ConsultorOrcamentosPage() {
   const gerarPropostas = async () => {
     const id = resolveClienteId(clienteIdParam, cliente?.id);
     if (!id) {
-      alert('❌ Identificador do cliente não encontrado. Recarregue a página ou acesse novamente pelo Gerador Rápido.');
+      alert('❌ Identificador do cliente não encontrado. Recarregue a página ou acesse novamente pela Proposta manual.');
       return;
     }
 
@@ -456,7 +457,7 @@ export default function ConsultorOrcamentosPage() {
       const result = await response.json();
 
       if (result.slug) {
-        window.open(`/proposta/${result.slug}`, '_blank');
+        window.open(`/proposta/${result.slug}?from=admin`, '_blank');
       }
 
       const pdfSlug = result.slug || id;
@@ -465,26 +466,14 @@ export default function ConsultorOrcamentosPage() {
         cur.paybackMeses < best.paybackMeses ? cur : best
       );
 
-      alert(`✅ Proposta gerada e salva no banco!
-
-📊 Dados da Proposta:
-   • Orçamentos processados: ${orcamentosProcessados.length}
-   • Melhor Payback: ${melhor.paybackMeses.toFixed(1)} meses
-   • Melhor TIR: ${melhor.tirAnual.toFixed(1)}%
-   • Preço PIX Melhor: R$ ${melhor.ppix.toLocaleString('pt-BR')}
-   • Potência Melhor: ${melhor.potTotal.toFixed(2)} kWp
-   • Geração Mensal: ${melhor.geracaoMensal.toFixed(0)} kWh
-
-🔧 Parâmetros Utilizados:
-   • HSP: ${config.hsp}
-   • Tarifa: R$ ${config.tarifa}/kWh
-   • Pdespesa: R$ ${config.pdespesaFixo} + ${config.pdespesaVariavel}%
-   • Bônus Micro: ${config.bonusMicroPercent}%
-
-🌐 ${result.supabase?.salva ? 'Salva no Supabase' : 'Verifique persistência no banco'}
-   URL: /proposta/${result.slug}
-
-📄 Para PDF: use o botão "Gerar PDF" ou abra /proposta/${pdfSlug}?pdf=1`);
+      console.log('✅ Proposta gerada', {
+        slug: result.slug,
+        orcamentos: orcamentosProcessados.length,
+        melhorPayback: melhor.paybackMeses,
+        melhorTir: melhor.tirAnual,
+        ppix: melhor.ppix,
+        pdf: `/proposta/${pdfSlug}?pdf=1`,
+      });
     } catch (error) {
       console.error('Erro ao gerar propostas:', error);
       alert(`❌ Erro ao gerar proposta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);

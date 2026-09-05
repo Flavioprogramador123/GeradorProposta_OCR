@@ -175,7 +175,7 @@ export default function SoolarCapturaPage() {
             <div>
               <h1 className="text-3xl font-bold admin-title">Captura SOOLLAR</h1>
               <p className="text-sm admin-subtitle mt-1">
-                Playwright no PC · login via <code className="text-amber-400">.env</code> · seções
+                Captura no PC · login via <code className="text-amber-400">.env</code> · seções
                 módulos → inversores → estruturas → cabos.
               </p>
             </div>
@@ -381,7 +381,7 @@ SOOLLAR_CD=Aeroporto`}</pre>
             >
               {logs.length === 0 ? (
                 <div className="text-slate-600">
-                  Aguardando… deixe Headless desmarcado para acompanhar o Chromium nas 5 seções.
+                  Aguardando… deixe Headless desmarcado para acompanhar o navegador nas 5 seções.
                 </div>
               ) : (
                 logs.map((line, i) => (
@@ -397,7 +397,7 @@ SOOLLAR_CD=Aeroporto`}</pre>
                   </div>
                 ))
               )}
-              {running && <div className="text-amber-300 animate-pulse mt-2">● Chromium executando…</div>}
+              {running && <div className="text-amber-300 animate-pulse mt-2">● Captura em execução…</div>}
             </div>
           </div>
 

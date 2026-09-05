@@ -193,10 +193,10 @@ export default function PropostasPublicas() {
                 Nenhuma proposta encontrada
               </h3>
               <p className="text-gray-600 mb-6">
-                Gere propostas no Gerador Rápido para vê-las aqui.
+                Gere propostas na Proposta manual para vê-las aqui.
               </p>
               <Link href="/gerador-rapido" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-orange-500 text-white rounded-lg hover:shadow-lg transition-shadow font-medium">
-                ⚡ Ir para Gerador Rápido
+                📝 Ir para Proposta manual
               </Link>
             </div>
           ) : propostasFiltradas.length === 0 ? (

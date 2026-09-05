@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { formatBRL } from '@/lib/formatBRL';
 import {
-  PARCELAS_CARTAO_MAX,
-  PARCELAS_CARTAO_MIN,
+  PARCELAS_CARTAO_EXIBIDAS,
   PARCELAS_REFERENCIA_AVISTA,
   calcularParcelamentoCartao,
   listarParcelasCartao,
@@ -124,10 +123,7 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
               className="border border-slate-300 rounded-lg px-3 py-2.5 text-base"
               onChange={(e) => setParcelas(Number(e.target.value) || PARCELAS_REFERENCIA_AVISTA)}
             >
-              {Array.from(
-                { length: PARCELAS_CARTAO_MAX - PARCELAS_CARTAO_MIN + 1 },
-                (_, i) => PARCELAS_CARTAO_MIN + i
-              ).map((n) => (
+              {PARCELAS_CARTAO_EXIBIDAS.map((n) => (
                 <option key={n} value={n}>
                   {n}×
                 </option>
@@ -160,8 +156,7 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
-                  <th className="p-2 border-b border-gray-200 text-left">Parcelas</th>
-                  <th className="p-2 border-b border-gray-200 text-right">Valor parcela</th>
+                  <th className="p-2 border-b border-gray-200 text-left">Valor parcela</th>
                   <th className="p-2 border-b border-gray-200 text-right">Total</th>
                 </tr>
               </thead>
@@ -171,11 +166,10 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
                     key={row.parcelas}
                     className={row.parcelas === parcelas ? 'bg-emerald-50' : undefined}
                   >
-                    <td className="p-2 border-b border-gray-200 text-left">{row.parcelas}×</td>
-                    <td className="p-2 border-b border-gray-200 text-right">
-                      {formatBRL(row.parcela)}
+                    <td className="p-2 border-b border-gray-200 text-left whitespace-nowrap">
+                      {row.parcelas}× {formatBRL(row.parcela)}
                     </td>
-                    <td className="p-2 border-b border-gray-200 text-right">
+                    <td className="p-2 border-b border-gray-200 text-right whitespace-nowrap">
                       {formatBRL(row.total)}
                     </td>
                   </tr>
@@ -185,8 +179,8 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
           )}
 
           <p className="text-xs text-slate-500 mt-2">
-            PIX é a condição à vista mais vantajosa. Parcelamento no cartão de {PARCELAS_CARTAO_MIN}× a{' '}
-            {PARCELAS_CARTAO_MAX}× conforme condições vigentes.
+            PIX é a condição à vista mais vantajosa. Cartão em{' '}
+            {PARCELAS_CARTAO_EXIBIDAS.map((n) => `${n}×`).join(', ')}.
           </p>
         </div>
       </div>

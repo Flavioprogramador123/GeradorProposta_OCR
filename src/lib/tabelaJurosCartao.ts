@@ -41,9 +41,11 @@ export const MULTIPLICADOR_CARTAO_REF: Record<number, number> = {
 /** Alias estável = tabela na taxa de referência (1,51%). */
 export const MULTIPLICADOR_CARTAO = MULTIPLICADOR_CARTAO_REF;
 
-/** Mínimo no seletor / tabela da simulação (entrada + cartão) */
+/** Limites técnicos da tabela de multiplicadores (cálculo) */
 export const PARCELAS_CARTAO_MIN = 2;
 export const PARCELAS_CARTAO_MAX = 18;
+/** Opções exibidas no modal (mobile-friendly) */
+export const PARCELAS_CARTAO_EXIBIDAS = [3, 6, 10, 12, 18] as const;
 /** Referência comercial no card (à vista = total 12×) */
 export const PARCELAS_REFERENCIA_AVISTA = 12;
 
@@ -181,16 +183,14 @@ export function calcularPrecosDePix(
   };
 }
 
-/** Lista 2–18× para um valor financiado (após entrada). */
+/** Lista as parcelas exibidas no modal (3×, 6×, 10×, 12×, 18×). */
 export function listarParcelasCartao(
   valorFinanciado: number,
   taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
 ): ParcelaCartaoResult[] {
-  const out: ParcelaCartaoResult[] = [];
-  for (let n = PARCELAS_CARTAO_MIN; n <= PARCELAS_CARTAO_MAX; n++) {
-    out.push(calcularParcelamentoCartao(valorFinanciado, n, taxaMensalPercent));
-  }
-  return out;
+  return PARCELAS_CARTAO_EXIBIDAS.map((n) =>
+    calcularParcelamentoCartao(valorFinanciado, n, taxaMensalPercent)
+  );
 }
 
 /** Script + modal injetados na proposta HTML (cliente). */
@@ -199,8 +199,8 @@ export function getFormasPagamentoModalScript(
 ): string {
   const taxa = normalizeTaxaCartaoMensal(taxaMensalPercent);
   const tabelaJson = JSON.stringify(buildMultiplicadoresFromTaxa(taxa));
-  const min = PARCELAS_CARTAO_MIN;
-  const max = PARCELAS_CARTAO_MAX;
+  const opcoesJson = JSON.stringify([...PARCELAS_CARTAO_EXIBIDAS]);
+  const opcoesLabel = PARCELAS_CARTAO_EXIBIDAS.map((n) => `${n}×`).join(', ');
   const ref = PARCELAS_REFERENCIA_AVISTA;
   return `
 <style>
@@ -240,18 +240,17 @@ export function getFormasPagamentoModalScript(
       </div>
       <div class="pieng-pay-summary" id="pieng-pay-result"></div>
       <table class="pieng-pay-table">
-        <thead><tr><th>Parcelas</th><th>Valor parcela</th><th>Total</th></tr></thead>
+        <thead><tr><th>Valor parcela</th><th>Total</th></tr></thead>
         <tbody id="pieng-pay-tbody"></tbody>
       </table>
-      <p class="pieng-pay-hint">PIX é a condição à vista mais vantajosa. Cartão conforme taxa mensal ${String(taxa).replace('.', ',')}% (${min}× a ${max}×).</p>
+      <p class="pieng-pay-hint">PIX é a condição à vista mais vantajosa. Cartão em ${opcoesLabel}.</p>
     </div>
   </div>
 </div>
 <script>
 (function(){
   var MULT = ${tabelaJson};
-  var MIN = ${min};
-  var MAX = ${max};
+  var OPCOES = ${opcoesJson};
   var REF = ${ref};
   var modal = document.getElementById('pieng-pay-modal');
   var entradaEl = document.getElementById('pieng-pay-entrada');
@@ -274,8 +273,7 @@ export function getFormasPagamentoModalScript(
     if (entrada > pixAtual) { entrada = pixAtual; entradaEl.value = String(pixAtual); }
     var financiado = Math.max(0, pixAtual - entrada);
     var n = Number(parcelasEl.value)||REF;
-    if (n < MIN) n = MIN;
-    if (n > MAX) n = MAX;
+    if (OPCOES.indexOf(n) < 0) n = REF;
     var sel = calc(financiado, n);
     pixBox.innerHTML = '<div><strong>Valor PIX:</strong> '+money(pixAtual)+'</div>'+
       '<div><strong>Entrada:</strong> '+money(entrada)+'</div>'+
@@ -286,9 +284,10 @@ export function getFormasPagamentoModalScript(
         '<div>Total no cartão: <strong>'+money(sel.total)+'</strong></div>'+
         '<div>Total geral (entrada + cartão): <strong>'+money(entrada + sel.total)+'</strong></div>';
     var html = '';
-    for (var i=MIN;i<=MAX;i++){
-      var r = calc(financiado, i);
-      html += '<tr class="'+(i===n?'is-active':'')+'"><td>'+i+'×</td><td>'+money(r.parcela)+'</td><td>'+money(r.total)+'</td></tr>';
+    for (var i=0;i<OPCOES.length;i++){
+      var p = OPCOES[i];
+      var r = calc(financiado, p);
+      html += '<tr class="'+(p===n?'is-active':'')+'"><td>'+p+'× '+money(r.parcela)+'</td><td>'+money(r.total)+'</td></tr>';
     }
     tbody.innerHTML = html;
   }
@@ -305,11 +304,12 @@ export function getFormasPagamentoModalScript(
     modal.setAttribute('aria-hidden','true');
   }
   if (parcelasEl && !parcelasEl.options.length){
-    for (var i=MIN;i<=MAX;i++){
+    for (var i=0;i<OPCOES.length;i++){
+      var p = OPCOES[i];
       var opt = document.createElement('option');
-      opt.value = String(i);
-      opt.textContent = i+'×';
-      if (i===REF) opt.selected = true;
+      opt.value = String(p);
+      opt.textContent = p+'×';
+      if (p===REF) opt.selected = true;
       parcelasEl.appendChild(opt);
     }
   }

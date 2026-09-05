@@ -11,6 +11,12 @@ interface ClienteInfo {
   ultimaModificacao: string;
   temProposta: boolean;
   id?: string; // ID do Supabase
+  propostaPausada?: boolean;
+  analytics?: {
+    visualizacoes: number;
+    ultimaVisualizacao: string | null;
+    precisaContato: boolean;
+  } | null;
 }
 
 interface PropostaData {
@@ -49,9 +55,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         console.log('🔍 Buscando clientes no Supabase...');
         const clientesSupabase = await getClientesWithPropostas();
-        
-        if (clientesSupabase && clientesSupabase.length > 0) {
+
+        // Lista vazia do Supabase = resposta válida (não cair no filesystem fantasma)
+        if (Array.isArray(clientesSupabase)) {
           console.log(`✅ ${clientesSupabase.length} clientes encontrados no Supabase`);
+
+          if (clientesSupabase.length === 0) {
+            return res.status(200).json({
+              clientes: [],
+              stats: { totalClientes: 0, propostasGeradas: 0, aguardandoOrcamentos: 0 },
+              source: 'supabase',
+            });
+          }
 
           // Converter formato Supabase para ClienteInfo
           const clientes: ClienteInfo[] = clientesSupabase
@@ -60,20 +75,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .toString()
                 .trim();
 
-              // ✅ USAR SLUG DA PROPOSTA (não gerar do nome)
-              let pasta = cliente.slug || 'cliente'; // Fallback para cliente.slug da tabela clientes
+              // Slug da proposta > slug do cliente > id UUID (nunca colapsar vários em "cliente")
+              let pasta =
+                (cliente.temProposta && cliente.propostas?.[0]?.slug) ||
+                cliente.slug ||
+                cliente.id ||
+                'cliente';
 
-              // Se tem proposta, usar o slug da proposta (mais específico)
-              if (cliente.temProposta && cliente.propostas?.length > 0) {
-                pasta = cliente.propostas[0].slug || pasta;
-              }
-
-              // Determinar status baseado nas propostas
-              let status = 'aguardando_orcamentos';
-              if (cliente.temProposta) {
-                const ultimaProposta = cliente.propostas?.[0];
-                status = ultimaProposta?.status || 'proposta_gerada';
-              }
+              const temProposta = cliente.temProposta || (cliente.propostas?.length > 0) || false;
+              // Status de engajamento é preenchido abaixo com analytics
+              let status = temProposta ? 'nao_aberta' : 'aguardando_orcamentos';
 
               const ultimaData = cliente.updated_at || cliente.created_at || new Date().toISOString();
 
@@ -83,16 +94,103 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 pasta, // ✅ Agora usa slug real da proposta
                 status,
                 ultimaModificacao: new Date(ultimaData).toLocaleDateString('pt-BR'),
-                temProposta: cliente.temProposta || (cliente.propostas?.length > 0) || false,
+                temProposta,
                 propostaPausada: cliente.proposta_pausada || false,
-                id: cliente.id
+                id: cliente.id,
+                analytics: null as null | {
+                  visualizacoes: number;
+                  ultimaVisualizacao: string | null;
+                  precisaContato: boolean;
+                }
               };
             })
             .filter(Boolean);
 
+          // Engajamento: proposta aberta x nunca aberta (proposta_analytics)
+          const slugsComProposta = clientes.filter(c => c.temProposta).map(c => c.pasta);
+          if (slugsComProposta.length > 0) {
+            try {
+              const { createClient } = await import('@supabase/supabase-js');
+              const sb = createClient(supabaseUrl, supabaseKey);
+              const { data: rows } = await sb
+                .from('proposta_analytics')
+                .select('proposta_slug, visualizacoes_count, ultima_visualizacao, precisa_contato, tempo_total_segundos, scroll_percentage')
+                .in('proposta_slug', slugsComProposta);
+
+              const bySlug = new Map<string, {
+                visualizacoes: number;
+                ultimaVisualizacao: string | null;
+                precisaContato: boolean;
+                tempoTotal: number;
+                scrollMax: number;
+              }>();
+
+              for (const row of rows || []) {
+                const key = row.proposta_slug as string;
+                const prev = bySlug.get(key) || {
+                  visualizacoes: 0,
+                  ultimaVisualizacao: null as string | null,
+                  precisaContato: false,
+                  tempoTotal: 0,
+                  scrollMax: 0,
+                };
+                prev.visualizacoes += row.visualizacoes_count || 0;
+                prev.precisaContato = prev.precisaContato || !!row.precisa_contato;
+                prev.tempoTotal += row.tempo_total_segundos || 0;
+                prev.scrollMax = Math.max(prev.scrollMax, row.scroll_percentage || 0);
+                if (row.ultima_visualizacao) {
+                  if (!prev.ultimaVisualizacao || row.ultima_visualizacao > prev.ultimaVisualizacao) {
+                    prev.ultimaVisualizacao = row.ultima_visualizacao;
+                  }
+                }
+                bySlug.set(key, prev);
+              }
+
+              for (const c of clientes) {
+                if (!c.temProposta) {
+                  c.status = 'aguardando_orcamentos';
+                  continue;
+                }
+                if (c.propostaPausada) {
+                  c.status = 'pausada';
+                  continue;
+                }
+                const eng = bySlug.get(c.pasta);
+                if (!eng || eng.visualizacoes <= 0) {
+                  c.status = 'nao_aberta';
+                  c.analytics = { visualizacoes: 0, ultimaVisualizacao: null, precisaContato: false };
+                  continue;
+                }
+
+                let diasSemVer: number | null = null;
+                if (eng.ultimaVisualizacao) {
+                  diasSemVer = Math.floor(
+                    (Date.now() - new Date(eng.ultimaVisualizacao).getTime()) / (1000 * 60 * 60 * 24)
+                  );
+                }
+
+                c.analytics = {
+                  visualizacoes: eng.visualizacoes,
+                  ultimaVisualizacao: eng.ultimaVisualizacao,
+                  precisaContato: eng.precisaContato || (diasSemVer !== null && diasSemVer >= 7),
+                };
+
+                if (c.analytics.precisaContato) {
+                  c.status = 'precisa_contato';
+                } else if (eng.tempoTotal >= 180 || eng.scrollMax >= 70) {
+                  c.status = 'interessada';
+                } else {
+                  c.status = 'visualizada';
+                }
+              }
+            } catch (engErr) {
+              console.warn('⚠️ Não foi possível enriquecer status com analytics:', engErr);
+            }
+          }
+
           // Contar estatísticas
           propostasGeradas = clientes.filter(c => c.temProposta).length;
-          aguardandoOrcamentos = clientes.length - propostasGeradas;
+          aguardandoOrcamentos = clientes.filter(c => c.status === 'aguardando_orcamentos' || c.status === 'nao_aberta').length;
 
           const stats = {
             totalClientes: clientes.length,

@@ -17,6 +17,11 @@ export interface SolarData {
   hspMensal: number[];  // HSP (Horas de Sol Pleno) para 12 meses [Jan-Dez]
 }
 
+/** Dias civis por mês (CRESESB / calendário) — usado no gráfico sazonal */
+export const DIAS_POR_MES_CRESESB = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
+
+export const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] as const;
+
 export interface LongTermProjection {
   ano: number;
   economiaAnual: number;
@@ -42,12 +47,14 @@ export const SOLAR_DATA: Record<string, SolarData> = {
     lon: -48.9534,
     hspMensal: [5.12, 5.34, 5.21, 5.08, 4.95, 4.82, 4.98, 5.45, 5.67, 5.89, 5.54, 5.23]
   },
+  // Goiânia — SunData/CRESESB plano inclinado 18°N (maior média anual)
+  // Fonte: hsp-goiania-plano-inclinado.md
   'goiania-go': {
     cidade: 'Goiânia',
     estado: 'GO',
-    lat: -16.6864,
-    lon: -49.2643,
-    hspMensal: [5.18, 5.41, 5.28, 5.15, 5.01, 4.88, 5.04, 5.52, 5.74, 5.96, 5.61, 5.29]
+    lat: -16.701,
+    lon: -49.349,
+    hspMensal: [5.01, 5.27, 5.22, 5.49, 5.61, 5.59, 5.71, 6.45, 5.79, 5.43, 4.99, 4.97]
   },
   'rio-verde-go': {
     cidade: 'Rio Verde',
@@ -142,24 +149,54 @@ export const SOLAR_DATA: Record<string, SolarData> = {
 // ============================================================================
 
 /**
- * Projeta a geração mensal de energia solar (12 meses)
- * @param cidade - Identificador da cidade (ex: 'anapolis-go')
- * @param potenciaKwp - Potência do sistema em kWp
- * @param performanceRate - Taxa de performance (padrão: 0.75 = 75%)
- * @returns Array com geração mensal em kWh para 12 meses
+ * Normaliza nome de cidade da proposta para chave SOLAR_DATA.
+ * Ex.: "Goiânia/GO", "Anapolis" → goiania-go / anapolis-go
+ */
+export function resolveSolarCidadeKey(cidadeRaw?: string): string {
+  const n = (cidadeRaw || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+
+  const keys = Object.keys(SOLAR_DATA);
+  const hit = keys.find((k) => {
+    const base = k.replace(/-go$|-sp$|-rj$|-mg$|-df$|-pr$|-rs$|-pe$|-ba$|-ce$|-am$|-pa$/, '');
+    return n.includes(base) || base.includes(n.slice(0, 6));
+  });
+  return hit || 'goiania-go';
+}
+
+/**
+ * Projeta geração mensal com dias fixos 30,4 (média do card / rotinas do projeto).
  */
 export function projectMonthlyGeneration(
   cidade: string,
   potenciaKwp: number,
   performanceRate: number = 0.75
 ): number[] {
-  // Normalizar identificador da cidade
-  const cidadeKey = cidade.toLowerCase().trim();
-  const solarData = SOLAR_DATA[cidadeKey] || SOLAR_DATA['goiania-go']; // Fallback para Goiânia
-  
-  // Calcular geração mensal
-  return solarData.hspMensal.map(hsp =>
+  const cidadeKey = resolveSolarCidadeKey(cidade);
+  const solarData = SOLAR_DATA[cidadeKey] || SOLAR_DATA['goiania-go'];
+
+  return solarData.hspMensal.map((hsp) =>
     Math.round(potenciaKwp * hsp * 30.4 * performanceRate)
+  );
+}
+
+/**
+ * Projeção sazonal CRESESB: Geração_mês = HSP_mês × kWp × PR × dias_do_mês
+ * Usar no gráfico do HTML do cliente.
+ */
+export function projectMonthlyGenerationCresesb(
+  cidade: string,
+  potenciaKwp: number,
+  performanceRate: number = 0.78
+): number[] {
+  const cidadeKey = resolveSolarCidadeKey(cidade);
+  const solarData = SOLAR_DATA[cidadeKey] || SOLAR_DATA['goiania-go'];
+
+  return solarData.hspMensal.map((hsp, i) =>
+    Math.round(hsp * potenciaKwp * performanceRate * DIAS_POR_MES_CRESESB[i])
   );
 }
 
@@ -221,7 +258,7 @@ export function projectAnnualGeneration(
  * @returns Dados solares da cidade ou null se não encontrado
  */
 export function getSolarDataByCidade(cidade: string): SolarData | null {
-  const cidadeKey = cidade.toLowerCase().trim();
+  const cidadeKey = resolveSolarCidadeKey(cidade);
   return SOLAR_DATA[cidadeKey] || null;
 }
 

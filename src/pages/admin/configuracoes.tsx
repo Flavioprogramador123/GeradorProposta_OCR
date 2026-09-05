@@ -337,6 +337,31 @@ export default function Configuracoes() {
               </div>
             </div>
 
+            {/* Catálogo SOOLLAR — manutenção esporádica */}
+            <div className="admin-surface p-4 mb-6">
+              <h2 className="text-sm font-semibold text-slate-700 mb-1">Manutenção · Catálogo SOOLLAR</h2>
+              <p className="text-xs text-slate-500 mb-3">
+                Uso eventual: captura de preços, conferência por CD e cadastro de equipamentos.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/admin/soollar-captura" legacyBehavior>
+                  <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200">
+                    🛰️ Captura
+                  </a>
+                </Link>
+                <Link href="/admin/v3/precos" legacyBehavior>
+                  <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200">
+                    💰 Preços por CD
+                  </a>
+                </Link>
+                <Link href="/admin/v3/equipamentos" legacyBehavior>
+                  <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 border border-stone-200">
+                    🔧 Equipamentos
+                  </a>
+                </Link>
+              </div>
+            </div>
+
             <div className="mb-6">
               <AdminThemePicker />
             </div>

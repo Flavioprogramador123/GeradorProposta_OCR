@@ -219,7 +219,28 @@ function seedRegrasIfEmpty(db: Database) {
     {
       chave: 'cabo_25m_por_string',
       valor_json: '1',
-      descricao: 'String: 1 rolo vermelho + 1 preto de 25 m por string',
+      descricao:
+        'String: 1 bola vermelha + 1 preta de 25 m por string (par = nº de strings). Strings por kW: ver estimarStringsInversor',
+    },
+    {
+      chave: 'strings_por_kw_tabela',
+      valor_json: JSON.stringify({
+        '<=3.5': 1,
+        '6-8': 2,
+        'demais_<=25': 4,
+        '<=36': 6,
+        '<=49': 8,
+        '<=55': 12,
+        '<=65': 18,
+        '>65': 24,
+        nota: 'Orçamento aproximado por potência CA; despreza modelo/MPPT; atalho 6–8 kW = 2 strings',
+      }),
+      descricao: 'Tabela de strings por potência CA (documentação / auditoria)',
+    },
+    {
+      chave: 'inversor_marcas_preferencia',
+      valor_json: JSON.stringify(['SAJ', 'DEye']),
+      descricao: 'Preferência de marca na proposta automática (4a)',
     },
     {
       chave: 'mc4_pares_por_kit',

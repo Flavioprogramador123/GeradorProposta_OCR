@@ -447,7 +447,9 @@ export default function GeradorRapido() {
       
       setLoading(false);
 
-      alert(`✅ Proposta carregada com sucesso!\n\nCliente: ${propostaData.cliente?.nome || 'N/A'}\nSistemas válidos: ${orcamentosValidos.length} de ${orcamentosCarregados.length}\n\nVocê pode editar e gerar nova versão.`);
+      console.log(
+        `✅ Proposta carregada: ${propostaData.cliente?.nome || 'N/A'} · ${orcamentosValidos.length}/${orcamentosCarregados.length} sistemas`
+      );
     } catch (error) {
       console.error('❌ Erro ao carregar proposta:', error);
       alert(`❌ Erro ao carregar proposta do cliente ${clienteSlug}.\n\nVerifique se a proposta existe.`);
@@ -567,8 +569,8 @@ export default function GeradorRapido() {
 
           setOrcamentos(lista);
           localStorage.removeItem('v3-gerador-bridge');
-          alert(
-            `✅ Bridge V3: ${lista.length} orçamento(s) carregado(s).\n\n${dados.origem || ''}\n\nClique em Calcular para ver PIX (mesma pdespesa).`
+          console.log(
+            `✅ Bridge V3: ${lista.length} orçamento(s) · ${dados.origem || ''}`
           );
         } catch (error) {
           console.error('Erro bridge V3:', error);
@@ -609,7 +611,7 @@ export default function GeradorRapido() {
           localStorage.removeItem('orcamento-reaproveitar');
 
           // Mostrar mensagem de sucesso
-          alert(`✅ Orçamento reaproveitado!\n\n${dados.origem}\n\nVocê pode agora:\n- Preencher os dados do novo cliente\n- Adicionar/remover orçamentos\n- Calcular e gerar proposta`);
+          console.log('✅ Orçamento reaproveitado:', dados.origem);
         } catch (error) {
           console.error('Erro ao reaproveitar orçamento:', error);
           alert('❌ Erro ao carregar orçamento. Tente novamente.');
@@ -648,7 +650,7 @@ export default function GeradorRapido() {
           localStorage.removeItem('orcamentos-reaproveitar-todos');
           
           // Mostrar mensagem de sucesso
-          alert(`✅ ${dados.quantidadeTotal} orçamento(s) reaproveitado(s)!\n\n${dados.origem}\n\nVocê pode agora:\n- Preencher os dados do NOVO cliente\n- Adicionar/remover orçamentos\n- Calcular e gerar proposta`);
+          console.log(`✅ ${dados.quantidadeTotal} orçamento(s) reaproveitado(s):`, dados.origem);
         } catch (error) {
           console.error('Erro ao reaproveitar orçamentos:', error);
           alert('❌ Erro ao carregar orçamentos. Tente novamente.');
@@ -1278,9 +1280,12 @@ consolidado_orcamentos_distribuidores:
       if (response.ok) {
         const data = await response.json();
         
-        // Verificar se foi salva no Supabase
+        // Verificar se foi salva no Supabase (só log — alert bloqueava a nova aba)
         if (!data.supabase?.salva) {
-          alert(`⚠️ ATENÇÃO: Proposta gerada mas NÃO foi salva no banco de dados!\n\n${data.supabase?.message || 'Erro desconhecido'}\n\nA proposta pode não estar disponível publicamente.`);
+          console.warn(
+            '⚠️ Proposta gerada mas NÃO salva no banco:',
+            data.supabase?.message || 'Erro desconhecido'
+          );
         }
 
         // ✅ ATUALIZAR SLUG ATUAL se foi criada nova proposta
@@ -1289,7 +1294,7 @@ consolidado_orcamentos_distribuidores:
         }
 
         // ✅ ABRIR PROPOSTA DIRETAMENTE NA URL CORRETA (sem about:blank)
-        const propostaUrl = data.slug ? `/proposta/${data.slug}` : null;
+        const propostaUrl = data.slug ? `/proposta/${data.slug}?from=admin` : null;
 
         if (propostaUrl) {
           // Abrir proposta em nova aba IMEDIATAMENTE com URL correta
@@ -1307,11 +1312,7 @@ consolidado_orcamentos_distribuidores:
             : `✅ Proposta gerada!\n\n📁 Arquivo: ${data.arquivo}\n🔗 Link: ${propostaUrl}\n⚠️ Não foi salva no banco de dados\n\n✨ A proposta foi aberta em nova aba!`;
 
           console.log(mensagemSucesso);
-          
-          // Mostrar alert apenas se não foi atualização (para não incomodar)
-          if (!slugAtual || salvarComo) {
-            alert(mensagemSucesso);
-          }
+          // Sem alert de sucesso — bloqueava a aba da proposta aberta acima
         } else {
           alert('❌ Erro: Slug da proposta não foi gerado');
         }
@@ -1333,7 +1334,7 @@ consolidado_orcamentos_distribuidores:
   return (
     <>
       <Head>
-        <title>Gerador Rápido - PIENG Solar</title>
+        <title>Proposta manual - PIENG Solar</title>
         <meta name="description" content="Gerador rápido de propostas solares" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
@@ -1346,7 +1347,7 @@ consolidado_orcamentos_distribuidores:
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-3xl font-bold admin-title mb-2">
-                  ⚡ Gerador Rápido PIENG
+                  📝 Proposta manual
                 </h1>
                 <p className="admin-subtitle">
                   Geração rápida de propostas solares
@@ -1647,8 +1648,7 @@ consolidado_orcamentos_distribuidores:
                           
                           // Abrir o Sistema do Consultor
                           window.open(`/admin/orcamentos/${slug}/consultor`, '_blank');
-                          
-                          alert(`✅ Orçamentos enviados para o Sistema do Consultor!\n\nID: ${slug}`);
+                          console.log('✅ Orçamentos enviados ao consultor:', slug);
                         } catch (error) {
                           console.error('Erro ao enviar para consultor:', error);
                           alert('❌ Erro ao enviar orçamentos. Tente novamente.');
@@ -2083,7 +2083,7 @@ consolidado_orcamentos_distribuidores:
 
             {/* Footer */}
             <div className="text-center text-gray-500 text-sm">
-              <p>PIENG Solar - Gerador Rápido v2.0 | Next.js + Vercel</p>
+              <p>PIENG Solar - Proposta manual | Next.js + Vercel</p>
             </div>
           </div>
         </div>

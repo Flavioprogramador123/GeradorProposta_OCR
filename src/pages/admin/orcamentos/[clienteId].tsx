@@ -76,6 +76,7 @@ export default function GerenciarOrcamentos() {
   const [showBuscarModal, setShowBuscarModal] = useState(false);
   const [todosOrcamentosDisponiveis, setTodosOrcamentosDisponiveis] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [propostaSlugAnalytics, setPropostaSlugAnalytics] = useState<string | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export default function GerenciarOrcamentos() {
       if (propostaResponse.ok) {
         const propostaData = await propostaResponse.json();
         if (propostaData.slug) {
+          setPropostaSlugAnalytics(propostaData.slug);
           const analyticsResponse = await fetch(`/api/admin/analytics/${propostaData.slug}`);
           if (analyticsResponse.ok) {
             const analyticsData = await analyticsResponse.json();
@@ -333,10 +335,11 @@ export default function GerenciarOrcamentos() {
 
       if (response.ok) {
         const result = await response.json();
-        alert('✅ Proposta gerada com sucesso!');
-
-        // Abrir a proposta em nova aba
-        window.open(`/proposta/${result.slug}`, '_blank');
+        // Abrir primeiro — alert de sucesso bloqueava a nova aba
+        if (result.slug) {
+          window.open(`/proposta/${result.slug}?from=admin`, '_blank');
+        }
+        console.log('✅ Proposta gerada:', result.slug);
       } else {
         const errorData = await response.json();
         alert(`❌ Erro: ${errorData.error || errorData.message || 'Erro ao gerar proposta'}`);
@@ -417,7 +420,23 @@ export default function GerenciarOrcamentos() {
             {/* Analytics e Alertas */}
             {analytics && analytics.estatisticas && (
               <div className="admin-surface p-6 mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">📊 Analytics da Proposta</h3>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800">📊 Analytics da Proposta</h3>
+                  {(propostaSlugAnalytics || (typeof clienteId === 'string' && clienteId)) && (
+                    <Link href={`/admin/analytics/${propostaSlugAnalytics || clienteId}`} legacyBehavior>
+                      <a className="text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg">
+                        Ver página completa →
+                      </a>
+                    </Link>
+                  )}
+                </div>
+
+                {analytics.estatisticas.totalVisualizacoes === 0 && (
+                  <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    📭 Proposta ainda <strong>não foi aberta</strong> pelo cliente. O status no Admin fica em
+                    &quot;Não aberta&quot; até o primeiro acesso em <code className="text-xs">/proposta/…</code>.
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <div className="bg-blue-50 rounded-lg p-4">

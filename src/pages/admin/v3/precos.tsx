@@ -298,10 +298,10 @@ export default function AdminV3Precos() {
                   <ul className="list-disc pl-5 space-y-1 text-gray-600">
                     <li>
                       <span className="text-amber-700">Importar dumps temp/</span> — lê HTML/JSON em{' '}
-                      <code className="text-sky-700">temp/</code>, sem Chromium.
+                      <code className="text-sky-700">temp/</code>, sem abrir o navegador.
                     </li>
                     <li>
-                      <span className="text-teal-700">Scraping live (3 CDs)</span> — Playwright no
+                      <span className="text-teal-700">Scraping live (3 CDs)</span> — captura no
                       SOOLLAR (Aeroporto + Matriz + Feira). Precisa{' '}
                       <code className="text-sky-700">.env</code>.
                     </li>
@@ -506,7 +506,7 @@ export default function AdminV3Precos() {
                       </label>
                     </div>
                     <p className="text-xs text-gray-600">
-                      O scrape precisa do PC ligado (Chromium + .env). Salve a agenda e registre a tarefa
+                      O scrape precisa do PC ligado (navegador + .env). Salve a agenda e registre a tarefa
                       no Windows.
                     </p>
                     <div className="grid md:grid-cols-3 gap-3">

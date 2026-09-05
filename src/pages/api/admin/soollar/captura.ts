@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })(),
       fluxo: [
-        'Chromium (Playwright) no seu PC — headless desmarcado = você vê o browser',
+        'Captura no PC — Headless desmarcado = você vê o navegador',
         'login → cd-selector-trigger → Aeroporto / Matriz / Feira',
         `varre seções: ${SOOLLAR_SECOES_CAPTURA.join(', ')} (com paginação)`,
         'preço só se estoque > mínimo (módulos/demais em /admin/configuracoes)',
@@ -90,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const payload = {
       ok: false,
       message:
-        'Captura SOOLLAR (Playwright/Chromium) só roda no PC local. No Vercel use localhost:3000/admin/soollar-captura.',
+        'Captura SOOLLAR só roda no PC local. No Vercel use localhost:3000/admin/soollar-captura.',
       serverless: true,
     };
     if (req.body?.stream !== false) {

@@ -477,7 +477,7 @@ export default function AdminV3OrcamentoBase() {
 
   const irParaGerador = async () => {
     if (!cards.length) {
-      setMsg('Inclua ao menos um card antes de abrir o Gerador');
+      setMsg('Inclua ao menos um card antes de abrir a Proposta manual');
       return;
     }
     try {
@@ -517,7 +517,7 @@ export default function AdminV3OrcamentoBase() {
       });
 
       const payload = {
-        origem: `V3 3a semi-auto · ${cards.length} kit(s)`,
+        origem: `V3 Proposta por kits · ${cards.length} kit(s)`,
         quantidadeTotal: cards.length,
         cliente: {
           nomeCliente: shared.nomeCliente || titulo,
@@ -538,7 +538,7 @@ export default function AdminV3OrcamentoBase() {
       localStorage.setItem(V3_GERADOR_STORAGE_KEY, JSON.stringify(payload));
       window.open('/gerador-rapido?modo=v3', '_blank');
       setMsg(
-        `3a → Gerador (5a): ${cards.length} kit(s). Defaults: HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
+        `Proposta por kits → Proposta manual: ${cards.length} kit(s). Defaults: HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
       );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
@@ -559,17 +559,24 @@ export default function AdminV3OrcamentoBase() {
   return (
     <>
       <Head>
-        <title>Orçamento base — PIENG</title>
+        <title>Proposta por kits — PIENG</title>
       </Head>
       <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold admin-title">Orçamento base</h1>
+              <h1 className="text-3xl font-bold admin-title">Proposta por kits</h1>
               <p className="text-sm admin-subtitle">
-                Semi-automático: você escolhe módulo/inversor, ajusta qtds e envia ao{' '}
-                <strong>Gerador (5a)</strong>. A 4a é só dimensionamento automático.
+                Monta kits do catálogo (módulo/inversor + qtds) e envia à{' '}
+                <Link href="/gerador-rapido" className="text-sky-400 hover:underline">
+                  Proposta manual
+                </Link>
+                . Dimensionamento por faixa fica na{' '}
+                <Link href="/admin/v3/proposta-auto" className="text-sky-400 hover:underline">
+                  Proposta automática
+                </Link>
+                .
               </p>
             </div>
             <div className="flex gap-3">
@@ -690,7 +697,7 @@ export default function AdminV3OrcamentoBase() {
               onClick={salvar}
               className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
             >
-              {cardAtivo ? 'Salvar card ativo' : 'Salvar orçamento base'}
+              {cardAtivo ? 'Salvar card ativo' : 'Salvar proposta por kits'}
             </button>
             <button
               type="button"
@@ -698,7 +705,7 @@ export default function AdminV3OrcamentoBase() {
               onClick={irParaGerador}
               className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
             >
-              Abrir no Gerador 5a ({cards.length})
+              Abrir na Proposta manual ({cards.length})
             </button>
           </div>
 
@@ -913,7 +920,7 @@ export default function AdminV3OrcamentoBase() {
 
           <div className="admin-surface border border-gray-200 p-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Salvos no SQLite</h2>
-            {lista.length === 0 && <p className="text-xs text-gray-500">Nenhum orçamento base ainda.</p>}
+            {lista.length === 0 && <p className="text-xs text-gray-500">Nenhuma proposta por kits salva ainda.</p>}
             <ul className="space-y-2 text-sm">
               {lista.map((o) => (
                 <li key={o.id} className="flex justify-between gap-3 border-b border-gray-200 pb-2">

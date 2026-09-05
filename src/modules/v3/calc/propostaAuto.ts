@@ -113,6 +113,24 @@ type InvRow = {
   estoque: number | null;
 };
 
+/** Preferência na 4a: SAJ → DEye → demais (orçamento aproximado) */
+export const INVERSOR_MARCAS_PREFERENCIA = ['SAJ', 'DEYE', 'D-EYE'] as const;
+
+function rankMarcaInversor(marca: string | null | undefined, nome: string | null | undefined): number {
+  const blob = `${marca || ''} ${nome || ''}`.toUpperCase();
+  for (let i = 0; i < INVERSOR_MARCAS_PREFERENCIA.length; i++) {
+    if (blob.includes(INVERSOR_MARCAS_PREFERENCIA[i])) return i;
+  }
+  return INVERSOR_MARCAS_PREFERENCIA.length;
+}
+
+function sortInversoresPreferencia(a: InvRow, b: InvRow): number {
+  const ra = rankMarcaInversor(a.marca, a.nome);
+  const rb = rankMarcaInversor(b.marca, b.nome);
+  if (ra !== rb) return ra - rb;
+  return a.potencia_kw - b.potencia_kw;
+}
+
 function listModulosComPreco(cdId: number): ModRow[] {
   const db = getV3Db();
   const rows = db
@@ -138,15 +156,15 @@ function listModulosComPreco(cdId: number): ModRow[] {
 
 function listInversoresComPreco(cdId: number): InvRow[] {
   const db = getV3Db();
-  return db
+  const rows = db
     .prepare(
       `SELECT e.id, e.sku_interno, e.nome, e.marca, e.categoria, e.potencia_kw, p.preco_custo, p.estoque
        FROM equipamentos e
        JOIN precos_cd p ON p.equipamento_id = e.id AND p.cd_id = ? AND p.valido_estoque = 1
-       WHERE e.ativo = 1 AND e.categoria IN ('inversor','microinversor') AND e.potencia_kw IS NOT NULL
-       ORDER BY e.categoria, e.potencia_kw`
+       WHERE e.ativo = 1 AND e.categoria IN ('inversor','microinversor') AND e.potencia_kw IS NOT NULL`
     )
     .all(cdId) as InvRow[];
+  return rows.sort(sortInversoresPreferencia);
 }
 
 function findModulo(cdId: number, sku: string, fallback: ModRow[]): ModRow | null {
@@ -334,10 +352,12 @@ function dimensionarString(
   }
 
   const limiarInv = pot * 0.75;
+  // Preferência SAJ → DEye → demais; entre iguais, menor kW que cubra o limiar
+  const candidatos = [...strings].sort(sortInversoresPreferencia);
   const inv =
-    strings.find((i) => i.potencia_kw >= limiarInv) ||
-    strings[strings.length - 1] ||
-    strings[0];
+    candidatos.find((i) => i.potencia_kw >= limiarInv) ||
+    candidatos[candidatos.length - 1] ||
+    candidatos[0];
   if (!inv) return null;
   return { qtdMod, inv, pot, ger };
 }

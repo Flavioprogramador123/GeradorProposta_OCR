@@ -23,37 +23,39 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({ systems }) => 
         📊 Comparação Detalhada dos Sistemas
       </h3>
       <p className="pieng-table-scroll-hint">
-        👆 Deslize para o lado para ver todas as colunas
+        👆 Deslize na tabela ou use a barra abaixo para ver todas as colunas
       </p>
-      <div className="overflow-x-auto pieng-table-wrapper">
-        <table className="pieng-table min-w-[500px]">
-          <thead>
-            <tr>
-              <th>Sistema</th>
-              <th>Potência</th>
-              <th>PIX</th>
-              <th>12x no cartão</th>
-              <th>18x Cartão</th>
-              <th>Geração/Mês</th>
-              <th>Payback</th>
-              <th>TIR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {systems.map((system, index) => (
-              <tr key={index} className={system.isRecommended ? 'pieng-table-recommended' : ''}>
-                <td className="font-semibold">{system.nome}</td>
-                <td>{system.potencia}</td>
-                <td className="font-bold text-pieng-primary">{system.pix}</td>
-                <td>{system.parcela12x}</td>
-                <td>{system.parcela18x}</td>
-                <td>{system.geracao}</td>
-                <td className="font-bold text-pieng-success">{system.payback}</td>
-                <td className="font-bold text-pieng-secondary">{system.tir}</td>
+      <div className="pieng-table-scroll-shell">
+        <div className="overflow-x-auto pieng-table-wrapper">
+          <table className="pieng-table min-w-[640px]">
+            <thead>
+              <tr>
+                <th>Sistema</th>
+                <th>Potência</th>
+                <th>PIX</th>
+                <th>12x no cartão</th>
+                <th>18x Cartão</th>
+                <th>Geração/Mês</th>
+                <th>Payback</th>
+                <th>TIR</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {systems.map((system, index) => (
+                <tr key={index} className={system.isRecommended ? 'pieng-table-recommended' : ''}>
+                  <td className="font-semibold">{system.nome}</td>
+                  <td>{system.potencia}</td>
+                  <td className="font-bold text-pieng-primary">{system.pix}</td>
+                  <td>{system.parcela12x}</td>
+                  <td>{system.parcela18x}</td>
+                  <td>{system.geracao}</td>
+                  <td className="font-bold text-pieng-success">{system.payback}</td>
+                  <td className="font-bold text-pieng-secondary">{system.tir}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );

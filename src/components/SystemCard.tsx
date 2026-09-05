@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { formatBRL } from '@/lib/formatBRL';
 import { tagEconomiaPix } from '@/lib/tabelaJurosCartao';
 import { FormasPagamentoModal } from '@/components/FormasPagamentoModal';
+import {
+  buildPerformanceMensalView,
+  parseCoberturaPct,
+  parseGeracaoKwh,
+  parseMoneyLike,
+  parseTarifaKwh,
+} from '@/lib/performanceMensalCopy';
 
 interface SystemCardProps {
   titulo: string;
@@ -23,6 +30,10 @@ interface SystemCardProps {
   tir: string;
   isRecommended?: boolean;
   badge?: string;
+  /** Tarifa R$/kWh (cliente / configs) para abatimento na conta */
+  tarifaEnergia?: number | string;
+  /** PR usado no cálculo da geração (ex.: 0,78) */
+  performanceRate?: number;
 }
 
 export const SystemCard: React.FC<SystemCardProps> = ({
@@ -43,15 +54,25 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   tir,
   isRecommended = false,
   badge,
+  tarifaEnergia,
+  performanceRate,
 }) => {
   const [payOpen, setPayOpen] = useState(false);
 
-  // Coerência: % do card = (à vista − PIX) / PIX, arredondado — mesma regra da maquininha.
-  // Ex.: mult 1,117943 → ~12%; mult 1,11 → 11%. Sempre alinhado aos valores exibidos.
   const tagCoerente =
     pavista != null && pavista > 0 && precoPixDecimal > 0
       ? tagEconomiaPix(precoPixDecimal, pavista)
       : tagDesconto || tagEconomiaPix(precoPixDecimal, precoPixDecimal);
+
+  const perf = buildPerformanceMensalView({
+    geracaoKwh: parseGeracaoKwh(geracao),
+    coberturaPct: parseCoberturaPct(cobertura),
+    economiaMensal: parseMoneyLike(economia),
+    paybackTexto: payback,
+    tirTexto: tir,
+    tarifaKwh: parseTarifaKwh(tarifaEnergia),
+    performanceRateRef: performanceRate,
+  });
 
   return (
     <div className={`pieng-system-card ${isRecommended ? 'pieng-system-recommended' : ''}`}>
@@ -91,19 +112,30 @@ export const SystemCard: React.FC<SystemCardProps> = ({
           </div>
         </div>
 
-        <div className="pieng-performance-box">
-          <strong>Performance Mensal</strong>
-          <br />
-          Geração: {geracao} | Cobertura:{' '}
-          {typeof cobertura === 'number'
-            ? `${Math.round(cobertura)}%`
-            : typeof cobertura === 'string' && cobertura.includes('%')
-              ? cobertura
-              : `${Math.round(parseFloat(String(cobertura)) || 0)}%`}
-          <br />
-          Economia: {economia} | Payback: {payback}
-          <br />
-          TIR: {tir} ao ano
+        <div className="pieng-performance-box text-sm leading-relaxed space-y-2.5">
+          <div className="font-bold text-base mb-1">{perf.titulo}</div>
+          <div>
+            <div className="font-semibold text-slate-800">Geração estimada média entre:</div>
+            <div className="tabular-nums whitespace-nowrap">{perf.geracaoFaixa}</div>
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800">Abatimento mensal na conta de:</div>
+            <div className="tabular-nums whitespace-nowrap">{perf.abatimentoMensal}</div>
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800">Abatimento anual estimado de:</div>
+            <div className="tabular-nums whitespace-nowrap">{perf.abatimentoAnual}</div>
+          </div>
+          <div className="pt-2 border-t border-green-200/80 mt-1 space-y-0.5">
+            <div>
+              <strong>Payback:</strong>{' '}
+              <span className="whitespace-nowrap">{perf.payback}</span>
+            </div>
+            <div>
+              <strong>TIR:</strong>{' '}
+              <span className="whitespace-nowrap">{perf.tir}</span>
+            </div>
+          </div>
         </div>
 
         <button

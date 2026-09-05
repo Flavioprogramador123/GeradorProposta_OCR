@@ -617,7 +617,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         bannerUrgencia: "Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
         dataGeracao: dataAtual,
-        dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
+        dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        performanceRate: config.performanceRate || configSistema.performanceRate || 0.78,
+        config: {
+          performanceRate: config.performanceRate || configSistema.performanceRate || 0.78,
+          hsp: config.hsp || configSistema.hspPadrao || 5.21,
+        },
       };
 
       // 🚀 GERAR TEMPLATE PADRÃO usando template_proposta_pieng.html

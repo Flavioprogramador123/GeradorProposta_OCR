@@ -60,24 +60,28 @@ interface ConfiguracaoSistema {
 
 const ESTADOS_PADRAO = ['GO', 'DF', 'MG', 'MT', 'MS', 'BA', 'TO'];
 const HSP_POR_ESTADO_PADRAO: { [key: string]: number } = {
-  GO: 5.21,
-  DF: 5.08,
-  MG: 4.95,
+  GO: 5.45,
+  DF: 5.48,
+  MG: 5.45,
   MT: 5.43,
-  MS: 5.12,
-  BA: 5.67,
+  MS: 5.32,
+  BA: 5.99,
   TO: 5.34,
 };
 
+/**
+ * Defaults do botão "Restaurar padrão" em `/admin/configuracoes`.
+ * Montagem V3 (strings/cabos/marcas): ver `kitEngine.ts` + `modules/v3/README.md` — não entra nesta tela.
+ */
 const CONFIG_PADRAO: ConfiguracaoSistema = {
-  performanceRate: 0.75,
-  hspPadrao: 5.21,
+  performanceRate: 0.78,
+  hspPadrao: 5.45,
   margemSeguranca: 1.1,
-  eficienciaInversor: 0.95,
+  eficienciaInversor: 0.98,
   bonusMicroPercent: 5,
   diasMes: 30.4,
   placasPorMicro: 4,
-  estoqueMinimoSoolar: 20,
+  estoqueMinimoSoolar: 10,
   estoqueMinimoOutros: 5,
 
   taxaSelic: 11.25,
@@ -103,8 +107,8 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   fator18x: 1 / 1.179384,
 
   pdespesaFixo: 3000,
-  pdespesaVariavel: 22,
-  fretePadrao: 0,
+  pdespesaVariavel: 30,
+  fretePadrao: 400,
 
   textoEconomiaAnual: 'Economia anual de R$ {valorEconomia} na conta de energia',
   textoPayback: 'Investimento se paga em apenas {mesesPayback} meses',
