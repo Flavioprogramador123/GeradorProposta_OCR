@@ -9,10 +9,24 @@
 ### **v2.4.6** - 05/09/2026 ✅ **ATUAL**
 **🔒 Restrição cliente — dados de marketing/precificação:**
 - ✅ Removidos do card público textos que explicavam mecânica interna (“à vista = total das 12×”, “juros da maquininha embutidos”, “total = à vista”)
-- ✅ Regra documentada em `RESTRICOES_CLIENTE.md` — **jamais** expor ao cliente fórmula/maquininha/markup; só valores finais + benefício PIX
+- ✅ Regra documentada em `RESTRICOES_CLIENTE.md` + `CLAUDE.md` + `.cursor/rules/restricoes-cliente.mdc`
 - ✅ Admin continua podendo ver premissas em `/admin/configuracoes`
+- ✅ Propostas já geradas (ex.: `/proposta/cliente-padrao-05-09-2026`) herdam o fix via `SystemCard` no deploy — sem regenerar JSON
 
-**📦 Arquivos:** `SystemCard.tsx`, `templateEngine.ts`, `templateEngineVariants.ts`, `RESTRICOES_CLIENTE.md`
+**☁️ Serverless / Vercel:**
+- ✅ Paths graváveis em `/tmp` (`serverlessFs.ts`, V3 em `/tmp/pieng-v3`) — corrige `ENOENT mkdir /var/task/data/v3`
+- ✅ Schema SQLite V3 embutido no bundle; `better-sqlite3` opcional
+- ✅ Guards: captura SOOLLAR / scrape / processar-modular / local-db / Python → não quebram a nuvem (503 ou fallback JS)
+- ✅ Captura SOOLLAR = **só localhost**; Vercel consome catálogo
+
+**📦 Catálogo V3 → Supabase:**
+- ✅ Tabela `v3_catalog_snapshot` (`sql/6_v3_catalog_snapshot.sql`)
+- ✅ Push local: `node scripts/v3-push-catalog.js` ou botão **Publicar no Supabase** em `/admin/v3/precos`
+- ✅ Vercel hidrata `/tmp` via `ensureV3CatalogHydrated` nas APIs V3
+- ✅ Limpeza 680/670Wp: só **Feira de Santana** (removidos do Aeroporto); sem fallback cross-CD em módulo/inversor
+- ✅ Fluxo diário desejado: scrape PC → push Supabase → Vercel vê estoque atualizado (push automático pós-captura = próximo passo)
+
+**📦 Arquivos:** `SystemCard.tsx`, `templateEngine*.ts`, `RESTRICOES_CLIENTE.md`, `serverlessFs.ts`, `catalogSnapshot.ts`, `sqlite.ts`, `catalog-sync.ts`, `sql/6_*.sql`, scripts `v3-push-*` / `v3-limpar-*`
 
 ---
 
