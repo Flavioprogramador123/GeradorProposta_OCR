@@ -2,10 +2,12 @@
  * Configurações Rápidas compartilhadas entre:
  * - /gerador-rapido (Configurações Rápidas)
  * - /admin/v3/proposta-auto (4a)
+ * - /admin/v3/orcamento-base (5a)
  *
  * Prioridade ao carregar:
- *   defaults → sessão localStorage (cliente) → /admin/configuracoes (comercial/técnico)
- * Assim HSP / tarifa / pdespesa / frete sempre refletem a tela de Configurações.
+ *   defaults → /admin/configuracoes (semente) → sessão localStorage
+ * Assim a 1ª visita pega HSP/pdespesa/frete do admin; ajustes na 4a/gerador
+ * (sessão) não são apagados ao abrir a Proposta manual.
  */
 
 export const CONFIG_RAPIDA_STORAGE_KEY = 'pieng-config-rapida';
@@ -33,7 +35,7 @@ export const CONFIG_RAPIDA_DEFAULTS: ConfigRapidaShared = {
   cidadeCliente: 'Anápolis/GO',
   consumoMensal: 600,
   tipoImovel: 'Residencial',
-  hsp: 5.21,
+  hsp: 5.45,
   tarifa: 1.17,
   pdespesaFixo: 3000,
   pdespesaVariavel: 22,
@@ -120,23 +122,17 @@ export function saveConfigRapida(partial: Partial<ConfigRapidaShared>): ConfigRa
 }
 
 /**
- * Merge: defaults ← sessão (cliente/faixa) ← admin (HSP/tarifa/pdespesa/frete…).
- * Comercial/técnico de /admin/configuracoes sempre prevalece na carga.
- * Nome/cidade/consumo/faixa continuam da sessão compartilhada.
+ * Merge: defaults ← admin (semente) ← sessão.
+ * Edits da 4a / gerador / bridge V3 prevalecem sobre /admin/configuracoes.
  */
 export function resolveConfigRapida(admin?: Record<string, unknown> | null): ConfigRapidaShared {
   const fromAdmin = configRapidaFromAdmin(admin);
   const fromStore = loadConfigRapida();
-  const merged: ConfigRapidaShared = {
+  return {
     ...CONFIG_RAPIDA_DEFAULTS,
-    ...(fromStore || {}),
     ...fromAdmin,
+    ...(fromStore || {}),
   };
-  // Garante frete mesmo se sessão antiga não tinha o campo
-  if (fromAdmin.fretePadrao != null) merged.fretePadrao = fromAdmin.fretePadrao;
-  if (fromAdmin.pdespesaFixo != null) merged.pdespesaFixo = fromAdmin.pdespesaFixo;
-  if (fromAdmin.pdespesaVariavel != null) merged.pdespesaVariavel = fromAdmin.pdespesaVariavel;
-  return merged;
 }
 
 /** Campos do gerador-rapido que entram no compartilhamento */
@@ -149,6 +145,7 @@ export function pickFromGeradorConfig(config: {
   tarifa?: number;
   pdespesaFixo?: number;
   pdespesaVariavel?: number;
+  fretePadrao?: number;
   performanceRate?: number;
   bonusMicroPercent?: number;
 }): Partial<ConfigRapidaShared> {
@@ -161,6 +158,7 @@ export function pickFromGeradorConfig(config: {
     tarifa: config.tarifa,
     pdespesaFixo: config.pdespesaFixo,
     pdespesaVariavel: config.pdespesaVariavel,
+    fretePadrao: config.fretePadrao,
     performanceRate: config.performanceRate,
     bonusMicroPercent: config.bonusMicroPercent,
   };
@@ -180,6 +178,7 @@ export function applyConfigRapidaToGerador<T extends Record<string, any>>(
     tarifa: shared.tarifa,
     pdespesaFixo: shared.pdespesaFixo,
     pdespesaVariavel: shared.pdespesaVariavel,
+    fretePadrao: shared.fretePadrao,
     performanceRate: shared.performanceRate,
     bonusMicroPercent: shared.bonusMicroPercent,
   };

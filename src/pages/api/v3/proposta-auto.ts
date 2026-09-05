@@ -84,6 +84,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         frete: body.frete != null ? Number(body.frete) : admin?.fretePadrao ?? 0,
         kits_manuais,
         incluir_auto: body.incluir_auto !== false,
+        incluir_micro: body.incluir_micro === true || body.incluir_micro === 'true',
+        incluir_string: body.incluir_string === true || body.incluir_string === 'true',
         comercial: {
           pdespesaFixo:
             body.pdespesaFixo != null ? Number(body.pdespesaFixo) : admin?.pdespesaFixo,

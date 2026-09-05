@@ -55,6 +55,32 @@ export const findBestSystem = (sistemas: SistemaData[]): SistemaData | null => {
          });
 };
 
+/** Sistema com maior geração mensal (kWh) — usado na projeção sazonal. */
+export const findSistemaMaiorGeracao = (sistemas: SistemaData[]): SistemaData | null => {
+  if (!sistemas || sistemas.length === 0) return null;
+
+  const parseGeracao = (s: SistemaData): number => {
+    const g = (s as { geracaoMensal?: number }).geracaoMensal;
+    if (typeof g === 'number' && Number.isFinite(g) && g > 0) return g;
+    const n = parseFloat(String(s.geracao || '').replace(/[^\d,.-]/g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const parsePot = (s: SistemaData): number => {
+    const p = (s as { potTotal?: number }).potTotal;
+    if (typeof p === 'number' && Number.isFinite(p) && p > 0) return p;
+    const n = parseFloat(String(s.potencia || '').replace(/[^\d,.-]/g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  return sistemas.reduce((best, current) => {
+    const gBest = parseGeracao(best);
+    const gCur = parseGeracao(current);
+    if (gCur !== gBest) return gCur > gBest ? current : best;
+    return parsePot(current) > parsePot(best) ? current : best;
+  });
+};
+
 export const calculateInsights = (sistemas: SistemaData[]): {
   paybackMin: string;
   paybackMax: string;

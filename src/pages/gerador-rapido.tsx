@@ -21,6 +21,9 @@ interface Orcamento {
   nome: string;
   distribuidora: string;
   pcusto: number;
+  /** Custo do kit sem frete (V3). Se presente, P.Custo = custo_kit + fretePadrao */
+  custo_kit?: number;
+  frete?: number;
   modulos: number;
   pot_modulo: number;
   marca_modulo: string;
@@ -49,6 +52,7 @@ export default function GeradorRapido() {
     bonusMicroPercent: 5,
     pdespesaFixo: 3000,
     pdespesaVariavel: 22,
+    fretePadrao: 0,
     metodo: 'variavel',
     descontoPix: 10.0,
     fatorParcelado: 1.20,
@@ -458,6 +462,7 @@ export default function GeradorRapido() {
   };
 
   // Carregar configurações do sistema + sessão compartilhada (4a ↔ Gerador)
+  // Sessão (localStorage / bridge V3) prevalece sobre /admin/configuracoes.
   useEffect(() => {
     const carregarConfigSistema = async () => {
       try {
@@ -468,6 +473,7 @@ export default function GeradorRapido() {
           setConfigSistema(configData);
         }
 
+        // Bridge V3 pode já ter gravado pdespesa/frete na sessão — respeitar
         const shared = resolveConfigRapida(configData);
         setConfig((prev) => applyConfigRapidaToGerador(prev, shared));
         setConfigRapidaReady(true);
@@ -476,7 +482,9 @@ export default function GeradorRapido() {
           hsp: shared.hsp,
           tarifa: shared.tarifa,
           pdespesaFixo: shared.pdespesaFixo,
-          fonte: 'admin+localStorage',
+          pdespesaVariavel: shared.pdespesaVariavel,
+          fretePadrao: shared.fretePadrao,
+          fonte: 'sessão>admin',
         });
       } catch (error) {
         console.error('Erro ao carregar configurações:', error);
@@ -503,6 +511,7 @@ export default function GeradorRapido() {
     config.tarifa,
     config.pdespesaFixo,
     config.pdespesaVariavel,
+    config.fretePadrao,
     config.performanceRate,
     config.bonusMicroPercent,
   ]);
@@ -540,32 +549,53 @@ export default function GeradorRapido() {
                 tarifa: dados.cliente.tarifa ?? prev.tarifa,
                 pdespesaFixo: dados.pdespesa?.pdespesaFixo ?? prev.pdespesaFixo,
                 pdespesaVariavel: dados.pdespesa?.pdespesaVariavel ?? prev.pdespesaVariavel,
+                fretePadrao:
+                  dados.fretePadrao != null
+                    ? Number(dados.fretePadrao)
+                    : prev.fretePadrao,
               };
               saveConfigRapida(pickFromGeradorConfig(next));
               return next;
             });
           }
 
-          const lista: Orcamento[] = (dados.orcamentos || []).map((orc: any, index: number) =>
-            syncBonusMicroAuto({
+          const freteBridge =
+            dados.fretePadrao != null ? Math.max(0, Number(dados.fretePadrao) || 0) : null;
+
+          const lista: Orcamento[] = (dados.orcamentos || []).map((orc: any, index: number) => {
+            const freteOrc =
+              orc.frete != null
+                ? Math.max(0, Number(orc.frete) || 0)
+                : freteBridge != null
+                  ? freteBridge
+                  : 0;
+            const precoCheio = Number(orc.precoCusto || orc.valorTotal || 0) || 0;
+            const kit =
+              orc.custo_kit != null
+                ? Math.max(0, Number(orc.custo_kit) || 0)
+                : Math.max(0, precoCheio - freteOrc);
+            const freteCfg = freteBridge != null ? freteBridge : freteOrc;
+            const pcusto = Math.round((kit + freteCfg) * 100) / 100;
+            return syncBonusMicroAuto({
               nome: orc.titulo_v3 || `V3 ${index + 1} - ${orc.fornecedor || 'kit'}`,
               distribuidora: orc.fornecedor || 'V3',
-              pcusto: orc.precoCusto || orc.valorTotal || 0,
+              pcusto,
+              custo_kit: kit,
+              frete: freteCfg,
               modulos: orc.modulos || 0,
               pot_modulo: orc.pot_modulo || 550,
               marca_modulo: orc.marca_modulo || 'Padrão',
               inversores: orc.inversores || 1,
               pot_inv: orc.pot_inv || 2.5,
               marca_inversor: orc.marca_inversor || 'Padrão',
-              // V3 já define o flag; sem travar manual — sync redetecta se faltar
               bonusMicroAtivo:
                 typeof orc.bonusMicroAtivo === 'boolean' ? orc.bonusMicroAtivo : undefined,
               bonusMicroManual: typeof orc.bonusMicroAtivo === 'boolean',
               pdespesa_fixo: dados.pdespesa?.pdespesaFixo ?? config.pdespesaFixo,
               pdespesa_variavel_percent: dados.pdespesa?.pdespesaVariavel ?? config.pdespesaVariavel,
               pdespesa_total: 0,
-            })
-          );
+            });
+          });
 
           setOrcamentos(lista);
           localStorage.removeItem('v3-gerador-bridge');
@@ -739,10 +769,13 @@ export default function GeradorRapido() {
 
     const resultados = orcamentosValidos.map(orc => {
       const potTotal = (orc.modulos * orc.pot_modulo) / 1000;
-      // CALCULADORA DINÂMICA PARA CONSISTÊNCIA TOTAL
-      const pdespesaDinamica = config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
-      const totalFinalTabela = orc.pcusto + pdespesaDinamica; // MESMO VALOR DA TABELA
-      const precos = calcularPrecos(totalFinalTabela); // PIX = TOTAL DA TABELA
+      const pcustoEfetivo =
+        orc.custo_kit != null
+          ? Math.round((orc.custo_kit + Math.max(0, config.fretePadrao || 0)) * 100) / 100
+          : orc.pcusto;
+      const pdespesaDinamica = config.pdespesaFixo + (pcustoEfetivo * config.pdespesaVariavel) / 100;
+      const totalFinalTabela = pcustoEfetivo + pdespesaDinamica;
+      const precos = calcularPrecos(totalFinalTabela);
       const performance = calcularPerformance(
         potTotal,
         config.hsp,
@@ -756,11 +789,13 @@ export default function GeradorRapido() {
         nome: orc.nome,
         distribuidora: orc.distribuidora,
         potTotal,
-        pcusto: orc.pcusto,
-        pdespesa: pdespesaDinamica, // VALOR DINÂMICO
-        total_final: totalFinalTabela, // VALOR TOTAL DA TABELA
-        pdespesa_fixo: config.pdespesaFixo, // DA CALCULADORA
-        pdespesa_variavel: (orc.pcusto * config.pdespesaVariavel / 100), // DA CALCULADORA
+        pcusto: pcustoEfetivo,
+        pdespesa: pdespesaDinamica,
+        total_final: totalFinalTabela,
+        pdespesa_fixo: config.pdespesaFixo,
+        pdespesa_variavel: (pcustoEfetivo * config.pdespesaVariavel) / 100,
+        frete: config.fretePadrao || 0,
+        custo_kit: orc.custo_kit,
         marca_modulo: orc.marca_modulo,
         marca_inversor: orc.marca_inversor,
         modulos: orc.modulos,
@@ -1107,6 +1142,7 @@ consolidado_orcamentos_distribuidores:
       bonusMicroPercent: 5,
       pdespesaFixo: 3000,
       pdespesaVariavel: 22,
+      fretePadrao: 0,
       metodo: 'variavel',
       descontoPix: 0,
       fatorParcelado: 1,
@@ -1543,23 +1579,25 @@ consolidado_orcamentos_distribuidores:
                 </div>
               </div>
 
-              {/* Seção de Pdespesa Simplificada */}
+              {/* Seção de Pdespesa + Frete (3 fatores V3) */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <h4 className="text-lg font-semibold text-gray-800 mb-3">💰 Configuração de Pdespesa</h4>
-                <p className="text-sm text-gray-600 mb-4">Configure uma única Pdespesa com componente fixo + variável aplicado a todos os orçamentos</p>
+                <p className="text-sm text-gray-600 mb-4">
+                  Três variáveis comerciais: frete entra no P.Custo; fixo + % formam a Pdespesa — aplicados a todos os orçamentos
+                </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Fixo (R$)</label>
                     <input
                       type="number"
                       step="1"
                       value={config.pdespesaFixo}
-                      onChange={(e) => setConfig({...config, pdespesaFixo: Number(e.target.value)})}
+                      onChange={(e) => setConfig({ ...config, pdespesaFixo: Number(e.target.value) })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Ex: 6500"
+                      placeholder="Ex: 3000"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Valor fixo adicionado a todos os orçamentos</p>
+                    <p className="text-xs text-gray-500 mt-1">Componente fixo da Pdespesa</p>
                   </div>
 
                   <div>
@@ -1568,18 +1606,54 @@ consolidado_orcamentos_distribuidores:
                       type="number"
                       step="1"
                       value={config.pdespesaVariavel}
-                      onChange={(e) => setConfig({...config, pdespesaVariavel: Number(e.target.value)})}
+                      onChange={(e) => setConfig({ ...config, pdespesaVariavel: Number(e.target.value) })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Ex: 78"
+                      placeholder="Ex: 30"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Percentual aplicado sobre o preço de custo</p>
+                    <p className="text-xs text-gray-500 mt-1">% sobre o P.Custo (kit + frete)</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Frete (R$)</label>
+                    <input
+                      type="number"
+                      step="50"
+                      min={0}
+                      value={config.fretePadrao}
+                      onChange={(e) => {
+                        const fretePadrao = Math.max(0, Number(e.target.value) || 0);
+                        setConfig({ ...config, fretePadrao });
+                        setOrcamentos((prev) =>
+                          prev.map((o) => {
+                            if (o.custo_kit == null) return { ...o, frete: fretePadrao };
+                            const pcusto = Math.round((o.custo_kit + fretePadrao) * 100) / 100;
+                            return { ...o, frete: fretePadrao, pcusto };
+                          })
+                        );
+                      }}
+                      className="w-full px-3 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      placeholder="Ex: 400"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Soma ao kit → P.Custo</p>
                   </div>
                 </div>
 
                 <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm">
-                  <strong>📊 Fórmula:</strong> Pdespesa Total = Fixo + (Variável% × P.Custo)
+                  <strong>📊 Fórmula V3:</strong> P.Custo = Kit + Frete · Pdespesa = Fixo + (Var% × P.Custo) · PIX = P.Custo + Pdespesa
                   <br />
-                  <strong>📋 Exemplo:</strong> R$ {config.pdespesaFixo.toFixed(2)} + ({config.pdespesaVariavel}% × R$ 6.000) = R$ {(config.pdespesaFixo + (6000 * config.pdespesaVariavel / 100)).toFixed(2)}
+                  <strong>📋 Exemplo:</strong> Kit R$ 6.000 + Frete R$ {Number(config.fretePadrao || 0).toFixed(0)} = P.Custo R${' '}
+                  {(6000 + Number(config.fretePadrao || 0)).toFixed(2)} · Pdespesa R${' '}
+                  {(
+                    config.pdespesaFixo +
+                    ((6000 + Number(config.fretePadrao || 0)) * config.pdespesaVariavel) / 100
+                  ).toFixed(2)}{' '}
+                  · PIX R${' '}
+                  {(
+                    6000 +
+                    Number(config.fretePadrao || 0) +
+                    config.pdespesaFixo +
+                    ((6000 + Number(config.fretePadrao || 0)) * config.pdespesaVariavel) / 100
+                  ).toFixed(2)}
                 </div>
               </div>
             </div>
@@ -1713,10 +1787,14 @@ consolidado_orcamentos_distribuidores:
                     <tbody>
                       {orcamentos.map((orc, index) => {
                         const potenciaTotal = (orc.modulos * orc.pot_modulo) / 1000;
-                        // USAR CALCULADORA DINÂMICA PARA CONSISTÊNCIA
-                        const pdespesaTotalCalculado = config.pdespesaFixo + (orc.pcusto * config.pdespesaVariavel / 100);
-                        const totalFinal = orc.pcusto + pdespesaTotalCalculado;
-                        const precoPorWp = orc.pcusto / (orc.modulos * orc.pot_modulo);
+                        const pcustoEfetivo =
+                          orc.custo_kit != null
+                            ? Math.round((orc.custo_kit + Math.max(0, config.fretePadrao || 0)) * 100) / 100
+                            : orc.pcusto;
+                        const pdespesaTotalCalculado =
+                          config.pdespesaFixo + (pcustoEfetivo * config.pdespesaVariavel) / 100;
+                        const totalFinal = pcustoEfetivo + pdespesaTotalCalculado;
+                        const precoPorWp = pcustoEfetivo / (orc.modulos * orc.pot_modulo || 1);
 
                         return (
                           <tr key={index} className="hover:bg-gray-50">
@@ -1765,21 +1843,31 @@ consolidado_orcamentos_distribuidores:
                               </select>
                             </td>
 
-                            {/* Preço Custo */}
+                            {/* Preço Custo (= kit + frete quando V3) */}
                             <td className="border border-gray-300 px-1 py-1">
                               <input
                                 type="number"
                                 step="0.01"
-                                value={orc.pcusto}
+                                value={pcustoEfetivo}
                                 onChange={(e) => {
                                   const novosOrc = [...orcamentos];
-                                  novosOrc[index].pcusto = Math.round(Number(e.target.value) * 100) / 100; // Arredondar para 2 casas decimais
-                                  // Recalcular Pdespesa total
-                                  const pdVar = novosOrc[index].pcusto * (novosOrc[index].pdespesa_variavel_percent / 100);
-                                  novosOrc[index].pdespesa_total = novosOrc[index].pdespesa_fixo + pdVar;
+                                  const novo = Math.round(Number(e.target.value) * 100) / 100;
+                                  novosOrc[index].pcusto = novo;
+                                  // Edição manual do P.Custo: trata como kit+frete já embutido
+                                  novosOrc[index].custo_kit = undefined;
+                                  novosOrc[index].frete = config.fretePadrao || 0;
+                                  const pdVar = novo * (config.pdespesaVariavel / 100);
+                                  novosOrc[index].pdespesa_fixo = config.pdespesaFixo;
+                                  novosOrc[index].pdespesa_variavel_percent = config.pdespesaVariavel;
+                                  novosOrc[index].pdespesa_total = config.pdespesaFixo + pdVar;
                                   setOrcamentos(novosOrc);
                                 }}
                                 className="w-20 px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent text-right"
+                                title={
+                                  orc.custo_kit != null
+                                    ? `Kit ${orc.custo_kit} + frete ${config.fretePadrao || 0}`
+                                    : 'P.Custo'
+                                }
                               />
                             </td>
 
@@ -1870,7 +1958,11 @@ consolidado_orcamentos_distribuidores:
                                   R$ {pdespesaTotalCalculado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  ({config.pdespesaFixo.toLocaleString('pt-BR')} + {config.pdespesaVariavel}%)
+                                  ({config.pdespesaFixo.toLocaleString('pt-BR')} + {config.pdespesaVariavel}%
+                                  {config.fretePadrao > 0
+                                    ? ` · frete ${config.fretePadrao.toLocaleString('pt-BR')}`
+                                    : ''}
+                                  )
                                 </span>
                               </div>
                             </td>

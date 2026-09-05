@@ -110,6 +110,14 @@ export const SystemCard: React.FC<SystemCardProps> = ({
               {preco18x}
             </div>
           </div>
+
+          <button
+            type="button"
+            className="pieng-button-secondary text-base font-bold py-3 mt-4 no-print w-full"
+            onClick={() => setPayOpen(true)}
+          >
+            OUTRAS FORMAS DE PAGAMENTO
+          </button>
         </div>
 
         <div className="pieng-performance-box text-sm leading-relaxed space-y-2.5">
@@ -137,14 +145,6 @@ export const SystemCard: React.FC<SystemCardProps> = ({
             </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="pieng-button-secondary text-base font-bold py-4 no-print w-full"
-          onClick={() => setPayOpen(true)}
-        >
-          OUTRAS FORMAS DE PAGAMENTO
-        </button>
       </div>
 
       <FormasPagamentoModal open={payOpen} pix={precoPixDecimal} onClose={() => setPayOpen(false)} />

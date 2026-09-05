@@ -137,8 +137,10 @@ export function mergeConfiguracoes(
   saved: Partial<ConfiguracaoSistema> | Record<string, unknown> | null | undefined
 ): ConfiguracaoSistema {
   const rawIn = (saved || {}) as Record<string, unknown>;
+  // Legado: blob `sistema_config` (ex. hsp 5.3) não deve sobrescrever o flat atual
+  const { sistema_config: _legadoIgnorado, ...rawSemLegado } = rawIn;
   // Legado: algumas bases só têm tarifaEnergia; a UI/V3 usam tarifaPadrao
-  const raw: Record<string, unknown> = { ...rawIn };
+  const raw: Record<string, unknown> = { ...rawSemLegado };
   if (raw.tarifaPadrao == null && raw.tarifaEnergia != null) {
     const t = Number(raw.tarifaEnergia);
     if (Number.isFinite(t)) raw.tarifaPadrao = t;

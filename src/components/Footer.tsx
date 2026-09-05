@@ -70,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({
       
       <div className="mt-5 pt-5 border-t border-gray-600 text-xs opacity-80 leading-relaxed">
         <strong>Disclaimers Técnicos:</strong><br />
-        • Performance Rate: 75% conforme padrões da indústria (variação real: 72% a 78% dependendo das condições)<br />
+        • Performance Rate: 75% conforme padrões da indústria (variação real: 72% a 80% dependendo das condições)<br />
         • Base legal: Lei 14.300/2022 sobre TUSD • Simultaneidade residencial: 30% (variação ±10%)<br />
         • HSP {clienteCidade}: {hspLocal} (fonte: CRESESB/INPE) • Economia considerando tarifa {economiaTarifa}/kWh para {clienteTipo}<br />
         • Orçamento válido por 2 dias ou até acabar o estoque • Equipamentos sujeitos à disponibilidade<br /><br />

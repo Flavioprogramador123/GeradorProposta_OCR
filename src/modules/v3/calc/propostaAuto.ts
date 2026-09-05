@@ -48,6 +48,14 @@ export interface PropostaAutoInput {
   kits_manuais?: KitManualInput[];
   /** Se true (default), ainda gera autos além dos manuais até maxAlternativas */
   incluir_auto?: boolean;
+  /**
+   * Filtro de topologia no auto:
+   * - só micro marcado → só micro
+   * - só string marcado → só string
+   * - nenhum ou ambos → gera os dois
+   */
+  incluir_micro?: boolean;
+  incluir_string?: boolean;
 }
 
 export interface PassoAuditoria {
@@ -484,10 +492,27 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
 
   const micros = inversores.filter((i) => i.categoria === 'microinversor');
   const strings = inversores.filter((i) => i.categoria === 'inversor');
+  const nenhumFiltroTopo = !input.incluir_micro && !input.incluir_string;
+  const wantMicro = nenhumFiltroTopo || Boolean(input.incluir_micro);
+  const wantString = nenhumFiltroTopo || Boolean(input.incluir_string);
   const alternativas: AlternativaProposta[] = [];
   const frete = input.frete ?? 0;
   const pontosFaixa: Array<'min' | 'mid' | 'max'> =
     alvoGeracaoMin === alvoGeracaoMax ? ['mid'] : ['min', 'mid', 'max'];
+
+  auditoria_alvo.push({
+    etapa: 'Filtro topologia',
+    formula: 'checkboxes micro/string · nenhum = ambos',
+    valores: {
+      incluir_micro: Boolean(input.incluir_micro),
+      incluir_string: Boolean(input.incluir_string),
+      wantMicro,
+      wantString,
+      micros_cd: micros.length,
+      strings_cd: strings.length,
+    },
+    resultado: wantMicro && wantString ? 'micro + string' : wantMicro ? 'somente micro' : 'somente string',
+  });
 
   // --- Kits manuais da 3a ---
   const kitsManuais = input.kits_manuais || [];
@@ -503,6 +528,14 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
     const ponto = kit.alvo || (pontosFaixa[ki % pontosFaixa.length] as 'min' | 'mid' | 'max');
     const alvoKit = resolveFaixaAlvo(ponto, alvoGeracaoMin, alvoGeracaoMax);
     const isMicro = inv.categoria === 'microinversor';
+    if (isMicro && !wantMicro) {
+      avisos.push(`Kit #${ki + 1}: micro ignorado (filtro só string)`);
+      continue;
+    }
+    if (!isMicro && !wantString) {
+      avisos.push(`Kit #${ki + 1}: string ignorado (filtro só micro)`);
+      continue;
+    }
 
     let qtdMod = kit.qtd_modulos;
     let qtdInv = kit.qtd_inversores;
@@ -558,68 +591,94 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
   const incluirAuto = input.incluir_auto !== false;
   const maxAlt = params.maxAlternativas;
 
-  // --- Auto: micro + strings em pontos da faixa ---
+  // --- Auto: micro (maior Wp) e/ou strings conforme filtro ---
   if (incluirAuto && alternativas.length < maxAlt) {
-    if (micros.length && modulos.length) {
-      const micro = micros.sort((a, b) => a.potencia_kw - b.potencia_kw)[0];
-      const mod = modulos[0];
-      for (const ponto of pontosFaixa) {
-        if (alternativas.length >= maxAlt) break;
-        const alvoKit = resolveFaixaAlvo(ponto, alvoGeracaoMin, alvoGeracaoMax);
-        const d = dimensionarMicro(mod, micro, params, alvoKit, alvoGeracaoMax);
-        const key = `${mod.sku_interno}|${micro.sku_interno}|${d.qtdMod}`;
-        if (alternativas.some((a) => `${a.sku_modulo}|${a.sku_inversor}|${a.qtd_modulos}` === key)) continue;
-        alternativas.push(
-          montarAltFromKit({
-            mod,
-            inv: micro,
-            qtdMod: d.qtdMod,
-            qtdInv: d.nMicros,
-            params,
-            consumoRef,
-            cdId: input.cdId,
-            frete,
-            comercial: input.comercial,
-            titulo: `Micro ${ponto} ${d.qtdMod}×${mod.potencia_w}W`.replace(/\s+/g, ' '),
-            origem: 'auto',
-            faixa_alvo_kwh: alvoKit,
-          })
-        );
-        // se faixa cravada, só 1 micro
-        if (pontosFaixa.length === 1) break;
+    if (wantMicro) {
+      if (!micros.length) {
+        avisos.push('Filtro micro ativo, mas não há microinversor com preço neste CD');
+      } else if (!modulos.length) {
+        avisos.push('Sem módulos precificados para montar kits micro');
+      } else {
+        // Micro sempre com a maior potência de placa disponível no CD
+        const modMaiorWp = [...modulos].sort((a, b) => b.potencia_w - a.potencia_w)[0];
+        const micro = [...micros].sort((a, b) => a.potencia_kw - b.potencia_kw)[0];
+        auditoria_alvo.push({
+          etapa: 'Módulo para micro',
+          formula: 'maior potencia_w do CD',
+          valores: {
+            sku: modMaiorWp.sku_interno,
+            potencia_w: modMaiorWp.potencia_w,
+            micro_sku: micro.sku_interno,
+            micro_kw: micro.potencia_kw,
+          },
+          resultado: `${modMaiorWp.potencia_w}W · ${micro.nome || micro.sku_interno}`,
+        });
+        for (const ponto of pontosFaixa) {
+          if (alternativas.length >= maxAlt) break;
+          const alvoKit = resolveFaixaAlvo(ponto, alvoGeracaoMin, alvoGeracaoMax);
+          const d = dimensionarMicro(modMaiorWp, micro, params, alvoKit, alvoGeracaoMax);
+          const key = `${modMaiorWp.sku_interno}|${micro.sku_interno}|${d.qtdMod}`;
+          if (alternativas.some((a) => `${a.sku_modulo}|${a.sku_inversor}|${a.qtd_modulos}` === key)) continue;
+          alternativas.push(
+            montarAltFromKit({
+              mod: modMaiorWp,
+              inv: micro,
+              qtdMod: d.qtdMod,
+              qtdInv: d.nMicros,
+              params,
+              consumoRef,
+              cdId: input.cdId,
+              frete,
+              comercial: input.comercial,
+              titulo: `Micro ${ponto} ${d.qtdMod}×${modMaiorWp.potencia_w}W`.replace(/\s+/g, ' '),
+              origem: 'auto',
+              faixa_alvo_kwh: alvoKit,
+            })
+          );
+          if (pontosFaixa.length === 1) break;
+        }
       }
     }
 
-    for (const mod of modulos.slice(0, 4)) {
-      if (alternativas.length >= maxAlt) break;
-      for (const ponto of pontosFaixa.length > 1 ? (['min', 'max'] as const) : (['mid'] as const)) {
-        if (alternativas.length >= maxAlt) break;
-        const alvoKit = resolveFaixaAlvo(ponto, alvoGeracaoMin, alvoGeracaoMax);
-        const d = dimensionarString(mod, strings, params, alvoKit, alvoGeracaoMax);
-        if (!d) continue;
-        if (
-          alternativas.some(
-            (a) => a.sku_modulo === mod.sku_interno && a.sku_inversor === d.inv.sku_interno && a.tipo === 'string'
-          )
-        ) {
-          continue;
+    if (wantString) {
+      if (!strings.length) {
+        avisos.push('Filtro string ativo, mas não há inversor string com preço neste CD');
+      } else {
+        for (const mod of modulos.slice(0, 4)) {
+          if (alternativas.length >= maxAlt) break;
+          for (const ponto of pontosFaixa.length > 1 ? (['min', 'max'] as const) : (['mid'] as const)) {
+            if (alternativas.length >= maxAlt) break;
+            const alvoKit = resolveFaixaAlvo(ponto, alvoGeracaoMin, alvoGeracaoMax);
+            const d = dimensionarString(mod, strings, params, alvoKit, alvoGeracaoMax);
+            if (!d) continue;
+            if (
+              alternativas.some(
+                (a) =>
+                  a.sku_modulo === mod.sku_interno &&
+                  a.sku_inversor === d.inv.sku_interno &&
+                  a.tipo === 'string'
+              )
+            ) {
+              continue;
+            }
+            alternativas.push(
+              montarAltFromKit({
+                mod,
+                inv: d.inv,
+                qtdMod: d.qtdMod,
+                qtdInv: 1,
+                params,
+                consumoRef,
+                cdId: input.cdId,
+                frete,
+                comercial: input.comercial,
+                titulo: `String ${ponto} ${d.qtdMod}×${mod.potencia_w}W + ${d.inv.potencia_kw}kW`,
+                origem: 'auto',
+                faixa_alvo_kwh: alvoKit,
+              })
+            );
+          }
         }
-        alternativas.push(
-          montarAltFromKit({
-            mod,
-            inv: d.inv,
-            qtdMod: d.qtdMod,
-            qtdInv: 1,
-            params,
-            consumoRef,
-            cdId: input.cdId,
-            frete,
-            comercial: input.comercial,
-            titulo: `String ${ponto} ${d.qtdMod}×${mod.potencia_w}W + ${d.inv.potencia_kw}kW`,
-            origem: 'auto',
-            faixa_alvo_kwh: alvoKit,
-          })
-        );
       }
     }
   }

@@ -765,6 +765,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p18x_parcela)}
                 </div>
               </div>
+
+              <button type="button" class="cta-button" style="margin-top:12px;width:100%" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
             </div>
 
             <div class="performance-box">
@@ -773,8 +775,6 @@ export class TemplateEnginePadrao {
               Economia: R$ ${(sistema.economiaMensal || 0).toFixed(2)} | Payback: ${(sistema.paybackMeses || 0).toFixed(1)} meses<br>
               TIR: ${(sistema.tirAnual || 0).toFixed(1)}% ao ano
             </div>
-
-            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;
@@ -839,6 +839,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p18x_parcela)}
                 </div>
               </div>
+
+              <button type="button" class="cta-button" style="margin-top:12px;width:100%" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
             </div>
 
             <div class="performance-box">
@@ -852,8 +854,6 @@ export class TemplateEnginePadrao {
                 <div><strong>Potência:</strong> ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
               </div>
             </div>
-
-            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;

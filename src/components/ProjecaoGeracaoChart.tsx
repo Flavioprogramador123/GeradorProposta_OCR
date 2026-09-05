@@ -58,8 +58,6 @@ export function ProjecaoGeracaoChart({
   const anual = geracao.reduce((a, b) => a + b, 0);
   const media = Math.round(anual / geracao.length);
   const mediaPct = Math.max(0, Math.min(100, (media / maxVal) * 100));
-  const variacaoPct = maxVal > 0 ? ((maxVal - minVal) / maxVal) * 100 : 0;
-
   const potTxt = potenciaKwp.toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -74,14 +72,14 @@ export function ProjecaoGeracaoChart({
     >
       <PiengChartKpiGrid>
         <PiengChartKpi label="Anual estimada" value={`${anual.toLocaleString('pt-BR')} kWh`} />
-        <PiengChartKpi label="Média mensal" value={`${media.toLocaleString('pt-BR')} kWh`} />
+        <PiengChartKpi label="Média" value={`${media.toLocaleString('pt-BR')} kWh`} />
         <PiengChartKpi
-          label="Maior mês"
-          value={`${MESES_ABREV[iMax]} · ${maxVal.toLocaleString('pt-BR')}`}
+          label="Otimista"
+          value={`${MESES_ABREV[iMax]} · ${maxVal.toLocaleString('pt-BR')} kWh`}
         />
         <PiengChartKpi
-          label="Menor mês"
-          value={`${MESES_ABREV[iMin]} · ${minVal.toLocaleString('pt-BR')}`}
+          label="Pessimista"
+          value={`${MESES_ABREV[iMin]} · ${minVal.toLocaleString('pt-BR')} kWh`}
         />
       </PiengChartKpiGrid>
 
@@ -211,7 +209,8 @@ export function ProjecaoGeracaoChart({
           </span>
           {mostrarCompleto && (
             <span className="text-slate-400">
-              Variação pico→vale {variacaoPct.toFixed(1).replace('.', ',')}%
+              Pessimista {minVal.toLocaleString('pt-BR')} kWh · Otimista{' '}
+              {maxVal.toLocaleString('pt-BR')} kWh
             </span>
           )}
         </div>

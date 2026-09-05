@@ -68,6 +68,13 @@ export async function readConfigFromSupabase(): Promise<Record<string, any> | nu
   return config;
 }
 
+/** Remove blob legado que ainda guarda HSP 5.3 e conflita com o flat. */
+function stripLegadoSistemaConfig(config: Record<string, any>): Record<string, any> {
+  if (!config || typeof config !== 'object') return config;
+  const { sistema_config: _legado, ...rest } = config;
+  return rest;
+}
+
 /** Carrega config flat.
  * - Produção: Supabase (se houver) → arquivo → {}
  * - Local: merge arquivo por cima do Supabase — o save local (fallback RLS) precisa aparecer no GET
@@ -81,14 +88,15 @@ export async function loadSistemaConfigFlat(): Promise<Record<string, any>> {
   const sb = supabaseConfig && typeof supabaseConfig === 'object' ? supabaseConfig : null;
   const isProduction = Boolean(process.env.VERCEL || process.env.NETLIFY);
 
+  let merged: Record<string, any>;
   if (isProduction) {
-    if (sb && Object.keys(sb).length > 0) return { ...file, ...sb };
-    return file;
+    merged = sb && Object.keys(sb).length > 0 ? { ...file, ...sb } : file;
+  } else if (sb && Object.keys(sb).length > 0) {
+    // Dev: JSON local (última gravação bem-sucedida no disco) prevalece sobre Supabase antigo/incompleto
+    merged = { ...sb, ...file };
+  } else {
+    merged = file;
   }
 
-  // Dev: JSON local (última gravação bem-sucedida no disco) prevalece sobre Supabase antigo/incompleto
-  if (sb && Object.keys(sb).length > 0) {
-    return { ...sb, ...file };
-  }
-  return file;
+  return stripLegadoSistemaConfig(merged);
 }

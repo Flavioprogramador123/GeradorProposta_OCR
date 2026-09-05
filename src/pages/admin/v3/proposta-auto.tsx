@@ -122,7 +122,10 @@ export default function AdminV3PropostaAuto() {
   const [valorMin, setValorMin] = useState(800);
   const [valorMax, setValorMax] = useState(1200);
   const [usarFaixa, setUsarFaixa] = useState(true);
-  const [hsp, setHsp] = useState(5.21);
+  const [incluirMicro, setIncluirMicro] = useState(true);
+  const [incluirString, setIncluirString] = useState(false);
+  const [hsp, setHsp] = useState(5.45);
+  const [hspTexto, setHspTexto] = useState('5.45');
   const [tarifa, setTarifa] = useState(1.17);
   const [pdespesaFixo, setPdespesaFixo] = useState(3000);
   const [pdespesaVariavel, setPdespesaVariavel] = useState(22);
@@ -149,7 +152,9 @@ export default function AdminV3PropostaAuto() {
     setCidade(shared.cidadeCliente);
     setConsumoMensal(shared.consumoMensal);
     setTipoImovel(shared.tipoImovel);
-    setHsp(shared.hsp);
+    const h = Math.round((shared.hsp ?? 5.45) * 100) / 100;
+    setHsp(h);
+    setHspTexto(h.toFixed(2));
     setTarifa(shared.tarifa);
     setPdespesaFixo(shared.pdespesaFixo);
     setPdespesaVariavel(shared.pdespesaVariavel);
@@ -165,7 +170,7 @@ export default function AdminV3PropostaAuto() {
     ]);
     const data = await resV3.json();
     const admin = resAdmin.ok ? await resAdmin.json() : {};
-    // /admin/configuracoes (GET) manda em pdespesa/frete/HSP/tarifa
+    // Sessão (edits locais) prevalece; admin só semeia se não houver sessão
     const shared = resolveConfigRapida(admin);
 
     if (resV3.ok && data.params) {
@@ -173,7 +178,7 @@ export default function AdminV3PropostaAuto() {
     }
 
     applyShared(shared);
-    // Espelha comercial do admin na sessão (Gerador / próxima visita)
+    // Espelha na sessão (sem apagar overrides da 4a)
     saveConfigRapida({
       ...shared,
       pdespesaFixo: shared.pdespesaFixo,
@@ -253,6 +258,8 @@ export default function AdminV3PropostaAuto() {
         pdespesaVariavel,
         frete: fretePadrao,
         salvar,
+        incluir_micro: incluirMicro,
+        incluir_string: incluirString,
       };
 
       if (modo === 'potencia_kwp') {
@@ -333,6 +340,20 @@ export default function AdminV3PropostaAuto() {
     }
     try {
       persistSharedNow();
+      const orcamentos = alts.map((a, i) => {
+          const orcs = (geradorPayload.orcamentos as Record<string, unknown>[] | undefined) || [];
+          const base = orcs[i] || {};
+          const kit = a.custo_total;
+          const freteAlt = a.frete ?? fretePadrao;
+          const pcusto = a.comercial?.pcusto ?? kit + freteAlt;
+          return {
+            ...base,
+            precoCusto: pcusto,
+            valorTotal: pcusto,
+            custo_kit: kit,
+            frete: freteAlt,
+          };
+        });
       const payload = {
         ...geradorPayload,
         cliente: {
@@ -347,14 +368,12 @@ export default function AdminV3PropostaAuto() {
           pdespesaFixo,
           pdespesaVariavel,
         },
-        orcamentos: alts.map((a, i) => {
-          const orcs = (geradorPayload.orcamentos as Record<string, unknown>[] | undefined) || [];
-          const base = orcs[i] || {};
-          const pcusto = a.comercial?.pcusto ?? a.custo_total + (a.frete || 0);
-          return { ...base, precoCusto: pcusto, valorTotal: pcusto };
-        }),
+        fretePadrao,
+        orcamentos,
       };
       localStorage.setItem('v3-gerador-bridge', JSON.stringify(payload));
+      // Garante sessão antes do gerador aplicar /admin/config
+      persistSharedNow();
       window.open('/gerador-rapido?modo=v3', '_blank');
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
@@ -455,7 +474,6 @@ export default function AdminV3PropostaAuto() {
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-emerald-800">⚙️ Configurações Rápidas (shared)</h2>
-              <span className="text-[10px] text-gray-500">mesmos campos da Proposta manual · localStorage</span>
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <label className="text-sm">
@@ -506,10 +524,20 @@ export default function AdminV3PropostaAuto() {
               <label className="text-sm">
                 <span className="text-xs text-gray-500">HSP</span>
                 <input
-                  type="number"
-                  step={0.01}
-                  value={hsp}
-                  onChange={(e) => setHsp(Number(e.target.value))}
+                  type="text"
+                  inputMode="decimal"
+                  value={hspTexto}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(',', '.');
+                    setHspTexto(raw);
+                    const n = parseFloat(raw);
+                    if (Number.isFinite(n)) setHsp(n);
+                  }}
+                  onBlur={() => {
+                    const n = Math.round((Number.isFinite(hsp) ? hsp : 0) * 100) / 100;
+                    setHsp(n);
+                    setHspTexto(n.toFixed(2));
+                  }}
                   className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
@@ -525,9 +553,6 @@ export default function AdminV3PropostaAuto() {
               </label>
             </div>
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs text-amber-800 mb-2">
-                Pdespesa Total = Fixo + (Variável% × P.Custo) — mesma fórmula da Proposta manual
-              </p>
               <div className="grid md:grid-cols-3 gap-3">
                 <label className="text-sm">
                   <span className="text-xs text-gray-500">Valor Fixo (R$)</span>
@@ -561,10 +586,6 @@ export default function AdminV3PropostaAuto() {
                   />
                 </label>
               </div>
-              <p className="text-[11px] text-gray-500 mt-2">
-                Ex.: R$ {pdespesaFixo.toFixed(2)} + ({pdespesaVariavel}% × R$ 6.000) = R${' '}
-                {(pdespesaFixo + 6000 * (pdespesaVariavel / 100)).toFixed(2)}
-              </p>
             </div>
           </div>
 
@@ -602,19 +623,37 @@ export default function AdminV3PropostaAuto() {
               </select>
             </label>
 
-            {modo !== 'potencia_kwp' && (
-              <label className="flex items-center gap-2 text-sm self-end pb-2">
+            <div className="flex flex-col gap-2 justify-start md:row-span-2 self-start pt-6">
+              {modo !== 'potencia_kwp' && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={usarFaixa}
+                    onChange={(e) => setUsarFaixa(e.target.checked)}
+                  />
+                  <span className="text-gray-700">Usar faixa min–max</span>
+                </label>
+              )}
+              <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={usarFaixa}
-                  onChange={(e) => setUsarFaixa(e.target.checked)}
+                  checked={incluirMicro}
+                  onChange={(e) => setIncluirMicro(e.target.checked)}
                 />
-                <span className="text-gray-700">Usar faixa min–max</span>
+                <span className="text-gray-700">Somente microinversores</span>
               </label>
-            )}
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={incluirString}
+                  onChange={(e) => setIncluirString(e.target.checked)}
+                />
+                <span className="text-gray-700">Somente inversores string</span>
+              </label>
+            </div>
 
             {modo === 'potencia_kwp' || !usarFaixa ? (
-              <label className="text-sm">
+              <label className="text-sm md:col-span-2">
                 <span className="text-xs text-gray-500">
                   {modo === 'potencia_kwp' ? 'kWp' : modo === 'consumo_mensal' ? 'Consumo (kWh)' : 'Geração (kWh)'}
                 </span>
@@ -664,15 +703,6 @@ export default function AdminV3PropostaAuto() {
               </>
             )}
           </div>
-
-          {params && (
-            <p className="text-xs text-gray-500 mb-4">
-              PR {params.performanceRate} · dias {params.diasMes} · pdespesa comercial R$ {pdespesaFixo} +{' '}
-              {pdespesaVariavel}% · frete padrão {formatBRL(fretePadrao)} · (legado: despesa{' '}
-              {params.percentualDespesa}% / PIX -{params.descontoPix}
-              %) · até {params.maxAlternativas} alt. · {params.placasPorMicro} placas/micro
-            </p>
-          )}
 
           <div className="flex flex-wrap gap-3 mb-6">
             <button
@@ -1053,12 +1083,7 @@ export default function AdminV3PropostaAuto() {
             })}
           </div>
 
-          {alts.length === 0 && (
-            <p className="text-sm text-gray-500">
-              Use CD Feira (já tem preços). Ex.: consumo 500 kWh → Dimensionar — os cards abrem com a trilha
-              completa para você auditar.
-            </p>
-          )}
+
           </div>
         </div>
       </div>

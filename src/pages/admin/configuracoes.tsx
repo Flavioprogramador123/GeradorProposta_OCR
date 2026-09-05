@@ -17,6 +17,11 @@ import {
   calcularPrecosDePix,
   normalizeTaxaCartaoMensal,
 } from '@/lib/tabelaJurosCartao';
+import {
+  CAMPOS_MARKETING_VARIAVEIS,
+  encontrarVariacaoAtiva,
+  type CampoMarketing,
+} from '@/lib/textosMarketingVariaveis';
 const configPadrao: ConfiguracaoSistema = {
   ...CONFIG_PADRAO,
   descontoPix: 11.79,
@@ -204,6 +209,14 @@ export default function Configuracoes() {
         ...prev,
         [field]: value
       };
+
+      // HSP padrão = referência de Goiás — mantém o mapa GO alinhado
+      if (field === 'hspPadrao' && Number.isFinite(value)) {
+        newConfig.hspPorEstado = {
+          ...(prev.hspPorEstado || {}),
+          GO: value,
+        };
+      }
 
       // Recalcular fatores automaticamente
       if (field === 'taxaCartao12x') {
@@ -852,82 +865,82 @@ export default function Configuracoes() {
                 {activeTab === 'marketing' && (
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">Textos de Marketing Variáveis</h3>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Texto Economia Anual
-                        </label>
-                        <input
-                          type="text"
-                          value={config.textoEconomiaAnual}
-                          onChange={(e) => handleInputChange('textoEconomiaAnual', e.target.value)}
-                          title="Texto para economia anual"
-                          placeholder="Digite o texto para economia anual"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Use {'{valorEconomia}'} para valor dinâmico</p>
-                      </div>
+                    <p className="text-sm text-gray-600 -mt-2 mb-2">
+                      Escolha uma das 5 variações (copy + PNL) ou edite o texto ativo. O token dinâmico continua o mesmo.
+                    </p>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Texto Payback
-                        </label>
-                        <input
-                          type="text"
-                          value={config.textoPayback}
-                          onChange={(e) => handleInputChange('textoPayback', e.target.value)}
-                          title="Texto para payback"
-                          placeholder="Digite o texto para payback"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Use {'{mesesPayback}'} para valor dinâmico</p>
-                      </div>
+                    <div className="space-y-8">
+                      {CAMPOS_MARKETING_VARIAVEIS.map((meta) => {
+                        const valorAtual = String(config[meta.campo] || '');
+                        const ativa = encontrarVariacaoAtiva(meta.campo, valorAtual);
+                        return (
+                          <div
+                            key={meta.campo}
+                            className="border border-slate-200 rounded-xl p-4 bg-white/70 space-y-3"
+                          >
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <label className="text-sm font-semibold text-gray-800">{meta.titulo}</label>
+                              <span className="text-xs text-gray-500 font-mono">{meta.token}</span>
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Texto TIR
-                        </label>
-                        <input
-                          type="text"
-                          value={config.textoTIR}
-                          onChange={(e) => handleInputChange('textoTIR', e.target.value)}
-                          title="Texto para TIR"
-                          placeholder="Digite o texto para TIR"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Use {'{percentualTIR}'} para valor dinâmico</p>
-                      </div>
+                            <div className="grid gap-2">
+                              {meta.variacoes.map((v) => {
+                                const selected = ativa === v.id;
+                                return (
+                                  <label
+                                    key={v.id}
+                                    className={`flex gap-3 items-start p-3 rounded-lg border cursor-pointer transition-colors ${
+                                      selected
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name={meta.campo}
+                                      className="mt-1"
+                                      checked={selected}
+                                      onChange={() =>
+                                        handleInputChange(meta.campo as CampoMarketing, v.texto)
+                                      }
+                                    />
+                                    <span className="min-w-0 flex-1">
+                                      <span className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-1">
+                                        <span className="font-semibold text-gray-700">
+                                          Opção {v.id} — {v.label}
+                                        </span>
+                                        <span>· {v.tecnica}</span>
+                                        {v.ressalva ? (
+                                          <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                                            exige lastro
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                      <span className="text-sm text-gray-800 block leading-snug">
+                                        {v.texto}
+                                      </span>
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Texto Valorização do Imóvel
-                        </label>
-                        <input
-                          type="text"
-                          value={config.textoValorizacaoImovel}
-                          onChange={(e) => handleInputChange('textoValorizacaoImovel', e.target.value)}
-                          title="Texto para valorização do imóvel"
-                          placeholder="Digite o texto para valorização do imóvel"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Use {'{percentualValorizacao}'} para valor dinâmico</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Texto Sustentabilidade
-                        </label>
-                        <input
-                          type="text"
-                          value={config.textoSustentabilidade}
-                          onChange={(e) => handleInputChange('textoSustentabilidade', e.target.value)}
-                          title="Texto para sustentabilidade"
-                          placeholder="Digite o texto para sustentabilidade"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Use {'{tonelaCO2}'} para valor dinâmico</p>
-                      </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Texto ativo {ativa === 0 ? '(customizado)' : `(opção ${ativa})`}
+                              </label>
+                              <textarea
+                                value={valorAtual}
+                                onChange={(e) =>
+                                  handleInputChange(meta.campo as CampoMarketing, e.target.value)
+                                }
+                                rows={2}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

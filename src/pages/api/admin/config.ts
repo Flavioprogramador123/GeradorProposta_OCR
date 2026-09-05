@@ -75,11 +75,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Não regravar blob legado (ainda tinha HSP 5.3 / GO 5.3)
+      const { sistema_config: _legado, ...configLimpo } = config as Record<string, unknown>;
+
       const configWithMetadata = {
-        ...config,
+        ...configLimpo,
         metadata: {
           lastUpdate: new Date().toISOString(),
-          version: config?.metadata?.version || '2.0',
+          version: (config as { metadata?: { version?: string } })?.metadata?.version || '2.0',
         },
       };
 

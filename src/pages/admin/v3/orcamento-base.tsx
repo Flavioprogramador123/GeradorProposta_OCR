@@ -95,6 +95,7 @@ export default function AdminV3OrcamentoBase() {
   const [skuInv, setSkuInv] = useState('');
   const [qtdInv, setQtdInv] = useState(1);
   const [autoComp, setAutoComp] = useState(true);
+  const [frete, setFrete] = useState(0);
   const [calc, setCalc] = useState<Calc | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
   const [lista, setLista] = useState<Array<{ id: number; titulo: string; custo_total: number; cd_nome: string }>>([]);
@@ -150,6 +151,21 @@ export default function AdminV3OrcamentoBase() {
     loadCatalogo().catch((e) => setMsg(e.message));
     loadLista().catch(() => undefined);
   }, [loadCatalogo, loadLista]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/config');
+        const admin = res.ok ? await res.json() : null;
+        const shared = resolveConfigRapida(admin);
+        setFrete(shared.fretePadrao ?? 0);
+        if (shared.nomeCliente) setTitulo((t) => (t === 'Cliente Premium' ? shared.nomeCliente : t));
+      } catch {
+        const shared = resolveConfigRapida(null);
+        setFrete(shared.fretePadrao ?? 0);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     try {
@@ -489,7 +505,12 @@ export default function AdminV3OrcamentoBase() {
         /* segue com sessão / defaults */
       }
       const shared = resolveConfigRapida(admin);
-      saveConfigRapida({ ...shared, nomeCliente: shared.nomeCliente || titulo });
+      const freteOk = Math.max(0, Number(frete) || 0);
+      saveConfigRapida({
+        ...shared,
+        nomeCliente: shared.nomeCliente || titulo,
+        fretePadrao: freteOk,
+      });
 
       const orcamentos = cards.map((c) => {
         const potMod = mods.find((m) => m.sku_interno === c.sku_modulo)?.potencia_w || 550;
@@ -498,11 +519,14 @@ export default function AdminV3OrcamentoBase() {
           (c.categoria_inv === 'microinversor' ? 2 : 5);
         const marcaMod = (c.nome_modulo || '').trim().split(/\s+/)[0] || 'Padrão';
         const marcaInv = (c.nome_inversor || '').trim().split(/\s+/)[0] || 'Padrão';
-        const pcusto = c.custo_total ?? 0;
+        const kit = c.custo_total ?? 0;
+        const pcusto = Math.round((kit + freteOk) * 100) / 100;
         return {
           fornecedor: `V3/3a/${c.categoria_inv === 'microinversor' ? 'micro' : 'string'}`,
           precoCusto: pcusto,
           valorTotal: pcusto,
+          frete: freteOk,
+          custo_kit: kit,
           modulos: c.qtd_modulos,
           pot_modulo: potMod,
           marca_modulo: marcaMod,
@@ -531,6 +555,7 @@ export default function AdminV3OrcamentoBase() {
           pdespesaFixo: shared.pdespesaFixo,
           pdespesaVariavel: shared.pdespesaVariavel,
         },
+        fretePadrao: freteOk,
         orcamentos,
       };
 
@@ -538,7 +563,7 @@ export default function AdminV3OrcamentoBase() {
       localStorage.setItem(V3_GERADOR_STORAGE_KEY, JSON.stringify(payload));
       window.open('/gerador-rapido?modo=v3', '_blank');
       setMsg(
-        `Proposta por kits → Proposta manual: ${cards.length} kit(s). Defaults: HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
+        `Proposta por kits → Proposta manual: ${cards.length} kit(s). Frete ${formatBRL(freteOk)} · HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
       );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
@@ -667,6 +692,24 @@ export default function AdminV3OrcamentoBase() {
                 onChange={(e) => setQtdInv(Number(e.target.value))}
                 className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               />
+            </label>
+            <label className="text-sm">
+              <span className="text-gray-500 text-xs">Frete (R$)</span>
+              <input
+                type="number"
+                min={0}
+                step={50}
+                value={frete}
+                onChange={(e) => {
+                  const v = Math.max(0, Number(e.target.value) || 0);
+                  setFrete(v);
+                  saveConfigRapida({ fretePadrao: v });
+                }}
+                className="mt-1 w-full rounded-lg bg-white border border-amber-300 px-3 py-2"
+              />
+              <span className="text-[11px] text-gray-500 mt-0.5 block">
+                Vem de Configurações · editável · entra no custo (kit + frete)
+              </span>
             </label>
             <label className="flex items-center gap-2 text-sm md:col-span-2">
               <input type="checkbox" checked={autoComp} onChange={(e) => setAutoComp(e.target.checked)} />

@@ -6,6 +6,8 @@ import { pythonCalculator } from '@/lib/python-calculator';
 import { calcularPrecosDePix, buildMultiplicadoresFromTaxa, tagEconomiaPix } from '@/lib/tabelaJurosCartao';
 import { formatBRL } from '@/lib/formatBRL';
 import { getBonusMicroAtivo } from '@/lib/calcularPerformance';
+import { resolverTextosMarketing } from '@/lib/textosMarketingVariaveis';
+import { calcularEconomiaCO2, calcularValorizacaoImovel } from '@/utils/configuracoes';
 
 // Função para mapear tipo de imóvel para template CSS
 function mapearTipoImovelParaTemplate(tipoImovel: string): string {
@@ -622,8 +624,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         config: {
           performanceRate: config.performanceRate || configSistema.performanceRate || 0.78,
           hsp: config.hsp || configSistema.hspPadrao || 5.21,
+          textoEconomiaAnual: configSistema.textoEconomiaAnual,
+          textoPayback: configSistema.textoPayback,
+          textoTIR: configSistema.textoTIR,
+          textoValorizacaoImovel: configSistema.textoValorizacaoImovel,
+          textoSustentabilidade: configSistema.textoSustentabilidade,
         },
       };
+
+      // Textos de marketing (config ativa + tokens do melhor sistema)
+      const melhorTpl =
+        templateData.sistemas?.find((s: { isRecommended?: boolean }) => s.isRecommended) ||
+        templateData.sistemas?.[0];
+      const economiaAnualTpl = (melhorTpl?.economiaMensal || 0) * 12;
+      const geracaoAnualTpl = (melhorTpl?.geracaoMensal || 0) * 12;
+      (templateData as { marketing?: unknown }).marketing = resolverTextosMarketing(
+        {
+          textoEconomiaAnual: configSistema.textoEconomiaAnual,
+          textoPayback: configSistema.textoPayback,
+          textoTIR: configSistema.textoTIR,
+          textoValorizacaoImovel: configSistema.textoValorizacaoImovel,
+          textoSustentabilidade: configSistema.textoSustentabilidade,
+        },
+        {
+          valorEconomia: Math.round(economiaAnualTpl).toLocaleString('pt-BR'),
+          mesesPayback: (melhorTpl?.paybackMeses || 0).toFixed(1),
+          percentualTIR: (melhorTpl?.tirAnual || 0).toFixed(1),
+          percentualValorizacao: calcularValorizacaoImovel(melhorTpl?.ppix || 0),
+          tonelaCO2: calcularEconomiaCO2(geracaoAnualTpl).toFixed(1),
+        }
+      );
 
       // 🚀 GERAR TEMPLATE PADRÃO usando template_proposta_pieng.html
       const templatePadraoHtml = await generateTemplateHtmlPadrao(templateData);
@@ -835,8 +865,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         fator18x: 1 / buildMultiplicadoresFromTaxa(taxaCartaoMensal)[18],
         bonusMicroPercent: config.bonusMicroPercent ?? configSistema.bonusMicroPercent ?? 5,
         precificacao: 'pix_base_tabela_cartao_v1',
+        textoEconomiaAnual: configSistema.textoEconomiaAnual,
+        textoPayback: configSistema.textoPayback,
+        textoTIR: configSistema.textoTIR,
+        textoValorizacaoImovel: configSistema.textoValorizacaoImovel,
+        textoSustentabilidade: configSistema.textoSustentabilidade,
       },
       taxaCartaoMensal,
+      marketing: (() => {
+        const melhor = (sistemas as any[]).find((s: any) => s.isRecommended) || sistemas[0] || {};
+        const econMensal = Number(melhor.economiaMensal) || 0;
+        const gerMensal = Number(melhor.geracaoMensal) || 0;
+        const payback = Number(melhor.paybackMeses) || 0;
+        const tir = Number(melhor.tirAnual) || 0;
+        const pix = Number(melhor.ppix ?? melhor.precoPixDecimal) || 0;
+        return resolverTextosMarketing(
+          {
+            textoEconomiaAnual: configSistema.textoEconomiaAnual,
+            textoPayback: configSistema.textoPayback,
+            textoTIR: configSistema.textoTIR,
+            textoValorizacaoImovel: configSistema.textoValorizacaoImovel,
+            textoSustentabilidade: configSistema.textoSustentabilidade,
+          },
+          {
+            valorEconomia: Math.round(econMensal * 12).toLocaleString('pt-BR'),
+            mesesPayback: payback.toFixed(1),
+            percentualTIR: tir.toFixed(1),
+            percentualValorizacao: calcularValorizacaoImovel(pix),
+            tonelaCO2: calcularEconomiaCO2(gerMensal * 12).toFixed(1),
+          }
+        );
+      })(),
     };
 
     // Salvar arquivo JSON para Next.js (apenas em desenvolvimento)

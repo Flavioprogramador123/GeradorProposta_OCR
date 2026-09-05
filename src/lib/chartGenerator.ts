@@ -156,7 +156,6 @@ export function generateProjecaoGeracaoClienteHtml(params: {
   const anual = geracao.reduce((a, b) => a + b, 0);
   const media = Math.round(anual / geracao.length);
   const mediaPct = Math.max(0, Math.min(100, (media / maxVal) * 100));
-  const variacaoPct = maxVal > 0 ? ((maxVal - minVal) / maxVal) * 100 : 0;
   const uid = `pg${Math.abs(Math.round(potenciaKwp * 1000 + media)).toString(36)}`;
 
   const valuesRow = geracao
@@ -193,8 +192,9 @@ export function generateProjecaoGeracaoClienteHtml(params: {
     maximumFractionDigits: 2,
   });
   const onde = cidadeLabel ? ` · ${cidadeLabel}` : '';
-  const varTxt = variacaoPct.toFixed(1).replace('.', ',');
   const mediaTxt = media.toLocaleString('pt-BR');
+  const minTxt = minVal.toLocaleString('pt-BR');
+  const maxTxt = maxVal.toLocaleString('pt-BR');
   const kpi = (label: string, value: string) =>
     `<div style="background:${PIENG_CHART.surface};border:1px solid ${PIENG_CHART.border};border-radius:10px;padding:10px 12px;">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:${PIENG_CHART.muted};font-weight:600;">${label}</div>
@@ -240,9 +240,9 @@ export function generateProjecaoGeracaoClienteHtml(params: {
   <p style="margin:0 0 14px;font-size:0.9rem;color:${PIENG_CHART.muted};">Sistema ${potTxt} kWp${onde} · kWh/mês</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
     ${kpi('Anual estimada', `${anual.toLocaleString('pt-BR')} kWh`)}
-    ${kpi('Média mensal', `${mediaTxt} kWh`)}
-    ${kpi('Maior mês', `${meses[iMax]} · ${maxVal.toLocaleString('pt-BR')}`)}
-    ${kpi('Menor mês', `${meses[iMin]} · ${minVal.toLocaleString('pt-BR')}`)}
+    ${kpi('Média', `${mediaTxt} kWh`)}
+    ${kpi('Otimista', `${meses[iMax]} · ${maxTxt} kWh`)}
+    ${kpi('Pessimista', `${meses[iMin]} · ${minTxt} kWh`)}
   </div>
   <div style="background:${PIENG_CHART.surface};border:1px solid ${PIENG_CHART.border};border-radius:12px;padding:14px 8px 10px;">
     <p class="pieng-geracao-hint" data-hint>Média ${mediaTxt} kWh · toque em um mês para ver o valor</p>
@@ -257,7 +257,7 @@ export function generateProjecaoGeracaoClienteHtml(params: {
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:${PIENG_CHART.muted};">
       <span><span style="display:inline-block;width:12px;height:12px;background:${PIENG_CHART.bar};border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Geração mensal</span>
       <span><span style="display:inline-block;width:18px;border-top:2px dashed ${PIENG_CHART.accent};vertical-align:middle;margin-right:4px;"></span>Média (${mediaTxt} kWh)</span>
-      <span class="pieng-geracao-var" style="color:${PIENG_CHART.hint};">Variação pico→vale ${varTxt}%</span>
+      <span class="pieng-geracao-var" style="color:${PIENG_CHART.hint};">Pessimista ${minTxt} kWh · Otimista ${maxTxt} kWh</span>
     </div>
   </div>
   <p style="margin:12px 0 0;font-size:0.75rem;color:${PIENG_CHART.hint};line-height:1.4;">Estimativa sazonal. A geração real varia com o clima, as condições do local, a orientação do telhado em relação ao sol, a limpeza dos módulos e outros fatores que podem interferir na geração.</p>

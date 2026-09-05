@@ -2,7 +2,7 @@ import { formatBRL } from '@/lib/formatBRL';
 
 /** Faixa típica de rendimento do sistema (PR) — cliente vê % de desempenho, sem fórmula. */
 export const PR_FAIXA_MIN = 0.72;
-export const PR_FAIXA_MAX = 0.78;
+export const PR_FAIXA_MAX = 0.8;
 
 export interface PerformanceMensalInput {
   geracaoKwh: number;
@@ -67,7 +67,9 @@ export function parseTarifaKwh(tarifa: unknown): number {
 
 /**
  * Texto enriquecido da caixa Performance (card cliente).
- * Inclui faixa 72–78%, abatimento mensal/anual e tarifa — sem markup/custo/fórmulas internas.
+ * Inclui faixa 72–80%, abatimento mensal/anual e tarifa — sem markup/custo/fórmulas internas.
+ * Geração de referência (com bônus micro +5% se ativo) escala pela faixa PR;
+ * abatimento = geração da faixa × tarifa.
  */
 export function buildPerformanceMensalView(input: PerformanceMensalInput): PerformanceMensalView {
   const prMin = input.prMin ?? PR_FAIXA_MIN;

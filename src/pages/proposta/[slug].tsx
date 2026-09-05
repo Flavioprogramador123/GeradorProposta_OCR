@@ -12,9 +12,15 @@ import { PaybackFioBChart } from '@/components/PaybackFioBChart';
 import { TechnicalTable } from '@/components/TechnicalTable';
 import { ConsultorButton } from '@/components/ConsultorButton';
 import { InsightsSection } from '@/components/InsightsSection';
+import { MarketingBeneficios } from '@/components/MarketingBeneficios';
+import {
+  resolverTextosMarketing,
+  type TextosMarketingResolvidos,
+} from '@/lib/textosMarketingVariaveis';
+import { calcularEconomiaCO2, calcularValorizacaoImovel, CONFIG_PADRAO } from '@/utils/configuracoes';
 import { Footer } from '@/components/Footer';
 import { PropostaData } from '@/lib/types';
-import { convertSystemsToTableData, findBestSystem, calculateInsights } from '@/lib/propostaUtils';
+import { convertSystemsToTableData, findBestSystem, findSistemaMaiorGeracao, calculateInsights } from '@/lib/propostaUtils';
 import { getPropostaBySlug } from '@/lib/supabase';
 import { getLogoMetaTags } from '@/lib/logoConfig';
 import PropostaPdfToolbar from '@/components/PropostaPdfToolbar';
@@ -331,7 +337,59 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
   });
   const tableData = convertSystemsToTableData(sistemas);
   const bestSystem = findBestSystem(sistemas);
+  const sistemaMaiorGeracao = findSistemaMaiorGeracao(sistemas) || bestSystem;
   const insights = calculateInsights(sistemas);
+
+  const marketingSalvo = (proposta as { marketing?: TextosMarketingResolvidos })?.marketing;
+  const marketing: TextosMarketingResolvidos | null = (() => {
+    if (marketingSalvo?.economiaAnual) return marketingSalvo;
+    const cfg = (proposta as { config?: Record<string, unknown> })?.config || {};
+    const econMensal =
+      Number((bestSystem as { economiaMensal?: number })?.economiaMensal) ||
+      parseFloat(
+        String((bestSystem as { economia?: string })?.economia || '')
+          .replace(/[^\d,.-]/g, '')
+          .replace(',', '.')
+      ) ||
+      0;
+    const gerMensal =
+      Number((bestSystem as { geracaoMensal?: number })?.geracaoMensal) ||
+      parseFloat(
+        String(bestSystem?.geracao || '')
+          .replace(/[^\d,.-]/g, '')
+          .replace(',', '.')
+      ) ||
+      0;
+    const payback =
+      Number((bestSystem as { paybackMeses?: number })?.paybackMeses) ||
+      parseFloat(String(bestSystem?.payback || '').replace(/[^\d,.-]/g, '').replace(',', '.')) ||
+      0;
+    const tir =
+      Number((bestSystem as { tirAnual?: number })?.tirAnual) ||
+      parseFloat(String(bestSystem?.tir || '').replace(/[^\d,.-]/g, '').replace(',', '.')) ||
+      0;
+    return resolverTextosMarketing(
+      {
+        textoEconomiaAnual:
+          (cfg.textoEconomiaAnual as string) || CONFIG_PADRAO.textoEconomiaAnual,
+        textoPayback: (cfg.textoPayback as string) || CONFIG_PADRAO.textoPayback,
+        textoTIR: (cfg.textoTIR as string) || CONFIG_PADRAO.textoTIR,
+        textoValorizacaoImovel:
+          (cfg.textoValorizacaoImovel as string) || CONFIG_PADRAO.textoValorizacaoImovel,
+        textoSustentabilidade:
+          (cfg.textoSustentabilidade as string) || CONFIG_PADRAO.textoSustentabilidade,
+      },
+      {
+        valorEconomia: Math.round(econMensal * 12).toLocaleString('pt-BR'),
+        mesesPayback: payback.toFixed(1),
+        percentualTIR: tir.toFixed(1),
+        percentualValorizacao: calcularValorizacaoImovel(
+          Number(bestSystem?.precoPixDecimal) || 0
+        ),
+        tonelaCO2: calcularEconomiaCO2(gerMensal * 12).toFixed(1),
+      }
+    );
+  })();
 
   // URL base para meta tags (Open Graph) - SEMPRE usar URL de produção
   const baseUrl = 'https://pieng-propostas.vercel.app';
@@ -415,9 +473,8 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         <ProjecaoGeracaoChart
           potenciaKwp={(() => {
             const raw =
-              bestSystem?.potencia ||
-              (bestSystem as { potTotal?: number })?.potTotal ||
-              sistemas.find((s) => s.isRecommended)?.potencia ||
+              sistemaMaiorGeracao?.potencia ||
+              (sistemaMaiorGeracao as { potTotal?: number })?.potTotal ||
               sistemas[0]?.potencia ||
               0;
             if (typeof raw === 'number') return raw;
@@ -505,6 +562,8 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           tirMax={analise.tirMax || insights.tirMax}
           clienteNome={cliente.nome}
         />
+
+        <MarketingBeneficios marketing={marketing} />
 
         <ConsultorButton
           whatsappNumber={empresa.whatsapp}

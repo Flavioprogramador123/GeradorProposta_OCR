@@ -9,8 +9,13 @@ import { formatBRL } from './formatBRL';
 import { getSolarDataByCidade, resolveSolarCidadeKey } from './solarProjection';
 import { generateProjecaoGeracaoClienteHtml } from './chartGenerator';
 import { generatePaybackFioBChartHtml } from '@/components/PaybackFioBChart';
-import { CONFIG_PADRAO } from '@/utils/configuracoes';
+import { CONFIG_PADRAO, calcularEconomiaCO2, calcularValorizacaoImovel } from '@/utils/configuracoes';
 import { buildPerformanceMensalView } from './performanceMensalCopy';
+import {
+  resolverTextosMarketing,
+  textosMarketingParaHtml,
+  type TextosMarketingResolvidos,
+} from './textosMarketingVariaveis';
 
 function injectFormasPagamento(html: string, taxaCartaoMensal?: number): string {
   const snippet = getFormasPagamentoModalScript(taxaCartaoMensal);
@@ -375,10 +380,17 @@ interface PropostaData {
     performanceRate?: number;
     hsp?: number;
     tarifa?: number;
+    textoEconomiaAnual?: string;
+    textoPayback?: string;
+    textoTIR?: string;
+    textoValorizacaoImovel?: string;
+    textoSustentabilidade?: string;
   };
   analise?: {
     economiaTarifa?: string;
   };
+  /** Textos de marketing já processados (config + tokens da proposta) */
+  marketing?: TextosMarketingResolvidos;
 }
 
 export class TemplateEnginePadrao {
@@ -433,7 +445,8 @@ export class TemplateEnginePadrao {
       GERACAO_MAX: this.getMaxGeneration(data.sistemas),
       COBERTURA_MAX: this.getMaxCoverage(data.sistemas),
       TIR_MAX: this.getMaxTir(data.sistemas),
-      ECONOMIA_TARIFA: "R$ 0,982"
+      ECONOMIA_TARIFA: "R$ 0,982",
+      MARKETING_BENEFICIOS_HTML: this.resolveMarketingHtml(data),
     };
 
     // Adicionar variáveis específicas de cada sistema
@@ -527,8 +540,9 @@ export class TemplateEnginePadrao {
 
   /** Insere gráficos de geração + payback Fio B antes do footer */
   private injectProjecaoGeracao(html: string, data: PropostaData): string {
-    const best = this.getBestSystem(data.sistemas) || data.sistemas[0];
-    const pot = best?.potTotal || 0;
+    // Projeção sazonal: sempre o card de maior geração (não o de melhor payback)
+    const maiorGer = this.getSistemaMaiorGeracao(data.sistemas) || data.sistemas[0];
+    const pot = maiorGer?.potTotal || 0;
     if (!pot || pot <= 0) return html;
 
     const pr =
@@ -548,21 +562,28 @@ export class TemplateEnginePadrao {
       cidadeLabel: solar.cidade,
     });
 
-    const investimento = best?.ppix || 0;
+    // Payback Fio B continua no sistema de melhor payback (recomendado)
+    const bestPayback = this.getBestSystem(data.sistemas) || data.sistemas[0];
+    const investimento = bestPayback?.ppix || 0;
     const tarifa = this.resolveTarifaKwh(data);
     const hsp = data.cliente?.hsp || data.config?.hsp || CONFIG_PADRAO.hspPadrao || 5.3;
-    const geracaoAnual = (best?.geracaoMensal || 0) * 12;
+    const geracaoAnual = (maiorGer?.geracaoMensal || 0) * 12;
 
     const paybackSection =
       investimento > 0
         ? generatePaybackFioBChartHtml({
-            potenciaKwp: pot,
+            potenciaKwp: bestPayback?.potTotal || pot,
             investimentoPix: investimento,
             tarifaCheia: tarifa,
             hsp,
             performanceRate: pr,
             reajusteEnergiaPct: CONFIG_PADRAO.reajusteEnergia ?? 8.2,
-            geracaoAnualKwh: geracaoAnual > 0 ? geracaoAnual : undefined,
+            geracaoAnualKwh:
+              ((bestPayback?.geracaoMensal || maiorGer?.geracaoMensal || 0) * 12) > 0
+                ? (bestPayback?.geracaoMensal || maiorGer?.geracaoMensal || 0) * 12
+                : geracaoAnual > 0
+                  ? geracaoAnual
+                  : undefined,
           })
         : '';
 
@@ -700,6 +721,17 @@ export class TemplateEnginePadrao {
     });
   }
 
+  /** Card com maior geração mensal (kWh) — base da projeção sazonal. */
+  private getSistemaMaiorGeracao(sistemas: Sistema[]): Sistema | null {
+    if (sistemas.length === 0) return null;
+    return sistemas.reduce((best, current) => {
+      const gBest = best.geracaoMensal || 0;
+      const gCur = current.geracaoMensal || 0;
+      if (gCur !== gBest) return gCur > gBest ? current : best;
+      return (current.potTotal || 0) > (best.potTotal || 0) ? current : best;
+    });
+  }
+
   private getBestSystemPotencia(sistemas: Sistema[]): string {
     const best = this.getBestSystem(sistemas);
     return best && best.potTotal ? `${best.potTotal.toFixed(2)} kWp` : "0 kWp";
@@ -725,6 +757,34 @@ export class TemplateEnginePadrao {
     if (sistemas.length === 0) return "0%";
     const max = Math.max(...sistemas.map(s => Number(s.cobertura) || 0));
     return `${Math.round(max)}%`;
+  }
+
+  private resolveMarketingHtml(data: PropostaData): string {
+    if (data.marketing) {
+      return textosMarketingParaHtml(data.marketing);
+    }
+    const best = this.getBestSystem(data.sistemas) || data.sistemas[0];
+    const economiaAnual = (best?.economiaMensal || 0) * 12;
+    const geracaoAnual = (best?.geracaoMensal || 0) * 12;
+    const resolved = resolverTextosMarketing(
+      {
+        textoEconomiaAnual: data.config?.textoEconomiaAnual || CONFIG_PADRAO.textoEconomiaAnual,
+        textoPayback: data.config?.textoPayback || CONFIG_PADRAO.textoPayback,
+        textoTIR: data.config?.textoTIR || CONFIG_PADRAO.textoTIR,
+        textoValorizacaoImovel:
+          data.config?.textoValorizacaoImovel || CONFIG_PADRAO.textoValorizacaoImovel,
+        textoSustentabilidade:
+          data.config?.textoSustentabilidade || CONFIG_PADRAO.textoSustentabilidade,
+      },
+      {
+        valorEconomia: Math.round(economiaAnual).toLocaleString('pt-BR'),
+        mesesPayback: (best?.paybackMeses || 0).toFixed(1),
+        percentualTIR: (best?.tirAnual || 0).toFixed(1),
+        percentualValorizacao: calcularValorizacaoImovel(best?.ppix || 0),
+        tonelaCO2: calcularEconomiaCO2(geracaoAnual).toFixed(1),
+      }
+    );
+    return textosMarketingParaHtml(resolved);
   }
 
   private getMaxTir(sistemas: Sistema[]): string {
@@ -877,11 +937,11 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p18x_parcela)}
                 </div>
               </div>
+
+              <button type="button" class="cta-button" style="margin-top:12px;width:100%" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
             </div>
 
             ${this.performanceBoxHtml(sistema, data)}
-
-            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;
@@ -944,11 +1004,11 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p18x_parcela)}
                 </div>
               </div>
+
+              <button type="button" class="cta-button" style="margin-top:12px;width:100%" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
             </div>
 
             ${this.performanceBoxHtml(sistema, data)}
-
-            <button type="button" class="cta-button" data-pieng-pay data-pix="${sistema.ppix || 0}">OUTRAS FORMAS DE PAGAMENTO</button>
           </div>
         </div>
       `;
