@@ -404,7 +404,7 @@ export default function AdminIndex() {
                     🏢 Área Administrativa
                   </h1>
                   <span className="px-2 py-1 text-xs font-mono rounded border border-[var(--admin-border)] bg-[var(--admin-surface-muted)] text-[var(--admin-primary)]">
-                    v2.4.6
+                    v2.4.7
                   </span>
                 </div>
                 <p className="admin-subtitle">

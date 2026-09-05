@@ -1,6 +1,6 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.4.6-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.7-blue.svg)](VERSION.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
@@ -8,8 +8,14 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.4.6` (05/09/2026) ✅
+**📌 Versão Atual**: `v2.4.7` (05/09/2026) ✅
 **📖** [Ver Changelog Completo](VERSION.md) | [Restrições cliente](RESTRICOES_CLIENTE.md) | [Documentação PWA](PWA.md)
+
+## 🆕 Novidades v2.4.7 (05/09/2026)
+
+**☀️ Config / proposta:**
+- HSP Goiás 5,45; PR do card até 80%; legenda sazonal Média / Pessimista / Otimista
+- Marketing PNL nas configs → proposta; frete + pdespesa no gerador; sessão preservada
 
 ## 🆕 Novidades v2.4.6 (05/09/2026)
 

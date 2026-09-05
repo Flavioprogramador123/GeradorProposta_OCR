@@ -1,12 +1,28 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.6** (05/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.7** (05/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.6** - 05/09/2026 ✅ **ATUAL**
+### **v2.4.7** - 05/09/2026 ✅ **ATUAL**
+**☀️ Config / geração / proposta:**
+- ✅ HSP Goiás alinhado a **5,45** (`hspPadrao` + `hspPorEstado.GO`; sync ao salvar config)
+- ✅ Faixa de desempenho do card: PR até **80%** (disclaimer 72–80%)
+- ✅ Gráfico sazonal: legenda **Média / Pessimista / Otimista** (sem “variação pico→vale”)
+- ✅ Projeção sazonal usa o sistema de **maior geração**
+
+**🎨 Marketing e UX:**
+- ✅ Textos de marketing (PNL) editáveis em `/admin/configuracoes` → seção na proposta
+- ✅ Botão “Outras formas de pagamento” dentro da seção de preços do card
+- ✅ Box Pdespesa no gerador: **fixo + % + Frete** (fórmula V3); sessão não é sobrescrita pelo admin
+
+**📦 Arquivos:** `configuracoes.json`, `sistemaConfig.ts`, `textosMarketingVariaveis.ts`, `MarketingBeneficios.tsx`, `ProjecaoGeracaoChart.tsx`, `chartGenerator.ts`, `configRapidaShared.ts`, `SystemCard.tsx`, `templateEngine*.ts`, `gerador-rapido.tsx`, `proposta-auto.tsx`, `orcamento-base.tsx`
+
+---
+
+### **v2.4.6** - 05/09/2026
 **🔧 Premissas V3 — strings / cabos / marcas (3a + 4a):**
 - ✅ **Strings por potência CA** (aprox., sem modelo): ≤3,5→1 · **6–8→2** · demais≤25→4 · ≤36→6 · ≤49→8 · ~50→12 · ~60→18 · ≥70→24 (`estimarStringsInversor`)
 - ✅ **Cabo bola 25 m:** 1 vermelho + 1 preto **por string** (par = nº de strings)
