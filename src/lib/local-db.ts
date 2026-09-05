@@ -24,10 +24,15 @@ function loadSqlite(): new (path: string) => SqliteDatabase {
 }
 
 /**
- * Verifica se estamos em ambiente serverless (Vercel/Netlify)
+ * Verifica se estamos em ambiente serverless (Vercel/Netlify/Lambda)
  */
 function isServerlessEnvironment(): boolean {
-  return !!(process.env.VERCEL || process.env.NETLIFY || process.env.NODE_ENV === 'production');
+  return !!(
+    process.env.VERCEL ||
+    process.env.NETLIFY ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.LAMBDA_TASK_ROOT
+  );
 }
 
 /**
@@ -337,6 +342,10 @@ export function getAllPropostasLocais(): LocalProposta[] {
  * Busca proposta local por slug
  */
 export function getPropostaLocalBySlug(slug: string): LocalProposta | null {
+  if (isServerlessEnvironment()) {
+    return null;
+  }
+
   const database = getDatabase();
   
   const proposta = database
@@ -359,6 +368,10 @@ export function getPropostaLocalBySlug(slug: string): LocalProposta | null {
  * Busca cliente local por ID
  */
 export function getClienteLocalById(id: string): LocalCliente | null {
+  if (isServerlessEnvironment()) {
+    return null;
+  }
+
   const database = getDatabase();
   
   return database

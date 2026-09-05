@@ -63,6 +63,7 @@
     "typescript": "^5.0.0"
   },
   "optionalDependencies": {
-    "@next/swc-linux-x64-gnu": "^13.5.9"
+    "@next/swc-linux-x64-gnu": "^13.5.9",
+    "better-sqlite3": "^11.10.0"
   }
 }

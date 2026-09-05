@@ -8,6 +8,7 @@ import {
   SOOLLAR_SECOES_CAPTURA,
   type SoolarLogLine,
 } from '@/lib/soollar/scraper';
+import { isServerlessFs } from '@/lib/serverlessFs';
 import {
   extractItemsFromScrapePayload,
   persistScrapeHtmlDumps,
@@ -55,13 +56,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       baseUrl: creds.baseUrl,
       loginUrl: creds.loginUrl,
       userHint: creds.user ? `${creds.user.slice(0, 2)}***` : null,
-      precosStats: getPrecosStats(),
+      precosStats: (() => {
+        try {
+          return getPrecosStats();
+        } catch (e) {
+          return {
+            error: e instanceof Error ? e.message : String(e),
+            serverless: isServerlessFs(),
+          };
+        }
+      })(),
       fluxo: [
         'Chromium (Playwright) no seu PC — headless desmarcado = você vê o browser',
         'login → cd-selector-trigger → Aeroporto / Matriz / Feira',
         `varre seções: ${SOOLLAR_SECOES_CAPTURA.join(', ')} (com paginação)`,
         'preço só se estoque > mínimo (módulos/demais em /admin/configuracoes)',
-        'marque "Gravar no SQLite V3" para applyCatalogToCd (senão só JSON na tela)',
+        'marque "Gravar na tabela de preços" para applyCatalogToCd (senão só JSON na tela)',
       ],
       chromiumNotas: [
         'Confirmado no Aeroporto: /secao/estruturas-inox e /secao/cabos existem e listam produtos',
@@ -74,6 +84,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  if (isServerlessFs()) {
+    const payload = {
+      ok: false,
+      message:
+        'Captura SOOLLAR (Playwright/Chromium) só roda no PC local. No Vercel use localhost:3000/admin/soollar-captura.',
+      serverless: true,
+    };
+    if (req.body?.stream !== false) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+      });
+      writeSse(res, { type: 'error', ...payload });
+      writeSse(res, { type: 'done', ...payload });
+      return res.end();
+    }
+    return res.status(503).json(payload);
   }
 
   const action = (req.body?.action || req.query.action || 'probe') as string;

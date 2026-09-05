@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 import type { ApiOrcamento, OrcamentoArquivo } from '@/utils/orcamentosSupabase';
 import { mapSupabaseOrcamentoRow, resolveClienteSupabase } from '@/utils/orcamentosSupabase';
+import { getClientesDataRoot, isServerlessFs } from '@/lib/serverlessFs';
 
 type Orcamento = ApiOrcamento & Record<string, any>;
 
@@ -22,7 +23,7 @@ const ALLOWED_STATUSES: Orcamento['status'][] = [
   'rejeitado',
 ];
 
-const filesystemRoot = path.join(process.cwd(), 'src/data/clientes');
+const filesystemRoot = getClientesDataRoot();
 
 function normalizeStatus(value: any): Orcamento['status'] {
   if (typeof value === 'string') {
@@ -213,6 +214,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       orcamentos.push(novoOrcamento);
+
+      if (isServerlessFs() && !supabaseReady) {
+        return res.status(503).json({
+          message: 'Orçamento exige Supabase em produção (filesystem read-only).',
+          orcamento: novoOrcamento,
+          source: 'none',
+        });
+      }
 
       // Criar diretório se não existe
       const clienteDir = path.dirname(orcamentosPath);

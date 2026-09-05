@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { getV3DataDir } from '../db/paths';
 import type { CapturaFonte } from './capturaJob';
 
 export type DiaSemana = 1 | 2 | 3 | 4 | 5 | 6 | 0; // 1=seg … 5=sex (Date.getDay())
@@ -28,16 +29,19 @@ export const CAPTURA_AGENDA_DEFAULT: CapturaAgenda = {
   timezone: 'America/Sao_Paulo',
 };
 
-const AGENDA_PATH = path.join(process.cwd(), 'data', 'v3', 'captura-agenda.json');
+function agendaPath() {
+  return path.join(getV3DataDir(), 'captura-agenda.json');
+}
 
 export function getAgendaPath() {
-  return AGENDA_PATH;
+  return agendaPath();
 }
 
 export function loadCapturaAgenda(): CapturaAgenda {
   try {
-    if (!fs.existsSync(AGENDA_PATH)) return { ...CAPTURA_AGENDA_DEFAULT };
-    const raw = JSON.parse(fs.readFileSync(AGENDA_PATH, 'utf8')) as Partial<CapturaAgenda>;
+    const file = agendaPath();
+    if (!fs.existsSync(file)) return { ...CAPTURA_AGENDA_DEFAULT };
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Partial<CapturaAgenda>;
     const hora = String(raw.hora || CAPTURA_AGENDA_DEFAULT.hora);
     const dias = Array.isArray(raw.dias)
       ? raw.dias.map(Number).filter((d) => d >= 0 && d <= 6)
@@ -73,9 +77,10 @@ export function saveCapturaAgenda(partial: Partial<CapturaAgenda>): CapturaAgend
     next.dias = (partial.dias as number[]).map(Number).filter((d) => d >= 0 && d <= 6);
     if (!next.dias.length) next.dias = [...CAPTURA_AGENDA_DEFAULT.dias];
   }
-  const dir = path.dirname(AGENDA_PATH);
+  const file = agendaPath();
+  const dir = path.dirname(file);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(AGENDA_PATH, JSON.stringify(next, null, 2), 'utf8');
+  fs.writeFileSync(file, JSON.stringify(next, null, 2), 'utf8');
   return next;
 }
 

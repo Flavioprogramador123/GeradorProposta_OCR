@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { getClientesWithPropostas, updateCliente } from '@/lib/supabase';
+import { getClientesDataRoot, isServerlessFs } from '@/lib/serverlessFs';
 
 interface ClienteData {
   nome: string;
@@ -398,8 +399,14 @@ CONSUMO MENSAL: ${consumoKwh} KWH/MES
         return res.status(200).json({ message: 'Status da proposta atualizado', propostaPausada });
       }
 
-      // Fallback filesystem: salvar em cliente.json
-      const clientePath = path.join(process.cwd(), 'src', 'data', 'clientes', clienteId);
+      // Fallback filesystem: salvar em cliente.json (só local)
+      if (isServerlessFs()) {
+        return res.status(503).json({
+          message: 'Cliente não encontrado no Supabase; filesystem indisponível em produção.',
+        });
+      }
+
+      const clientePath = path.join(getClientesDataRoot(), clienteId);
       const clienteJsonPath = path.join(clientePath, 'cliente.json');
       try {
         const raw = await fs.readFile(clienteJsonPath, 'utf8');

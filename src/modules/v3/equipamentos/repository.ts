@@ -1,4 +1,4 @@
-import { getV3Db } from '../db/sqlite';
+import { getV3Db, getV3DbPath } from '../db/sqlite';
 import type { Equipamento, EquipamentoComAliases, EquipamentoInput } from './types';
 
 function normalizeJson(value: EquipamentoInput['especificacao_json']): string {
@@ -211,6 +211,6 @@ export function getV3Stats() {
     porCategoria,
     cds,
     precosRegistrados: precos.c,
-    dbPath: process.env.V3_SQLITE_PATH || 'data/v3/pieng_v3.sqlite',
+    dbPath: getV3DbPath(),
   };
 }

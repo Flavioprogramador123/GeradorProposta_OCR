@@ -3,10 +3,18 @@ import { TemplateEngine } from '../../../../lib/templateEngine';
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
+import { isServerlessFs } from '@/lib/serverlessFs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
+  }
+
+  if (isServerlessFs()) {
+    return res.status(503).json({
+      error: 'processar-modular exige Python + filesystem local. Use /api/gerar-proposta em produção.',
+      serverless: true,
+    });
   }
 
   const { cliente } = req.query;

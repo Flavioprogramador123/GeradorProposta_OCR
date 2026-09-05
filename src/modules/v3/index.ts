@@ -1,4 +1,5 @@
 export { getV3Db, getV3DbPath, V3_ENABLED, closeV3Db } from './db/sqlite';
+export { getV3DataDir, getV3TempDir, isV3ServerlessFs } from './db/paths';
 export * from './equipamentos/types';
 export * from './equipamentos/repository';
 export { seedEquipamentosFromYaml, resolveYamlSeedPath } from './equipamentos/seedFromYaml';

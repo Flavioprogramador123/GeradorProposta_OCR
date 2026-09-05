@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { getV3TempDir } from '../db/paths';
 import { matchMany, type CatalogItem } from './matcher';
 import { resolveCdId, upsertPrecoCd } from './repository';
 import { upsertBySkuInterno, updateEquipamento, softDeleteEquipamento } from '../equipamentos/repository';
@@ -334,8 +335,12 @@ export function parseProductsFromTestIds(html: string): CatalogItem[] {
 export function importFromFeiraJson(filePath?: string): CatalogItem[] {
   const p =
     filePath ||
-    path.join(process.cwd(), 'temp', '_feira_produtos.json');
-  if (!fs.existsSync(p)) return [];
+    path.join(getV3TempDir(), '_feira_produtos.json');
+  if (!fs.existsSync(p)) {
+    const legacy = path.join(process.cwd(), 'temp', '_feira_produtos.json');
+    if (!fs.existsSync(legacy)) return [];
+    return importFromFeiraJson(legacy);
+  }
   const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
   const list = raw.products || raw.items || [];
   return list.map((x: { nome?: string; preco?: string | number; estoque?: number; codigo?: string }) => ({
@@ -628,10 +633,15 @@ export function importHtmlFileToCd(htmlPath: string, cd: string | number, fonte?
   };
 }
 
-export function importFeiraJsonToCd(cd: string | number = 'Feira de Santana') {
-  const items = importFromFeiraJson();
+export function importFeiraJsonToCd(cd: string | number = 'Feira de Santana', filePath?: string) {
+  const resolved =
+    filePath ||
+    (fs.existsSync(path.join(getV3TempDir(), '_feira_produtos.json'))
+      ? path.join(getV3TempDir(), '_feira_produtos.json')
+      : path.join(process.cwd(), 'temp', '_feira_produtos.json'));
+  const items = importFromFeiraJson(resolved);
   return {
-    path: path.join(process.cwd(), 'temp', '_feira_produtos.json'),
+    path: resolved,
     itemsFound: items.length,
     ...applyCatalogToCd(items, cd, 'json:_feira_produtos.json'),
   };

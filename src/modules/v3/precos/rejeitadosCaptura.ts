@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { getV3DataDir } from '../db/paths';
 
 export type MotivoRejeicao =
   | 'sem_match'
@@ -31,25 +32,29 @@ export interface CapturaRejeitadosSnapshot {
   itens: ItemRejeitado[];
 }
 
-const PATH = path.join(process.cwd(), 'data', 'v3', 'captura-rejeitados.json');
+function rejeitadosPath() {
+  return path.join(getV3DataDir(), 'captura-rejeitados.json');
+}
 
 export function getRejeitadosPath() {
-  return PATH;
+  return rejeitadosPath();
 }
 
 export function loadRejeitados(): CapturaRejeitadosSnapshot | null {
   try {
-    if (!fs.existsSync(PATH)) return null;
-    return JSON.parse(fs.readFileSync(PATH, 'utf8')) as CapturaRejeitadosSnapshot;
+    const file = rejeitadosPath();
+    if (!fs.existsSync(file)) return null;
+    return JSON.parse(fs.readFileSync(file, 'utf8')) as CapturaRejeitadosSnapshot;
   } catch {
     return null;
   }
 }
 
 export function saveRejeitados(snap: CapturaRejeitadosSnapshot) {
-  const dir = path.dirname(PATH);
+  const file = rejeitadosPath();
+  const dir = path.dirname(file);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(PATH, JSON.stringify(snap, null, 2), 'utf8');
+  fs.writeFileSync(file, JSON.stringify(snap, null, 2), 'utf8');
 }
 
 /** Acumula rejeitados de vários CDs numa única snapshot da última captura */

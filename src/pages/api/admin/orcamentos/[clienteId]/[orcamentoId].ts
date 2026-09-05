@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { supabase } from '@/lib/supabase';
 import { mapSupabaseOrcamentoRow, resolveClienteSupabase } from '@/utils/orcamentosSupabase';
+import { getClientesDataRoot, isServerlessFs } from '@/lib/serverlessFs';
 
 const hasSupabaseEnv = Boolean(
   (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL) &&
@@ -10,7 +11,7 @@ const hasSupabaseEnv = Boolean(
 );
 
 const supabaseReady = Boolean(supabase && hasSupabaseEnv);
-const filesystemRoot = path.join(process.cwd(), 'src/data/clientes');
+const filesystemRoot = getClientesDataRoot();
 
 function getOrcamentosPath(clienteId: string) {
   return path.join(filesystemRoot, clienteId, 'orcamentos.json');
@@ -123,6 +124,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } catch (supabaseError) {
           console.error('Erro inesperado ao atualizar orçamento no Supabase:', supabaseError);
         }
+      }
+
+      if (isServerlessFs()) {
+        return res.status(503).json({
+          message: 'Orçamento não encontrado no Supabase; filesystem indisponível em produção.',
+        });
       }
 
       const orcamentosData = await fs.readFile(orcamentosPath, 'utf8');

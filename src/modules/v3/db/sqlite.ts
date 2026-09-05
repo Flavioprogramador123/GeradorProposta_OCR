@@ -1,16 +1,21 @@
 /**
  * SQLite V3 — isolado da produção.
  * Só carrega better-sqlite3 no servidor (API routes).
+ * Em Vercel: DB em /tmp (efêmero); schema embutido no bundle.
  */
 import fs from 'fs';
 import path from 'path';
+import { getV3DataDir, isV3ServerlessFs } from './paths';
+import { V3_SCHEMA_SQL } from './schema';
 
 export const V3_ENABLED = process.env.V3_ENABLED !== 'false';
 
 export function getV3DbPath() {
   const custom = (process.env.V3_SQLITE_PATH || '').trim();
-  if (custom) return path.isAbsolute(custom) ? custom : path.join(process.cwd(), custom);
-  return path.join(process.cwd(), 'data', 'v3', 'pieng_v3.sqlite');
+  if (custom) {
+    return path.isAbsolute(custom) ? custom : path.join(process.cwd(), custom);
+  }
+  return path.join(getV3DataDir(), 'pieng_v3.sqlite');
 }
 
 type Database = import('better-sqlite3').Database;
@@ -24,23 +29,35 @@ function loadBetterSqlite3(): typeof import('better-sqlite3') {
 
 export function getV3Db(): Database {
   if (cached) {
-    // Garante migrations idempotentes (CREATE IF NOT EXISTS) em processos longos
-    const schemaPath = path.join(process.cwd(), 'src', 'modules', 'v3', 'db', 'schema.sql');
-    cached.exec(fs.readFileSync(schemaPath, 'utf8'));
+    cached.exec(V3_SCHEMA_SQL);
     return cached;
   }
 
   const dbPath = getV3DbPath();
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  try {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `V3: não foi possível criar diretório do SQLite (${path.dirname(dbPath)}): ${msg}` +
+        (isV3ServerlessFs() ? ' [serverless]' : '')
+    );
+  }
 
-  const DatabaseCtor = loadBetterSqlite3();
+  let DatabaseCtor: typeof import('better-sqlite3');
+  try {
+    DatabaseCtor = loadBetterSqlite3();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `V3: better-sqlite3 indisponível neste ambiente. Instale localmente (npm i better-sqlite3). Detalhe: ${msg}`
+    );
+  }
+
   const db = new DatabaseCtor(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-
-  const schemaPath = path.join(process.cwd(), 'src', 'modules', 'v3', 'db', 'schema.sql');
-  const schema = fs.readFileSync(schemaPath, 'utf8');
-  db.exec(schema);
+  db.exec(V3_SCHEMA_SQL);
 
   seedCdsIfEmpty(db);
   seedRegrasIfEmpty(db);

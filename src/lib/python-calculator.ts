@@ -69,6 +69,11 @@ export class PythonCalculator {
 
   // 🧮 Executar cálculos técnicos via Python
   async calculateSolarSystem(input: SolarCalculationInput): Promise<SolarCalculationResult> {
+    // Vercel/Lambda não tem Python — usar fallback JS direto
+    if (process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      return this.fallbackCalculation(input);
+    }
+
     return new Promise((resolve, reject) => {
       const pythonProcess = spawn('python', [this.pythonScriptPath, JSON.stringify(input)]);
       

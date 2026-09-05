@@ -23,7 +23,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(500).json({
       ok: false,
       message: e instanceof Error ? e.message : String(e),
-      hint: 'Instale better-sqlite3: npm i better-sqlite3',
+      serverless: Boolean(process.env.VERCEL),
+      hint: process.env.VERCEL
+        ? 'V3 SQLite em /tmp no Vercel (efêmero). Orçamento completo roda melhor em localhost.'
+        : 'Instale better-sqlite3: npm i better-sqlite3',
     });
   }
 }

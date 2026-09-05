@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { getV3TempDir } from '../db/paths';
 import { upsertBySkuInterno } from './repository';
 import type { EquipamentoCategoria, EquipamentoInput } from './types';
 
@@ -88,6 +89,8 @@ function extractBlocks(raw: string): unknown[] {
 export function resolveYamlSeedPath(): string {
   const custom = (process.env.V3_SEED_YAML || '').trim();
   if (custom) return path.isAbsolute(custom) ? custom : path.join(process.cwd(), custom);
+  const fromTemp = path.join(getV3TempDir(), 'orcamento_executados.yaml');
+  if (fs.existsSync(fromTemp)) return fromTemp;
   return path.join(process.cwd(), 'temp', 'orcamento_executados.yaml');
 }
 

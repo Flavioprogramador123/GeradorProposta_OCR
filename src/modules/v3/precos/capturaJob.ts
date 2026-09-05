@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createConsoleLogger, capturarSoolarComBrowser, SOOLLAR_CDS } from '@/lib/soollar/scraper';
+import { getV3TempDir } from '../db/paths';
 import {
   applyCatalogToCd,
   dedupeCatalogItems,
@@ -83,8 +84,13 @@ export async function atualizarPrecosFromTemp(): Promise<{
   const results: unknown[] = [];
 
   try {
-    if (fs.existsSync(path.join(process.cwd(), 'temp', '_feira_produtos.json'))) {
-      results.push({ fonte: 'feira-json', ...importFeiraJsonToCd('Feira de Santana') });
+    const feiraJson = path.join(getV3TempDir(), '_feira_produtos.json');
+    const feiraLegacy = path.join(process.cwd(), 'temp', '_feira_produtos.json');
+    if (fs.existsSync(feiraJson) || fs.existsSync(feiraLegacy)) {
+      results.push({
+        fonte: 'feira-json',
+        ...importFeiraJsonToCd('Feira de Santana', fs.existsSync(feiraJson) ? feiraJson : feiraLegacy),
+      });
     }
   } catch (e) {
     results.push({ fonte: 'feira-json', error: e instanceof Error ? e.message : String(e) });
@@ -239,7 +245,7 @@ function persistRejeitadosFromResults(fonte: string, results: unknown[]) {
 export function persistScrapeHtmlDumps(
   blocos: Array<{ cd: string; slug: string; items: Array<Record<string, unknown>> }>
 ): string[] {
-  const dir = path.join(process.cwd(), 'temp');
+  const dir = getV3TempDir();
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const saved: string[] = [];
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');

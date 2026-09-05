@@ -4,6 +4,7 @@ import path from 'path';
 import { carregarConfiguracoes, aplicarMarkup, calcularPayback, calcularTIR } from '@/utils/configuracoes';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
+import { getClientesDataRoot, isServerlessFs } from '@/lib/serverlessFs';
 
 interface OrcamentoAprovado {
   id: string;
@@ -213,7 +214,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Carregar dados do cliente
-    const clientePath = path.join(process.cwd(), 'src/data/clientes', clienteId);
+    const clientePath = path.join(getClientesDataRoot(), clienteId);
     const dadosUsuarioPath = path.join(clientePath, 'dadosusuario.md');
     
     let clienteData: any = {};
@@ -261,13 +262,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     };
     
-    // Salvar proposta.json
     const propostaPath = path.join(clientePath, 'proposta.json');
-    await fs.writeFile(propostaPath, JSON.stringify(propostaData, null, 2), 'utf8');
-    
-    // 🚀 GERAR ARQUIVOS HTML USANDO TEMPLATE ENGINE
+    let templatePadraoHtml = '';
+    let templateResultadosHtml = '';
     try {
-      // Preparar dados para o template engine
+      await fs.mkdir(clientePath, { recursive: true });
+      await fs.writeFile(propostaPath, JSON.stringify(propostaData, null, 2), 'utf8');
+    } catch (writeErr) {
+      console.warn('⚠️ Não foi possível gravar proposta.json:', writeErr);
+    }
+
+    try {
       const templateData = {
         cliente: clienteData,
         sistemas: sistemas,
@@ -295,72 +300,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bannerUrgencia: 'Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.'
       };
 
-      // Gerar template padrão
-      const templatePadraoHtml = await generateTemplateHtmlPadrao(templateData);
-      const arquivoPadrao = `proposta_${slug}.html`;
-      const arquivoPadraoPath = path.join(clientePath, arquivoPadrao);
-      await fs.writeFile(arquivoPadraoPath, templatePadraoHtml, 'utf8');
+      templatePadraoHtml = await generateTemplateHtmlPadrao(templateData);
+      templateResultadosHtml = await generateTemplateHtmlResultados(templateData);
 
-      // Gerar template de resultados
-      const templateResultadosHtml = await generateTemplateHtmlResultados(templateData);
-      const arquivoResultados = `proposta_resultados_${slug}.html`;
-      const arquivoResultadosPath = path.join(clientePath, arquivoResultados);
-      await fs.writeFile(arquivoResultadosPath, templateResultadosHtml, 'utf8');
+      try {
+        await fs.writeFile(path.join(clientePath, `proposta_${slug}.html`), templatePadraoHtml, 'utf8');
+        await fs.writeFile(
+          path.join(clientePath, `proposta_resultados_${slug}.html`),
+          templateResultadosHtml,
+          'utf8'
+        );
+      } catch (e) {
+        console.warn('⚠️ HTML não gravado em disco (serverless?):', e);
+      }
 
       console.log('✅ Templates HTML gerados com sucesso!');
     } catch (templateError) {
       console.error('❌ Erro ao gerar templates HTML:', templateError);
-      // Continuar mesmo com erro no template
     }
-    
-    // Criar/atualizar README com instruções para adicionar ao slug
-    const readmePath = path.join(clientePath, 'README.md');
-    const readmeContent = `# Proposta Gerada - ${clienteData.nome}
 
-## ✅ Proposta Criada com Sucesso!
-
-### Arquivos Gerados:
-- **proposta.json** - Dados estruturados da proposta
-- **proposta_${slug}.html** - Template padrão com cards e tabela
-- **proposta_resultados_${slug}.html** - Template de resultados financeiros
-
-### Próximos Passos:
-
-1. **Adicionar Slug**: Adicionar \`${slug}\` em \`src/pages/proposta/[slug].tsx\`
-2. **Deploy**: Fazer commit e deploy para ativar a URL
-
-### Informações:
-- **Cliente**: ${clienteData.nome}
-- **Sistemas Gerados**: ${sistemas.length}
-- **Orçamentos Utilizados**: ${orcamentos.length}
-- **Gerado em**: ${new Date().toLocaleString('pt-BR')}
-
-### URLs Disponíveis:
-- **Página Dinâmica**: \`https://pieng-propostas.vercel.app/proposta/${slug}\`
-- **HTML Direto**: \`https://pieng-propostas.vercel.app/src/data/clientes/${slug}/proposta_${slug}.html\`
-
-### Comando para adicionar slug:
-\`\`\`typescript
-// Em src/pages/proposta/[slug].tsx
-export const getStaticPaths: GetStaticPaths = async () => {
-  const paths = [
-    { params: { slug: 'bin-pirinopolis' } },
-    { params: { slug: '${slug}' } }, // ← Adicionar esta linha
-    // outros slugs...
-  ];
-  return { paths, fallback: false };
-};
-\`\`\`
-`;
-
-    await fs.writeFile(readmePath, readmeContent, 'utf8');
-    
     res.status(200).json({
       success: true,
       message: 'Propostas geradas com sucesso!',
       slug,
       sistemas: sistemas.length,
       previewUrl: `http://localhost:3000/proposta/${slug}`,
+      serverless: isServerlessFs(),
+      htmlPadrao: isServerlessFs() ? templatePadraoHtml : undefined,
+      htmlResultados: isServerlessFs() ? templateResultadosHtml : undefined,
       data: {
         cliente: clienteData.nome,
         sistemas,
