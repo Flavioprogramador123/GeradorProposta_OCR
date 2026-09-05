@@ -89,6 +89,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const shouldFallbackToFile = !supabaseResult.success && !isProduction;
 
       if (supabaseResult.success) {
+        // Em local, espelha no JSON para o V3 (captura/SQLite) ler sync
+        if (!isProduction) {
+          try {
+            await saveConfigToFile(configWithMetadata);
+          } catch (e) {
+            console.warn('⚠️ Supabase ok, mas falhou espelho local:', e);
+          }
+        }
         return res.status(200).json({
           message: 'Configuração salva com sucesso no Supabase!',
           source: 'supabase',

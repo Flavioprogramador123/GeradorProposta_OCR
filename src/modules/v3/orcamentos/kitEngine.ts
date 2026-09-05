@@ -1,5 +1,6 @@
 import { getV3Db } from '../db/sqlite';
 import { getEstoqueMinimoPreco, resolverPrecoEquipamento } from '../precos/repository';
+import { resolveEquipPorSkuCanonico, ensureSkuCanonicoLinks } from './skuCanonico';
 
 export interface KitItemInput {
   sku_interno: string;
@@ -47,17 +48,12 @@ function regraNum(chave: string, fallback: number): number {
 }
 
 function findEquipBySku(sku: string) {
-  const db = getV3Db();
-  return db.prepare('SELECT * FROM equipamentos WHERE sku_interno = ? AND ativo = 1').get(sku) as
-    | {
-        id: number;
-        sku_interno: string;
-        nome: string;
-        categoria: string;
-        potencia_w: number | null;
-        potencia_kw: number | null;
-      }
-    | undefined;
+  try {
+    ensureSkuCanonicoLinks();
+  } catch {
+    /* ignore */
+  }
+  return resolveEquipPorSkuCanonico(sku);
 }
 
 function montarItemPreco(
@@ -154,6 +150,7 @@ export function sugerirComplementos(opts: {
     const kitsEstrutura = Math.ceil(opts.qtdModulos / modsPorKit);
     out.push({ sku_interno: 'KIT-ESTRUTURA-4MOD', quantidade: kitsEstrutura });
 
+    // Premissa: 1 trilho/perfil por módulo (sempre)
     const wp = opts.potenciaModuloW || 0;
     if (wp > 0 && wp <= trilhoAte) {
       out.push({ sku_interno: 'TRILHO-236', quantidade: opts.qtdModulos });
@@ -253,10 +250,17 @@ export function calcularOrcamentoBase(opts: {
         isMicro: eqInv?.categoria === 'microinversor',
       });
       for (const s of sugestoes) {
-        if (manualSkus.has(s.sku_interno) || map.has(s.sku_interno)) continue;
         const eq = findEquipBySku(s.sku_interno);
         if (!eq) {
           avisos.push(`Complemento sem cadastro: ${s.sku_interno}`);
+          continue;
+        }
+        if (
+          manualSkus.has(s.sku_interno) ||
+          manualSkus.has(eq.sku_interno) ||
+          map.has(eq.sku_interno) ||
+          map.has(s.sku_interno)
+        ) {
           continue;
         }
         pushItem(

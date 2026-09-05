@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatBRL } from '@/lib/formatBRL';
 
 interface Sistema {
   titulo: string;
@@ -112,7 +113,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
                     {sistema.tir}
                   </td>
                   <td className="p-3 text-center text-sm font-bold text-pieng-primary">
-                    R$ {sistema.precoPixDecimal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {formatBRL(sistema.precoPixDecimal)}
                   </td>
                 </tr>
               );

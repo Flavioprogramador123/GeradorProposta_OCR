@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import ExtratorManual from '../../../../components/ExtratorManual';
 
 interface OrcamentoData {
@@ -275,17 +276,34 @@ export default function EntradaModular() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-shell">
       <Head>
         <title>Entrada Modular - {clienteId}</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
-            🚀 Entrada Modular de Dados - {clienteId}
-          </h1>
+        <div className="admin-surface p-6 mb-6">
+          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+            <h1 className="text-3xl font-bold admin-title">
+              🚀 Entrada Modular de Dados - {clienteId}
+            </h1>
+            <div className="flex gap-3">
+              <Link
+                href="/admin"
+                className="admin-btn-ghost"
+              >
+                🏠 Admin
+              </Link>
+              <button
+                type="button"
+                onClick={() => router.push(`/admin/orcamentos/${clienteId}`)}
+                className="admin-btn-ghost"
+              >
+                ← Voltar
+              </button>
+            </div>
+          </div>
           
           {/* Seletor de Modo */}
           <div className="flex space-x-4 mb-6">
@@ -328,7 +346,7 @@ export default function EntradaModular() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Coluna Esquerda - Dados do Cliente */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="admin-surface p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">👤 Dados do Cliente</h2>
             
             <div className="space-y-4">
@@ -417,7 +435,7 @@ export default function EntradaModular() {
           </div>
 
           {/* Coluna Direita - Configuração de Preços */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="admin-surface p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">💰 Configuração de Preços</h2>
             
             <div className="space-y-4">
@@ -465,7 +483,7 @@ export default function EntradaModular() {
         </div>
 
         {/* Seção de Orçamentos */}
-        <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+        <div className="admin-surface p-6 mt-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">📊 Orçamentos ({orcamentos.length})</h2>
             <div className="space-x-2">
@@ -568,7 +586,7 @@ export default function EntradaModular() {
         {/* Formulário de Orçamento Manual */}
         {mostrarFormulario && orcamentoAtual && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-slate-100 rounded-lg p-6 max-w-4xl border border-slate-200/80 w-full max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-bold text-gray-800 mb-4">📝 Orçamento Manual</h3>
               
               <div className="grid grid-cols-2 gap-4 mb-4">

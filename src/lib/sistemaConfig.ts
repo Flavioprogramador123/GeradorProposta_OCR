@@ -68,9 +68,27 @@ export async function readConfigFromSupabase(): Promise<Record<string, any> | nu
   return config;
 }
 
-/** Carrega config flat (Supabase → arquivo → {}) */
+/** Carrega config flat.
+ * - Produção: Supabase (se houver) → arquivo → {}
+ * - Local: merge arquivo por cima do Supabase — o save local (fallback RLS) precisa aparecer no GET
+ */
 export async function loadSistemaConfigFlat(): Promise<Record<string, any>> {
-  const supabaseConfig = await readConfigFromSupabase();
-  if (supabaseConfig) return supabaseConfig;
-  return (await readConfigFromFile()) || {};
+  const [supabaseConfig, fileConfig] = await Promise.all([
+    readConfigFromSupabase(),
+    readConfigFromFile(),
+  ]);
+  const file = fileConfig && typeof fileConfig === 'object' ? fileConfig : {};
+  const sb = supabaseConfig && typeof supabaseConfig === 'object' ? supabaseConfig : null;
+  const isProduction = Boolean(process.env.VERCEL || process.env.NETLIFY);
+
+  if (isProduction) {
+    if (sb && Object.keys(sb).length > 0) return { ...file, ...sb };
+    return file;
+  }
+
+  // Dev: JSON local (última gravação bem-sucedida no disco) prevalece sobre Supabase antigo/incompleto
+  if (sb && Object.keys(sb).length > 0) {
+    return { ...sb, ...file };
+  }
+  return file;
 }

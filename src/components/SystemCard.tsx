@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { formatBRL } from '@/lib/formatBRL';
+import { tagEconomiaPix } from '@/lib/tabelaJurosCartao';
+import { FormasPagamentoModal } from '@/components/FormasPagamentoModal';
 
 interface SystemCardProps {
   titulo: string;
@@ -6,8 +9,11 @@ interface SystemCardProps {
   especificacoes: string[];
   precoRiscado: string;
   precoAtual: string;
-  tagDesconto: string;
+  /** Fallback legado; a tag exibida é recalculada de PIX + à vista quando possível */
+  tagDesconto?: string;
   precoPixDecimal: number;
+  /** À vista (= total 12×). Se presente, a tag % é derivada daqui — nunca de um % fixo. */
+  pavista?: number;
   preco12x: string;
   preco18x: string;
   geracao: string;
@@ -27,6 +33,7 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   precoAtual,
   tagDesconto,
   precoPixDecimal,
+  pavista,
   preco12x,
   preco18x,
   geracao,
@@ -35,31 +42,26 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   payback,
   tir,
   isRecommended = false,
-  badge
+  badge,
 }) => {
-  const formatPix = (value: number | null | undefined) => {
-    if (value === null || value === undefined || isNaN(value)) {
-      return 'R$ 0,00';
-    }
-    return value.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
-  };
+  const [payOpen, setPayOpen] = useState(false);
+
+  // Coerência: % do card = (à vista − PIX) / PIX, arredondado — mesma regra da maquininha.
+  // Ex.: mult 1,117943 → ~12%; mult 1,11 → 11%. Sempre alinhado aos valores exibidos.
+  const tagCoerente =
+    pavista != null && pavista > 0 && precoPixDecimal > 0
+      ? tagEconomiaPix(precoPixDecimal, pavista)
+      : tagDesconto || tagEconomiaPix(precoPixDecimal, precoPixDecimal);
 
   return (
     <div className={`pieng-system-card ${isRecommended ? 'pieng-system-recommended' : ''}`}>
-      {badge && (
-        <div className="pieng-badge">
-          {badge}
-        </div>
-      )}
-      
+      {badge && <div className="pieng-badge">{badge}</div>}
+
       <div className="pieng-card-header">
         <div className="text-xl font-bold mb-2">{titulo}</div>
         <div className="text-base opacity-90">Potência: {potencia}</div>
       </div>
-      
+
       <div className="p-6">
         <ul className="pieng-specs-list mb-5">
           {especificacoes.map((spec, index) => (
@@ -68,38 +70,56 @@ export const SystemCard: React.FC<SystemCardProps> = ({
         </ul>
 
         <div className="pieng-pricing-section">
-          <div className="pieng-original-price">Promoção de <span className="pieng-valor-riscado">{precoRiscado}</span></div>
-          <div className="pieng-current-price">para {precoAtual}</div>
-          <div className="pieng-discount-tag">{tagDesconto}</div>
-          <div className="font-bold text-lg mb-4">PIX: {formatPix(precoPixDecimal)}</div>
-          
+          <div className="pieng-original-price">
+            Promoção de <span className="pieng-valor-riscado">{precoRiscado}</span>
+          </div>
+          <div className="pieng-current-price">à vista {precoAtual}</div>
+          <p className="text-xs text-slate-500 -mt-1 mb-2">
+            À vista = total das 12× no cartão (juros da maquininha embutidos)
+          </p>
+          <div className="pieng-discount-tag">{tagCoerente}</div>
+          <div className="font-bold text-lg mb-4">PIX: {formatBRL(precoPixDecimal)}</div>
+
           <div className="pieng-payment-grid">
             <div className="pieng-payment-option pieng-payment-highlight">
-              <strong>12× no cartão</strong><br />
+              <strong>12× no cartão</strong>
+              <br />
               {preco12x}
+              <div className="text-[11px] opacity-80 mt-1 font-normal">total = à vista</div>
             </div>
             <div className="pieng-payment-option">
-              <strong>18× cartão</strong><br />
+              <strong>18× cartão</strong>
+              <br />
               {preco18x}
             </div>
           </div>
         </div>
 
         <div className="pieng-performance-box">
-          <strong>Performance Mensal</strong><br />
-          Geração: {geracao} | Cobertura: {typeof cobertura === 'number' 
-            ? `${Math.round(cobertura)}%` 
-            : (typeof cobertura === 'string' && cobertura.includes('%') 
-              ? cobertura 
-              : `${Math.round(parseFloat(String(cobertura)) || 0)}%`)}<br />
-          Economia: {economia} | Payback: {payback}<br />
+          <strong>Performance Mensal</strong>
+          <br />
+          Geração: {geracao} | Cobertura:{' '}
+          {typeof cobertura === 'number'
+            ? `${Math.round(cobertura)}%`
+            : typeof cobertura === 'string' && cobertura.includes('%')
+              ? cobertura
+              : `${Math.round(parseFloat(String(cobertura)) || 0)}%`}
+          <br />
+          Economia: {economia} | Payback: {payback}
+          <br />
           TIR: {tir} ao ano
         </div>
 
-        <button className="pieng-button-secondary text-base font-bold py-4 no-print">
-          ESCOLHER ESTA OPÇÃO
+        <button
+          type="button"
+          className="pieng-button-secondary text-base font-bold py-4 no-print w-full"
+          onClick={() => setPayOpen(true)}
+        >
+          OUTRAS FORMAS DE PAGAMENTO
         </button>
       </div>
+
+      <FormasPagamentoModal open={payOpen} pix={precoPixDecimal} onClose={() => setPayOpen(false)} />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 interface NovoClienteData {
@@ -74,22 +75,40 @@ export default function NovoCliente() {
         <meta name="description" content="Cadastro de novo cliente" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             
             {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                🆕 Novo Cliente
-              </h1>
-              <p className="text-gray-600">
-                Cadastre os dados do cliente para gerar proposta solar
-              </p>
+            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+              <div>
+                <h1 className="text-3xl font-bold admin-title">
+                  🆕 Novo Cliente
+                </h1>
+                <p className="admin-subtitle mt-1">
+                  Cadastre os dados do cliente para gerar proposta solar
+                </p>
+              </div>
+              <div className="flex gap-3 flex-wrap">
+                <Link
+                  href="/admin"
+                  className="admin-btn-ghost"
+                >
+                  🏠 Admin
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="admin-btn-ghost"
+                  title="Voltar"
+                >
+                  ← Voltar
+                </button>
+              </div>
             </div>
 
             {/* Formulário */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="admin-surface p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* Dados Básicos */}

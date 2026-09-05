@@ -1,4 +1,6 @@
 import { getV3Db } from '../db/sqlite';
+import { getEstoqueMinimoPorCategoria } from './regrasCaptura';
+import { getEstoqueMinimos } from './estoqueMinimosConfig';
 
 export interface PrecoCdRow {
   id: number;
@@ -16,16 +18,44 @@ export interface PrecoCdRow {
   cd_slug?: string;
 }
 
+/** @deprecated use getEstoqueMinimoPorCategoria — mantido para stats/UI */
 export function getEstoqueMinimoPreco(): number {
-  const db = getV3Db();
-  const row = db.prepare(`SELECT valor_json FROM kits_regras WHERE chave = 'estoque_minimo_preco'`).get() as
-    | { valor_json: string }
-    | undefined;
-  const n = Number(row?.valor_json);
-  return Number.isFinite(n) ? n : 20;
+  return getEstoqueMinimos().modulo;
 }
 
-export function listPrecos(opts?: { cdId?: number; apenasValidos?: boolean }): PrecoCdRow[] {
+export { getEstoqueMinimoPorCategoria };
+export { getEstoqueMinimos };
+
+/** Seções do portal SOOLLAR → categorias SQLite (lista principal). */
+export const SECOES_PRECO_FILTRO: Array<{
+  id: string;
+  label: string;
+  categorias: string[];
+}> = [
+  { id: 'modulos', label: 'Módulos', categorias: ['modulo'] },
+  { id: 'inversores', label: 'Inversores', categorias: ['inversor', 'microinversor'] },
+  { id: 'estruturas', label: 'Estruturas', categorias: ['estrutura'] },
+  { id: 'cabos', label: 'Cabos', categorias: ['cabo'] },
+  {
+    id: 'materiais-eletricos',
+    label: 'Materiais elétricos',
+    categorias: ['protecao', 'conector', 'miscelanea'],
+  },
+];
+
+export function categoriasDaSecao(secao?: string | null): string[] | undefined {
+  if (!secao || secao === 'todas') return undefined;
+  const found = SECOES_PRECO_FILTRO.find((s) => s.id === secao);
+  return found?.categorias;
+}
+
+export function listPrecos(opts?: {
+  cdId?: number;
+  apenasValidos?: boolean;
+  apenasAtivos?: boolean;
+  secao?: string;
+  categorias?: string[];
+}): PrecoCdRow[] {
   const db = getV3Db();
   const where: string[] = [];
   const params: Record<string, unknown> = {};
@@ -35,6 +65,17 @@ export function listPrecos(opts?: { cdId?: number; apenasValidos?: boolean }): P
   }
   if (opts?.apenasValidos) {
     where.push('p.valido_estoque = 1 AND p.preco_custo IS NOT NULL');
+  }
+  if (opts?.apenasAtivos !== false) {
+    where.push('e.ativo = 1');
+  }
+  const cats = opts?.categorias?.length ? opts.categorias : categoriasDaSecao(opts?.secao);
+  if (cats?.length) {
+    const placeholders = cats.map((_, i) => `@cat${i}`).join(', ');
+    where.push(`e.categoria IN (${placeholders})`);
+    cats.forEach((c, i) => {
+      params[`cat${i}`] = c;
+    });
   }
   return db
     .prepare(
@@ -57,7 +98,10 @@ export function upsertPrecoCd(input: {
   capturadoEm?: string;
 }): { valido: boolean } {
   const db = getV3Db();
-  const min = getEstoqueMinimoPreco();
+  const eq = db.prepare('SELECT categoria FROM equipamentos WHERE id = ?').get(input.equipamentoId) as
+    | { categoria: string }
+    | undefined;
+  const min = getEstoqueMinimoPorCategoria(eq?.categoria);
   const estoque = input.estoque;
   const preco = input.precoCusto;
   const valido = estoque != null && estoque > min && preco != null && preco > 0 ? 1 : 0;
@@ -99,7 +143,7 @@ export function getPrecosStats() {
     .get() as { c: number };
   const porCd = db
     .prepare(
-      `SELECT c.nome, c.slug_portal, COUNT(p.id) AS total,
+      `SELECT c.id, c.nome, c.slug_portal, COUNT(p.id) AS total,
               SUM(CASE WHEN p.valido_estoque = 1 THEN 1 ELSE 0 END) AS validos,
               MAX(p.capturado_em) AS ultimo
        FROM cds c
@@ -110,11 +154,14 @@ export function getPrecosStats() {
     )
     .all();
   const whitelist = db.prepare('SELECT COUNT(*) AS c FROM equipamentos WHERE ativo = 1').get() as { c: number };
+  const mins = getEstoqueMinimos();
   return {
     precosTotal: total.c,
     precosValidos: validos.c,
     equipamentosAtivos: whitelist.c,
-    estoqueMinimo: getEstoqueMinimoPreco(),
+    estoqueMinimo: mins.modulo,
+    estoqueMinimoModulo: mins.modulo,
+    estoqueMinimoOutros: mins.outros,
     porCd,
   };
 }

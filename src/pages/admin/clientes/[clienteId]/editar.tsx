@@ -105,7 +105,7 @@ export default function EditarCliente() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Carregando dados do cliente...</p>
@@ -116,7 +116,7 @@ export default function EditarCliente() {
 
   if (error && !clienteData.nome) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">❌</div>
           <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
@@ -135,23 +135,34 @@ export default function EditarCliente() {
         <meta name="description" content={`Editar dados do cliente ${clienteData.nome}`} />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <Link href="/admin" legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                ← Admin
-              </a></Link>
-              <span className="text-gray-400">|</span>
-              <h1 className="text-3xl font-bold text-gray-800">
+            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+              <h1 className="text-3xl font-bold admin-title">
                 ✏️ Editar Cliente
               </h1>
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="admin-btn-ghost">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="admin-btn-ghost"
+                  title="Voltar"
+                >
+                  ← Voltar
+                </button>
+              </div>
             </div>
 
             {/* Formulário */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="admin-surface p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {error && (

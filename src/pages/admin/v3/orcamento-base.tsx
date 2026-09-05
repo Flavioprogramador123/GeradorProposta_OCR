@@ -5,6 +5,7 @@ import {
   resolveConfigRapida,
   saveConfigRapida,
 } from '@/lib/configRapidaShared';
+import { formatBRL } from '@/lib/formatBRL';
 import { V3_GERADOR_STORAGE_KEY } from '@/modules/v3/bridge/toGerador';
 
 interface CatalogItem {
@@ -124,14 +125,19 @@ export default function AdminV3OrcamentoBase() {
     const res = await fetch(`/api/v3/orcamentos-base?catalogo=1&cdId=${cdId}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
-    setCatalogo(data.catalogo || []);
-    const m = (data.catalogo || []).find((c: CatalogItem) => c.categoria === 'modulo' && c.valido_estoque === 1);
-    const i = (data.catalogo || []).find(
-      (c: CatalogItem) =>
+    const cat: CatalogItem[] = data.catalogo || [];
+    setCatalogo(cat);
+    const modsOk = cat.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1);
+    const invsOk = cat.filter(
+      (c) =>
         (c.categoria === 'inversor' || c.categoria === 'microinversor') && c.valido_estoque === 1
     );
-    setSkuMod((prev) => prev || m?.sku_interno || '');
-    setSkuInv((prev) => prev || i?.sku_interno || '');
+    setSkuMod((prev) =>
+      prev && modsOk.some((c) => c.sku_interno === prev) ? prev : modsOk[0]?.sku_interno || ''
+    );
+    setSkuInv((prev) =>
+      prev && invsOk.some((c) => c.sku_interno === prev) ? prev : invsOk[0]?.sku_interno || ''
+    );
   }, [cdId]);
 
   const loadLista = useCallback(async () => {
@@ -169,8 +175,7 @@ export default function AdminV3OrcamentoBase() {
     });
   };
 
-  const money = (n: number | null | undefined) =>
-    n == null ? '—' : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const money = (n: number | null | undefined) => (n == null ? '—' : formatBRL(n));
 
   const postPreview = async (opts: {
     cdId: number;
@@ -554,28 +559,42 @@ export default function AdminV3OrcamentoBase() {
   return (
     <>
       <Head>
-        <title>V3 Orçamento base — PIENG</title>
+        <title>Orçamento base — PIENG</title>
       </Head>
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="mb-6">
-            <Link href="/admin/v3" className="text-xs text-sky-400 hover:underline">
-              ← V3 home
-            </Link>
-            <h1 className="text-2xl font-semibold mt-1">3a · Orçamento base (custo)</h1>
-            <p className="text-sm text-slate-400">
-              Semi-automático: você escolhe módulo/inversor, ajusta qtds e envia ao{' '}
-              <strong>Gerador (5a)</strong>. A 4a é só dimensionamento automático.
-            </p>
+      <div className="admin-shell">
+        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold admin-title">Orçamento base</h1>
+              <p className="text-sm admin-subtitle">
+                Semi-automático: você escolhe módulo/inversor, ajusta qtds e envia ao{' '}
+                <strong>Gerador (5a)</strong>. A 4a é só dimensionamento automático.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href="/admin"
+                className="admin-btn-ghost text-sm"
+              >
+                🏠 Admin
+              </Link>
+              <Link
+                href="/admin"
+                className="admin-btn-ghost text-sm"
+              >
+                ← Voltar
+              </Link>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-6 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+          <div className="grid md:grid-cols-2 gap-4 mb-6 admin-surface p-4">
             <label className="text-sm">
-              <span className="text-slate-500 text-xs">CD</span>
+              <span className="text-gray-500 text-xs">CD</span>
               <select
                 value={cdId}
                 onChange={(e) => setCdId(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
                 {CDS.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -585,19 +604,19 @@ export default function AdminV3OrcamentoBase() {
               </select>
             </label>
             <label className="text-sm">
-              <span className="text-slate-500 text-xs">Título / cliente</span>
+              <span className="text-gray-500 text-xs">Título / cliente</span>
               <input
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               />
             </label>
             <label className="text-sm">
-              <span className="text-slate-500 text-xs">Módulo (com preço válido)</span>
+              <span className="text-gray-500 text-xs">Módulo (com preço válido)</span>
               <select
                 value={skuMod}
                 onChange={(e) => setSkuMod(e.target.value)}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
                 <option value="">—</option>
                 {mods.map((m) => (
@@ -608,21 +627,21 @@ export default function AdminV3OrcamentoBase() {
               </select>
             </label>
             <label className="text-sm">
-              <span className="text-slate-500 text-xs">Qtd módulos</span>
+              <span className="text-gray-500 text-xs">Qtd módulos</span>
               <input
                 type="number"
                 min={1}
                 value={qtdMod}
                 onChange={(e) => setQtdMod(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               />
             </label>
             <label className="text-sm">
-              <span className="text-slate-500 text-xs">Inversor / micro</span>
+              <span className="text-gray-500 text-xs">Inversor / micro</span>
               <select
                 value={skuInv}
                 onChange={(e) => setSkuInv(e.target.value)}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
                 <option value="">—</option>
                 {invs.map((m) => (
@@ -633,18 +652,18 @@ export default function AdminV3OrcamentoBase() {
               </select>
             </label>
             <label className="text-sm">
-              <span className="text-slate-500 text-xs">Qtd inversores</span>
+              <span className="text-gray-500 text-xs">Qtd inversores</span>
               <input
                 type="number"
                 min={1}
                 value={qtdInv}
                 onChange={(e) => setQtdInv(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               />
             </label>
             <label className="flex items-center gap-2 text-sm md:col-span-2">
               <input type="checkbox" checked={autoComp} onChange={(e) => setAutoComp(e.target.checked)} />
-              Sugerir estrutura / trilhos / cabos / MC4 automaticamente
+              Sugerir estrutura fibro inox / perfil / cabos / MC4 (1 trilho por módulo · preço)
             </label>
           </div>
 
@@ -653,7 +672,7 @@ export default function AdminV3OrcamentoBase() {
               type="button"
               disabled={busy || !skuMod}
               onClick={() => preview()}
-              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               Calcular preview
             </button>
@@ -661,7 +680,7 @@ export default function AdminV3OrcamentoBase() {
               type="button"
               disabled={busy || !skuMod || !skuInv}
               onClick={incluirCard}
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               Incluir
             </button>
@@ -669,7 +688,7 @@ export default function AdminV3OrcamentoBase() {
               type="button"
               disabled={busy || (!skuMod && !cardAtivo)}
               onClick={salvar}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               {cardAtivo ? 'Salvar card ativo' : 'Salvar orçamento base'}
             </button>
@@ -677,18 +696,18 @@ export default function AdminV3OrcamentoBase() {
               type="button"
               disabled={!cards.length}
               onClick={irParaGerador}
-              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               Abrir no Gerador 5a ({cards.length})
             </button>
           </div>
 
-          {msg && <p className="mb-4 text-sm text-amber-200">{msg}</p>}
+          {msg && <p className="mb-4 text-sm text-amber-800">{msg}</p>}
           {mods.length === 0 && (
-            <p className="mb-4 text-sm text-rose-300">
+            <p className="mb-4 text-sm text-rose-600">
               Nenhum módulo com preço válido neste CD. Importe preços em{' '}
               <Link href="/admin/v3/precos" className="underline">
-                /admin/v3/precos
+                Preços por CD
               </Link>
               .
             </p>
@@ -697,12 +716,12 @@ export default function AdminV3OrcamentoBase() {
           {cards.length > 0 && (
             <section className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-slate-300">
+                <h2 className="text-sm font-semibold text-gray-700">
                   Cards incluídos ({cards.length}) — clique para abrir o resumo
                 </h2>
                 <button
                   type="button"
-                  className="text-xs text-rose-300 hover:underline"
+                  className="text-xs text-rose-600 hover:underline"
                   onClick={() => {
                     persistCards([]);
                     setCardAtivoId(null);
@@ -722,19 +741,19 @@ export default function AdminV3OrcamentoBase() {
                       onClick={() => selecionarCard(c)}
                       className={`text-left rounded-xl border p-4 text-sm transition ${
                         ativo
-                          ? 'border-sky-500 bg-sky-950/40 ring-1 ring-sky-500/60'
-                          : 'border-amber-800/50 bg-amber-950/20 hover:border-amber-600'
+                          ? 'border-sky-500 bg-sky-50 ring-1 ring-sky-400'
+                          : 'border-amber-200 bg-amber-50 hover:border-amber-400'
                       }`}
                     >
                       <div className="flex justify-between gap-2 mb-2">
-                        <span className={`text-xs ${ativo ? 'text-sky-300' : 'text-amber-400/80'}`}>
+                        <span className={`text-xs ${ativo ? 'text-sky-700' : 'text-amber-600'}`}>
                           Card {idx + 1}
                           {ativo ? ' · ativo' : ''}
                         </span>
                         <span
                           role="button"
                           tabIndex={0}
-                          className="text-xs text-rose-300 hover:underline"
+                          className="text-xs text-rose-600 hover:underline"
                           onClick={(e) => removerCard(c.id, e)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') removerCard(c.id);
@@ -743,8 +762,8 @@ export default function AdminV3OrcamentoBase() {
                           Remover
                         </span>
                       </div>
-                      <div className="font-medium text-slate-100 mb-1">{c.titulo}</div>
-                      <div className="text-xs text-slate-400 space-y-0.5">
+                      <div className="font-medium text-gray-800 mb-1">{c.titulo}</div>
+                      <div className="text-xs text-gray-600 space-y-0.5">
                         <div>
                           {c.categoria_inv === 'microinversor' ? 'Micro' : 'String'} · {c.qtd_modulos}{' '}
                           mód. · {c.qtd_inversores} inv.
@@ -755,7 +774,7 @@ export default function AdminV3OrcamentoBase() {
                         <div className="truncate" title={c.nome_inversor}>
                           I: {c.nome_inversor}
                         </div>
-                        <div className="text-emerald-400 mt-1">{money(c.custo_total)}</div>
+                        <div className="text-emerald-600 mt-1">{money(c.custo_total)}</div>
                       </div>
                     </button>
                   );
@@ -765,14 +784,14 @@ export default function AdminV3OrcamentoBase() {
           )}
 
           {calc && (
-            <div className="mb-8 rounded-xl border border-slate-800 overflow-hidden">
-              <div className="px-4 py-3 bg-slate-900 flex flex-wrap justify-between gap-3">
+            <div className="mb-8 admin-surface border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 flex flex-wrap justify-between gap-3">
                 <div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-gray-500">
                     {resumoTitulo}
                     {calc.cd_nome ? ` · ${calc.cd_nome}` : ''}
                   </div>
-                  <div className="text-2xl font-semibold text-emerald-400">{money(calc.custo_total)}</div>
+                  <div className="text-2xl font-semibold text-emerald-600">{money(calc.custo_total)}</div>
                 </div>
                 <div className="flex flex-wrap items-end gap-2">
                   {cardAtivo && (
@@ -781,7 +800,7 @@ export default function AdminV3OrcamentoBase() {
                         type="button"
                         disabled={busy}
                         onClick={() => recalcularCard(cardAtivo.id, qtdMod, qtdInv, autoComp)}
-                        className="px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 text-xs font-medium disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 text-white text-xs font-medium disabled:opacity-50"
                       >
                         Recalcular kit
                       </button>
@@ -789,25 +808,25 @@ export default function AdminV3OrcamentoBase() {
                         type="button"
                         disabled={busy}
                         onClick={aplicarLinhasNoServidor}
-                        className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-medium disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium disabled:opacity-50"
                         title="Confirma quantidades linha a linha no motor (sem re-sugerir estrutura)"
                       >
                         Aplicar linhas
                       </button>
                     </>
                   )}
-                  <div className="text-xs text-slate-400 self-center">
+                  <div className="text-xs text-gray-600 self-center">
                     {Object.entries(calc.breakdown || {}).map(([k, v]) => (
                       <span key={k} className="mr-3">
                         {k}: {money(v)}
                       </span>
                     ))}
-                    {savedId && <span className="text-sky-300">salvo #{savedId}</span>}
+                    {savedId && <span className="text-sky-700">salvo #{savedId}</span>}
                   </div>
                 </div>
               </div>
               <table className="min-w-full text-sm">
-                <thead className="text-slate-500 text-left">
+                <thead className="text-gray-500 text-left">
                   <tr>
                     <th className="px-3 py-2">SKU</th>
                     <th className="px-3 py-2">Item</th>
@@ -824,8 +843,8 @@ export default function AdminV3OrcamentoBase() {
                     return (
                       <tr
                         key={it.sku_interno}
-                        className={`border-t border-slate-800/80 ${
-                          fallback ? 'bg-violet-950/30' : semPreco ? 'bg-rose-950/20' : ''
+                        className={`border-t border-gray-200 ${
+                          fallback ? 'bg-violet-50' : semPreco ? 'bg-rose-50' : ''
                         }`}
                         title={
                           fallback
@@ -835,12 +854,12 @@ export default function AdminV3OrcamentoBase() {
                               : undefined
                         }
                       >
-                        <td className="px-3 py-2 font-mono text-xs text-sky-300">{it.sku_interno}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-sky-700">{it.sku_interno}</td>
                         <td className="px-3 py-2">
                           {it.nome}
-                          {it.sugerido && <span className="ml-2 text-xs text-amber-400">sugerido</span>}
+                          {it.sugerido && <span className="ml-2 text-xs text-amber-600">sugerido</span>}
                           {fallback && (
-                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-violet-800/70 text-violet-200">
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">
                               outra filial
                             </span>
                           )}
@@ -852,7 +871,7 @@ export default function AdminV3OrcamentoBase() {
                               min={0}
                               value={it.quantidade}
                               onChange={(e) => alterarQtdLinha(it.sku_interno, Number(e.target.value))}
-                              className="w-20 rounded bg-slate-950 border border-slate-600 px-2 py-1 text-sm"
+                              className="w-20 rounded bg-white border border-gray-300 px-2 py-1 text-sm"
                             />
                           ) : (
                             it.quantidade
@@ -860,21 +879,21 @@ export default function AdminV3OrcamentoBase() {
                         </td>
                         <td
                           className={`px-3 py-2 ${
-                            fallback ? 'text-violet-300' : semPreco ? 'text-rose-300' : ''
+                            fallback ? 'text-violet-700' : semPreco ? 'text-rose-600' : ''
                           }`}
                         >
                           {money(it.preco_unitario)}
                         </td>
                         <td
                           className={`px-3 py-2 ${
-                            fallback ? 'text-violet-300 font-medium' : semPreco ? 'text-rose-300' : ''
+                            fallback ? 'text-violet-700 font-medium' : semPreco ? 'text-rose-600' : ''
                           }`}
                         >
                           {money(it.subtotal)}
                         </td>
                         <td
                           className={`px-3 py-2 text-xs ${
-                            fallback ? 'text-violet-300' : 'text-rose-300'
+                            fallback ? 'text-violet-700' : 'text-rose-600'
                           }`}
                         >
                           {it.aviso || ''}
@@ -885,27 +904,28 @@ export default function AdminV3OrcamentoBase() {
                 </tbody>
               </table>
               {calc.avisos?.length > 0 && (
-                <div className="px-3 py-2 text-xs text-amber-200/90 border-t border-slate-800 bg-amber-500/5">
+                <div className="px-3 py-2 text-xs text-amber-800 border-t border-gray-200 bg-amber-500/5">
                   {calc.avisos.join(' · ')}
                 </div>
               )}
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-800 p-4">
-            <h2 className="text-sm font-semibold text-slate-300 mb-3">Salvos no SQLite</h2>
-            {lista.length === 0 && <p className="text-xs text-slate-500">Nenhum orçamento base ainda.</p>}
+          <div className="admin-surface border border-gray-200 p-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Salvos no SQLite</h2>
+            {lista.length === 0 && <p className="text-xs text-gray-500">Nenhum orçamento base ainda.</p>}
             <ul className="space-y-2 text-sm">
               {lista.map((o) => (
-                <li key={o.id} className="flex justify-between gap-3 border-b border-slate-800/60 pb-2">
+                <li key={o.id} className="flex justify-between gap-3 border-b border-gray-200 pb-2">
                   <span>
                     #{o.id} {o.titulo}{' '}
-                    <span className="text-slate-500">({o.cd_nome})</span>
+                    <span className="text-gray-500">({o.cd_nome})</span>
                   </span>
-                  <span className="text-emerald-400">{money(o.custo_total)}</span>
+                  <span className="text-emerald-600">{money(o.custo_total)}</span>
                 </li>
               ))}
             </ul>
+          </div>
           </div>
         </div>
       </div>

@@ -332,7 +332,7 @@ export default function EditarOrcamento() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">⚡</div>
           <p className="text-xl text-gray-600">Carregando orçamento...</p>
@@ -343,7 +343,7 @@ export default function EditarOrcamento() {
 
   if (!orcamento) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">❌</div>
           <p className="text-xl text-gray-600 mb-4">Orçamento não encontrado</p>
@@ -364,25 +364,17 @@ export default function EditarOrcamento() {
         <meta name="description" content="Editor de orçamentos PIENG Solar" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
               <div>
-                <div className="flex items-center gap-4 mb-2">
-                  <Link href={`/admin/orcamentos/${clienteId}`}>
-                    <button className="text-blue-600 hover:text-blue-800">
-                      ← Voltar aos Orçamentos
-                    </button>
-                  </Link>
-                  <span className="text-gray-400">|</span>
-                  <h1 className="text-3xl font-bold text-gray-800">
-                    ✏️ Editar Orçamento
-                  </h1>
-                </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm">
+                <h1 className="text-3xl font-bold admin-title">
+                  ✏️ Editar Orçamento
+                </h1>
+                <div className="bg-slate-100 rounded-lg p-4 shadow-sm border border-slate-200/80 mt-2">
                   <p className="text-gray-600">
                     📋 {orcamento.fornecedor} • 📅 {orcamento.dataOrcamento} • 
                     <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
@@ -395,7 +387,19 @@ export default function EditarOrcamento() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
+                <Link
+                  href="/admin"
+                  className="admin-btn-ghost inline-flex items-center"
+                >
+                  🏠 Admin
+                </Link>
+                <Link
+                  href={`/admin/orcamentos/${clienteId}`}
+                  className="admin-btn-ghost inline-flex items-center"
+                >
+                  ← Voltar
+                </Link>
                 <button
                   onClick={handleSave}
                   disabled={saving}
@@ -499,7 +503,7 @@ export default function EditarOrcamento() {
             <div className="space-y-6">
               
               {/* Módulos Solares */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                   ⚡ Módulos Solares
                 </h2>
@@ -577,7 +581,7 @@ export default function EditarOrcamento() {
               </div>
 
               {/* Inversores */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                   🔌 Inversores
                 </h2>
@@ -656,7 +660,7 @@ export default function EditarOrcamento() {
               </div>
 
               {/* Gestão de Despesas */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                     💸 Despesas Adicionais
@@ -845,7 +849,7 @@ export default function EditarOrcamento() {
               </div>
 
               {/* Observações */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                   📝 Observações
                 </h2>

@@ -6,7 +6,8 @@
   "bonusMicroPercent": 5,
   "diasMes": 30.4,
   "placasPorMicro": 4,
-  "estoqueMinimoSoolar": 20,
+  "estoqueMinimoSoolar": 15,
+  "estoqueMinimoOutros": 5,
   "taxaSelic": 11.25,
   "inflacaoAnual": 4.5,
   "reajusteEnergia": 8.2,
@@ -16,16 +17,17 @@
   "markupPremium": 2.3,
   "jurosParcela12x": 2.5,
   "jurosParcela18x": 3.2,
-  "descontoPix": 13,
-  "taxaCartao12x": 13,
-  "taxaCartao18x": 17,
-  "fatorAvista": 0.87,
+  "descontoPix": 10.55,
+  "taxaCartaoMensal": 1.51,
+  "taxaCartao12x": 10.6,
+  "taxaCartao18x": 15.2,
+  "fatorAvista": 0.8944999879242502,
   "fatorParcelado": 1.2,
-  "fator12x": 0.87,
-  "fator18x": 0.83,
-  "pdespesaFixo": 2000,
-  "pdespesaVariavel": 15,
-  "fretePadrao": 0,
+  "fator12x": 0.8944999879242502,
+  "fator18x": 0.8479002597966396,
+  "pdespesaFixo": 3000,
+  "pdespesaVariavel": 30,
+  "fretePadrao": 400,
   "textoEconomiaAnual": "Economia anual de R$ {valorEconomia} na conta de energia",
   "textoPayback": "Investimento se paga em apenas {mesesPayback} meses",
   "textoTIR": "Taxa Interna de Retorno de {percentualTIR}% ao ano",
@@ -41,8 +43,8 @@
     "TO"
   ],
   "hspPorEstado": {
-    "GO": 5.35,
-    "DF": 5.3,
+    "GO": 5.21,
+    "DF": 5.08,
     "MG": 4.95,
     "MT": 5.43,
     "MS": 5.12,
@@ -54,13 +56,13 @@
   "degradacaoAnual": 0.007,
   "empresaNome": "PIENG Soluções Energéticas",
   "empresaCNPJ": "XX.XXX.XXX/0001-XX",
+  "metadata": {
+    "lastUpdate": "2026-09-05T02:03:21.447Z",
+    "version": "2.0"
+  },
   "empresaTelefone": "(62) 99167-0536",
   "empresaEmail": "contato@piengsolucoes.com.br",
   "empresaSite": "www.piengsolucoes.com.br",
   "empresaWhatsApp": 5562991670536,
-  "sistema_config": "{\"fator12x\":0.87,\"fator18x\":0.83,\"metadata\":{\"version\":\"2.0\",\"lastUpdate\":\"2025-12-01T18:10:21.734Z\"},\"textoTIR\":\"Taxa Interna de Retorno de {percentualTIR}% ao ano\",\"hspPadrao\":5.3,\"taxaSelic\":11.25,\"descontoPix\":0.1,\"fatorAvista\":0.999,\"hspPorEstado\":{\"BA\":5.67,\"DF\":5.08,\"GO\":5.3,\"MG\":4.95,\"MS\":5.12,\"MT\":5.43,\"TO\":5.34},\"textoPayback\":\"Investimento se paga em apenas {mesesPayback} meses\",\"estadosPadrao\":[\"GO\",\"DF\",\"MG\",\"MT\",\"MS\",\"BA\",\"TO\"],\"inflacaoAnual\":4.5,\"markupPremium\":2.3,\"taxaCartao12x\":13,\"taxaCartao18x\":17,\"fatorParcelado\":1.2,\"markupStandard\":2,\"margemSeguranca\":1.1,\"markupEconomico\":1.8,\"performanceRate\":0.75,\"reajusteEnergia\":8.2,\"eficienciaInversor\":0.95,\"textoEconomiaAnual\":\"Economia anual de R$ {valorEconomia} na conta de energia\",\"textoSustentabilidade\":\"Evita emissão de {tonelaCO2} toneladas de CO₂ em 25 anos\",\"textoValorizacaoImovel\":\"Valorização do imóvel em até {percentualValorizacao}%\"}",
-  "metadata": {
-    "lastUpdate": "2026-09-04T18:40:53.687Z",
-    "version": "2.0"
-  }
+  "sistema_config": "{\"fator12x\":0.87,\"fator18x\":0.83,\"metadata\":{\"version\":\"2.0\",\"lastUpdate\":\"2025-12-01T18:10:21.734Z\"},\"textoTIR\":\"Taxa Interna de Retorno de {percentualTIR}% ao ano\",\"hspPadrao\":5.3,\"taxaSelic\":11.25,\"descontoPix\":0.1,\"fatorAvista\":0.999,\"hspPorEstado\":{\"BA\":5.67,\"DF\":5.08,\"GO\":5.3,\"MG\":4.95,\"MS\":5.12,\"MT\":5.43,\"TO\":5.34},\"textoPayback\":\"Investimento se paga em apenas {mesesPayback} meses\",\"estadosPadrao\":[\"GO\",\"DF\",\"MG\",\"MT\",\"MS\",\"BA\",\"TO\"],\"inflacaoAnual\":4.5,\"markupPremium\":2.3,\"taxaCartao12x\":13,\"taxaCartao18x\":17,\"fatorParcelado\":1.2,\"markupStandard\":2,\"margemSeguranca\":1.1,\"markupEconomico\":1.8,\"performanceRate\":0.75,\"reajusteEnergia\":8.2,\"eficienciaInversor\":0.95,\"textoEconomiaAnual\":\"Economia anual de R$ {valorEconomia} na conta de energia\",\"textoSustentabilidade\":\"Evita emissão de {tonelaCO2} toneladas de CO₂ em 25 anos\",\"textoValorizacaoImovel\":\"Valorização do imóvel em até {percentualValorizacao}%\"}"
 }

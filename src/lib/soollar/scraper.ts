@@ -4,6 +4,8 @@
  * Credenciais apenas via .env — nunca no frontend.
  */
 
+import { getEstoqueMinimos } from '@/modules/v3/precos/estoqueMinimosConfig';
+
 export const SOOLLAR_BASE_URL =
   process.env.SOOLLAR_BASE_URL || 'https://soollar.mygateway.com.br';
 
@@ -60,10 +62,20 @@ export const SOOLLAR_SECOES_CAPTURA = [
   'estruturas-inox',
   'estrutura-galvanizada',
   'cabos',
+  'componentes-eletricos',
 ] as const;
 
-/** Só considera preço válido com estoque acima deste valor */
+/** Só considera preço válido com estoque acima deste valor (piso no scrape; regra fina no import) */
 export const SOOLLAR_ESTOQUE_MINIMO = 20;
+
+function estoqueMinimoScrapeFloor(): number {
+  try {
+    const m = getEstoqueMinimos();
+    return Math.min(m.modulo, m.outros);
+  } catch {
+    return SOOLLAR_ESTOQUE_MINIMO;
+  }
+}
 
 export type SoolarLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'data';
 
@@ -106,7 +118,7 @@ export function getSoolarCredentials() {
     configured: Boolean(user && password),
     baseUrl: SOOLLAR_BASE_URL,
     loginUrl: SOOLLAR_LOGIN_URL,
-    estoqueMinimo: SOOLLAR_ESTOQUE_MINIMO,
+    estoqueMinimo: estoqueMinimoScrapeFloor(),
   };
 }
 
@@ -518,7 +530,7 @@ async function escolherCd(page: Page, log: SoolarLogger, cdPreferido?: string) {
   const destCd = `${SOOLLAR_BASE_URL}/cd/${alvo.slug}`;
   const rotuloEsperado = alvo.rotuloUi || alvo.nome;
   log('info', `Procurando CD: ${alvo.id} - ${alvo.nome} (${rotuloEsperado}) → ${destCd}`);
-  log('info', `Estoque válido só com >${SOOLLAR_ESTOQUE_MINIMO} un`);
+  log('info', `Estoque válido (piso scrape) só com >${estoqueMinimoScrapeFloor()} un`);
 
   // 1) UI oficial: [data-testid="cd-selector-trigger"] → modal "Selecione onde…" → cd-option-N
   try {
@@ -871,7 +883,8 @@ async function extrairValoresPagina(page: Page, log: SoolarLogger, items: Array<
     log('warn', `${label}: preços não liberados — ${bloqueio.motivo}`);
   }
 
-  const snapshot = await page.evaluate(extractSoolarDomSnapshot, SOOLLAR_ESTOQUE_MINIMO);
+  const estoqueMin = estoqueMinimoScrapeFloor();
+  const snapshot = await page.evaluate(extractSoolarDomSnapshot, estoqueMin);
   if (!snapshot) {
     log('error', `${label}: extractDomSnapshot retornou vazio`);
     items.push({ source: page.url(), secao: label, produtosValidos: [], error: 'snapshot_vazio' });
@@ -883,13 +896,13 @@ async function extrairValoresPagina(page: Page, log: SoolarLogger, items: Array<
   log('data', `${label}: storage`, snapshot.storage);
   log(
     'info',
-    `${label}: regra estoque > ${SOOLLAR_ESTOQUE_MINIMO} → ${snapshot.produtosValidos.length} válidos / ${snapshot.produtosIgnorados.length} ignorados (amostra)`
+    `${label}: regra estoque > ${estoqueMin} → ${snapshot.produtosValidos.length} válidos / ${snapshot.produtosIgnorados.length} ignorados (amostra)`
   );
 
   if (snapshot.produtosValidos.length) {
     log('data', `${label}: produtos com preço válido`, snapshot.produtosValidos.slice(0, 15));
   } else {
-    log('warn', `${label}: nenhum item com estoque > ${SOOLLAR_ESTOQUE_MINIMO} e preço`, {
+    log('warn', `${label}: nenhum item com estoque > ${estoqueMin} e preço`, {
       sample: snapshot.sample,
       moneyAll: snapshot.moneyAll.slice(0, 10),
       ignorados: snapshot.produtosIgnorados.slice(0, 5),
@@ -899,7 +912,7 @@ async function extrairValoresPagina(page: Page, log: SoolarLogger, items: Array<
   items.push({
     source: page.url(),
     secao: label,
-    estoqueMinimo: SOOLLAR_ESTOQUE_MINIMO,
+    estoqueMinimo: estoqueMin,
     valoresDetectados: snapshot.moneyValidos,
     produtosValidos: snapshot.produtosValidos,
     produtosIgnoradosAmostra: snapshot.produtosIgnorados,

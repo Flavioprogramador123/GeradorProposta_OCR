@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 interface SistemaItem {
   titulo: string;
@@ -39,6 +40,7 @@ interface OrcamentoItem {
 }
 
 export default function TodosOrcamentos() {
+  const router = useRouter();
   const [orcamentos, setOrcamentos] = useState<OrcamentoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<'todos' | 'pendente' | 'aprovado' | 'rejeitado'>('todos');
@@ -175,23 +177,34 @@ export default function TodosOrcamentos() {
         <meta name="description" content="Gerenciar todos os orçamentos do sistema" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="admin-shell">
+        <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">📋 Todos os Orçamentos</h1>
-                <p className="text-gray-600 mt-1">Visão geral de todos os orçamentos do sistema</p>
+                <h1 className="text-3xl font-bold admin-title flex items-center gap-3">📋 Todos os Orçamentos</h1>
+                <p className="admin-subtitle mt-1">Visão geral de todos os orçamentos do sistema</p>
               </div>
-              <Link href="/admin" legacyBehavior>
-                <a className="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="admin-btn-ghost">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="admin-btn-ghost"
+                  title="Voltar"
+                >
                   ← Voltar
-                </a>
-              </Link>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-6 shadow-lg">
+              <div className="admin-surface p-6">
                 <div className="text-3xl mb-2">📊</div>
                 <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
                 <div className="text-sm text-gray-600">Total de Orçamentos</div>
@@ -214,7 +227,7 @@ export default function TodosOrcamentos() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="admin-surface p-6 mb-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <input
@@ -263,7 +276,7 @@ export default function TodosOrcamentos() {
               <p className="text-gray-600">Carregando orçamentos...</p>
             </div>
           ) : orcamentosFiltrados.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+            <div className="admin-surface p-12 text-center">
               <div className="text-6xl mb-4">📭</div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Nenhum orçamento encontrado</h3>
               <p className="text-gray-600">
@@ -275,7 +288,7 @@ export default function TodosOrcamentos() {
               {orcamentosFiltrados.map((orc, index) => (
                 <div
                   key={`${orc.clientePasta}-${orc.id}-${index}`}
-                  className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
+                  className="admin-surface p-6 hover:shadow-xl transition-shadow"
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                     <div className="flex-1">
@@ -465,6 +478,7 @@ export default function TodosOrcamentos() {
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </>

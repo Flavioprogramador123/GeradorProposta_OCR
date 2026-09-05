@@ -16,6 +16,7 @@ import {
   type CatalogItem,
 } from './importCatalog';
 import { getPrecosStats } from './repository';
+import { refreshEstoqueMinimosFromAdmin } from './estoqueMinimosConfig';
 import {
   mergeAndSaveRejeitados,
   type ItemRejeitado,
@@ -78,6 +79,7 @@ export async function atualizarPrecosFromTemp(): Promise<{
   results: unknown[];
   stats: ReturnType<typeof getPrecosStats>;
 }> {
+  await refreshEstoqueMinimosFromAdmin();
   const results: unknown[] = [];
 
   try {
@@ -266,6 +268,7 @@ export async function atualizarPrecosFromScrape(opts?: {
   results: unknown[];
   stats: ReturnType<typeof getPrecosStats>;
 }> {
+  await refreshEstoqueMinimosFromAdmin();
   const results: unknown[] = [];
   const cds = opts?.cds?.length
     ? SOOLLAR_CDS.filter((c) => opts.cds!.some((x) => x === c.slug || x === c.nome || x === String(c.id)))
@@ -401,6 +404,7 @@ export async function atualizarPrecosV3(opts?: {
   singleSession?: boolean;
   onLog?: (level: string, message: string, data?: unknown) => void;
 }) {
+  await refreshEstoqueMinimosFromAdmin();
   const fonte = opts?.fonte || 'temp';
   const allResults: unknown[] = [];
   let stats = getPrecosStats();

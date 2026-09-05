@@ -6,11 +6,13 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallPWA() {
+  const [mounted, setMounted] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
@@ -70,6 +72,11 @@ export default function InstallPWA() {
 
     setDeferredPrompt(null);
   };
+
+  // Evita hydration mismatch (SSR ≠ browser / PWA standalone)
+  if (!mounted) {
+    return null;
+  }
 
   // Não mostrar nada se já estiver instalado
   if (isInstalled) {

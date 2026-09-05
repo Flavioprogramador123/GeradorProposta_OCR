@@ -7,7 +7,8 @@ import {
   calcularPerformanceCompleta,
   getBonusMicroAtivo,
 } from '@/lib/calcularPerformance';
-import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
+import { calcularPrecosDePix, tagEconomiaPix } from '@/lib/tabelaJurosCartao';
+import { formatBRL } from '@/lib/formatBRL';
 
 export interface PropostaConfigInput {
   hsp?: number;
@@ -20,6 +21,7 @@ export interface PropostaConfigInput {
   fatorParcelado?: number;
   fator12x?: number;
   fator18x?: number;
+  taxaCartaoMensal?: number;
   bonusMicroPercent?: number;
   metodo?: 'fixo' | 'variavel' | string;
 }
@@ -107,6 +109,7 @@ const CONFIG_PADRAO = {
   fatorParcelado: 1.2,
   fator12x: 0.88,
   fator18x: 0.83,
+  taxaCartaoMensal: 1.51,
   bonusMicroPercent: 5,
 };
 
@@ -131,7 +134,7 @@ function toMoneyNumber(val: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Recupera o desconto PIX real do card (pavista vs PIX). */
+/** Recupera o desconto PIX real do card: (à vista − PIX) / PIX (= mult12 − 1). */
 export function inferDescontoPixFromSistemas(
   sistemas: Array<{ ppix?: number; pavista?: number; precoPixDecimal?: number; priscado?: number }> | undefined
 ): number | undefined {
@@ -140,7 +143,7 @@ export function inferDescontoPixFromSistemas(
     const pix = toMoneyNumber(sistema.ppix ?? sistema.precoPixDecimal);
     const vista = toMoneyNumber(sistema.pavista);
     if (pix > 0 && vista > pix) {
-      const desconto = (vista - pix) / vista;
+      const desconto = (vista - pix) / pix;
       if (desconto > 0 && desconto < 0.8) {
         return Math.round(desconto * 1000) / 1000;
       }
@@ -164,14 +167,15 @@ export function normalizePropostaConfig(config: PropostaConfigInput = {}) {
     fatorParcelado: config.fatorParcelado ?? CONFIG_PADRAO.fatorParcelado,
     fator12x: config.fator12x ?? CONFIG_PADRAO.fator12x,
     fator18x: config.fator18x ?? CONFIG_PADRAO.fator18x,
+    taxaCartaoMensal: config.taxaCartaoMensal ?? CONFIG_PADRAO.taxaCartaoMensal,
     bonusMicroPercent: config.bonusMicroPercent ?? CONFIG_PADRAO.bonusMicroPercent,
     metodo: config.metodo,
   };
 }
 
-/** PIX = base; à vista = total 12× cartão; 12×/18× pela tabela real. */
+/** PIX = base; à vista = total 12× cartão; 12×/18× pela taxa mensal configurada. */
 export function calcularPrecosProposta(totalFinal: number, config: ReturnType<typeof normalizePropostaConfig>) {
-  return calcularPrecosDePix(totalFinal, config.fatorParcelado);
+  return calcularPrecosDePix(totalFinal, config.fatorParcelado, config.taxaCartaoMensal);
 }
 
 export function calcularPdespesaProposta(pcusto: number, config: ReturnType<typeof normalizePropostaConfig>) {
@@ -341,15 +345,12 @@ export function buildPropostaTemplateData(
     p12x_total: sistema.p12x_total,
     p18x_parcela: sistema.p18x_parcela,
     p18x_total: sistema.p18x_total,
-    precoRiscado: `R$ ${sistema.priscado.toFixed(2)}`,
-    precoAtual: `R$ ${sistema.pavista.toFixed(2)}`,
-    tagDesconto: `ECONOMIA DE ${(
-      ((sistema.pavista - sistema.ppix) / (sistema.pavista || 1)) *
-      100
-    ).toFixed(0)}%`,
+    precoRiscado: formatBRL(sistema.priscado),
+    precoAtual: formatBRL(sistema.pavista),
+    tagDesconto: tagEconomiaPix(sistema.ppix, sistema.pavista),
     precoPixDecimal: sistema.ppix,
-    preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
-    preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
+    preco12x: formatBRL(sistema.p12x),
+    preco18x: formatBRL(sistema.p18x_parcela),
     geracaoMensal: sistema.geracaoMensal,
     cobertura: sistema.cobertura,
     economiaMensal: sistema.economiaMensal,

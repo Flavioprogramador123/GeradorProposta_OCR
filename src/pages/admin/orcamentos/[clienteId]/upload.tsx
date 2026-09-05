@@ -540,25 +540,33 @@ export default function UploadOrcamento() {
         <meta name="description" content="Upload e extração automática de dados de orçamentos" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                ← Orçamentos
-              </a></Link>
-              <span className="text-gray-400">|</span>
-              <h1 className="text-3xl font-bold text-gray-800">
+            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+              <h1 className="text-3xl font-bold admin-title">
                 📎 Upload de Orçamento
               </h1>
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="admin-btn-ghost">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior>
+                  <a className="admin-btn-ghost">
+                    ← Voltar
+                  </a>
+                </Link>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
               {/* Upload Area */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   📁 Arquivos do Orçamento
                 </h2>
@@ -654,7 +662,7 @@ export default function UploadOrcamento() {
               </div>
 
               {/* Dados Extraídos */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-800">
                     📊 Dados Extraídos
@@ -836,7 +844,7 @@ export default function UploadOrcamento() {
             </div>
 
             {/* Editor YAML Manual */}
-            <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
+            <div className="mt-8 admin-surface p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">
                   📝 Entrada Manual YAML
@@ -921,7 +929,7 @@ export default function UploadOrcamento() {
       {/* Modal Pdespesa */}
       {showPdespesaModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4">
+          <div className="admin-surface shadow-2xl p-8 max-w-lg w-full mx-4">
             <div className="text-center mb-6">
               <div className="text-4xl mb-4">💰</div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">

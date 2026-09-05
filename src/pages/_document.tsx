@@ -6,7 +6,7 @@ export default function Document() {
       <Head>
         {/* PWA Configuration */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#f59e0b" />
+        <meta name="theme-color" content="#1E3A8A" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -24,6 +24,12 @@ export default function Document() {
           rel="apple-touch-startup-image"
           href="/icon-512x512.png"
           media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+        />
+        {/* Evita flash da paleta Admin antes do React */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='pieng-admin-theme';var t=localStorage.getItem(k);if(t==='tecnologia')t='tech';if(t==='solar')t='energia';if(t!=='corporativo'&&t!=='tech'&&t!=='neutro'&&t!=='energia')t='corporativo';document.documentElement.setAttribute('data-admin-theme',t);}catch(e){document.documentElement.setAttribute('data-admin-theme','corporativo');}})();`,
+          }}
         />
       </Head>
       <body>

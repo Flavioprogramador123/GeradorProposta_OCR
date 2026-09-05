@@ -7,7 +7,8 @@ export type MotivoRejeicao =
   | 'sem_preco'
   | 'outro_cd'
   | 'score_baixo'
-  | 'nao_modulo_auto';
+  | 'nao_modulo_auto'
+  | 'consulta';
 
 export interface ItemRejeitado {
   cd: string;
@@ -77,9 +78,10 @@ export function mergeAndSaveRejeitados(opts: {
 
 export const MOTIVO_LABEL: Record<MotivoRejeicao, string> = {
   sem_match: 'Sem match no catálogo',
-  estoque_baixo: 'Estoque ≤ mínimo (ou null)',
+  estoque_baixo: 'Estoque ≤ mínimo (módulo>20 / demais>5)',
   sem_preco: 'Sem preço',
   outro_cd: 'Só disponível em outro CD',
   score_baixo: 'Score de match baixo',
-  nao_modulo_auto: 'Não é módulo auto-cadastrável (sem Wp/marca)',
+  nao_modulo_auto: 'Categoria não auto-cadastrável',
+  consulta: 'Consulta (fora da lista principal — ative se precisar)',
 };

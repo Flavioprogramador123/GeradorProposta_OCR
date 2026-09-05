@@ -4,10 +4,11 @@ import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
 import { loadVariantCss, generateCssTag } from './cssLoader';
 import { injectPdfSupport } from './propostaPdf';
-import { getFormasPagamentoModalScript } from './tabelaJurosCartao';
+import { getFormasPagamentoModalScript, tagEconomiaPix } from './tabelaJurosCartao';
+import { formatBRL } from './formatBRL';
 
-function injectFormasPagamento(html: string): string {
-  const snippet = getFormasPagamentoModalScript();
+function injectFormasPagamento(html: string, taxaCartaoMensal?: number): string {
+  const snippet = getFormasPagamentoModalScript(taxaCartaoMensal);
   if (html.includes('</body>')) {
     return html.replace('</body>', `${snippet}\n</body>`);
   }
@@ -427,23 +428,12 @@ export class TemplateEnginePadrao {
 
       variables[`SISTEMA_${num}_TITULO`] = `SISTEMA ${num} ${index === 0 ? '⭐ RECOMENDADO' : ''}`;
       variables[`SISTEMA_${num}_POTENCIA`] = `${potTotal.toFixed(2)} kWp`;
-      variables[`SISTEMA_${num}_PIX`] = `R$ ${(sistema.ppix || 0).toFixed(2)}`;
-      variables[`SISTEMA_${num}_PRECO_RISCADO`] = `R$ ${(sistema.priscado || 0).toFixed(2)}`;
-      variables[`SISTEMA_${num}_PRECO_ATUAL`] = `R$ ${(sistema.pavista || 0).toFixed(2)}`;
-      // Calcular economia baseada no desconto PIX (valor fixo)
-      const descontoPixPercentual = sistema.pavista && sistema.ppix ? ((sistema.pavista - sistema.ppix) / sistema.pavista * 100) : 0;
-      variables[`SISTEMA_${num}_TAG_DESCONTO`] = `ECONOMIA DE ${descontoPixPercentual.toFixed(0)}%`;
-        
-        // DEBUG: Verificar valores calculados
-        console.log(`🔍 Sistema ${num} - Valores:`, {
-          ppix: sistema.ppix,
-          pavista: sistema.pavista,
-          priscado: sistema.priscado,
-          diferenca: sistema.pavista - sistema.ppix,
-          percentual: ((sistema.pavista - sistema.ppix) / sistema.ppix * 100).toFixed(2) + '%'
-        });
-      variables[`SISTEMA_${num}_12X`] = `R$ ${(sistema.p12x || 0).toFixed(2)}`;
-      variables[`SISTEMA_${num}_18X`] = `R$ ${(sistema.p18x_parcela || 0).toFixed(2)}`;
+      variables[`SISTEMA_${num}_PIX`] = formatBRL(sistema.ppix || 0);
+      variables[`SISTEMA_${num}_PRECO_RISCADO`] = formatBRL(sistema.priscado || 0);
+      variables[`SISTEMA_${num}_PRECO_ATUAL`] = formatBRL(sistema.pavista || 0);
+      variables[`SISTEMA_${num}_TAG_DESCONTO`] = tagEconomiaPix(sistema.ppix || 0, sistema.pavista || 0);
+      variables[`SISTEMA_${num}_12X`] = formatBRL(sistema.p12x || 0);
+      variables[`SISTEMA_${num}_18X`] = formatBRL(sistema.p18x_parcela || 0);
       variables[`SISTEMA_${num}_GERACAO`] = `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`;
       variables[`SISTEMA_${num}_COBERTURA`] = `${Math.round(Number(sistema.cobertura) || 0)}%`;
       variables[`SISTEMA_${num}_ECONOMIA`] = `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`;
@@ -506,7 +496,8 @@ export class TemplateEnginePadrao {
     }
 
     return injectFormasPagamento(
-      injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug)
+      injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug),
+      (data as PropostaData & { taxaCartaoMensal?: number }).taxaCartaoMensal
     );
   }
 
@@ -746,19 +737,21 @@ export class TemplateEnginePadrao {
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div class="current-price">à vista R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
-              <div class="pix-price"><strong>PIX: R$ ${(sistema.ppix || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+              <div class="original-price">Promoção de <span class="valor-riscado">${formatBRL(sistema.priscado)}</span></div>
+              <div class="current-price">à vista ${formatBRL(sistema.pavista)}</div>
+              <div class="payment-hint" style="font-size:11px;color:#64748b;margin:-4px 0 8px;">À vista = total das 12× no cartão</div>
+              <div class="discount-tag">${tagEconomiaPix(sistema.ppix || 0, sistema.pavista || 0)}</div>
+              <div class="pix-price"><strong>PIX: ${formatBRL(sistema.ppix)}</strong></div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× no cartão</strong><br>
-                  R$ ${(sistema.p12x || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${formatBRL(sistema.p12x)}
+                  <div style="font-size:11px;opacity:.85;margin-top:4px;">total = à vista</div>
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ ${(sistema.p18x_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${formatBRL(sistema.p18x_parcela)}
                 </div>
               </div>
             </div>
@@ -818,23 +811,23 @@ export class TemplateEnginePadrao {
             </ul>
 
             <div class="pricing-section">
-              <div class="original-price">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div class="current-price">à vista R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div class="discount-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
+              <div class="original-price">Promoção de <span class="valor-riscado">${formatBRL(sistema.priscado)}</span></div>
+              <div class="current-price">à vista ${formatBRL(sistema.pavista)}</div>
+              <div class="payment-hint" style="font-size:11px;color:#64748b;margin:-4px 0 8px;">À vista = total das 12× no cartão</div>
+              <div class="discount-tag">${tagEconomiaPix(sistema.ppix || 0, sistema.pavista || 0)}</div>
               <div style="font-size: 18px; font-weight: 700; color: var(--success); margin: 10px 0;">
-                PIX: R$ ${(sistema.ppix || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                PIX: ${formatBRL(sistema.ppix)}
               </div>
 
               <div class="payment-options">
                 <div class="payment-option pix-highlight">
                   <strong>12× no cartão</strong><br>
-                  R$ ${(sistema.p12x || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
-                  <small style="color: #666;">Total: R$ ${(sistema.p12x_total || (sistema.p12x || 0) * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small>
+                  ${formatBRL(sistema.p12x)}
+                  <div style="font-size:11px;opacity:.85;margin-top:4px;">total = à vista</div>
                 </div>
                 <div class="payment-option">
                   <strong>18× cartão</strong><br>
-                  R$ ${(sistema.p18x_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
-                  <small style="color: #666;">Total: R$ ${(sistema.p18x_total || (sistema.p18x_parcela || 0) * 18).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small>
+                  ${formatBRL(sistema.p18x_parcela)}
                 </div>
               </div>
             </div>

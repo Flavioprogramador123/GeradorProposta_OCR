@@ -42,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               fretePadrao: admin.fretePadrao,
               fatorParcelado: admin.fatorParcelado,
               estoqueMinimoSoolar: admin.estoqueMinimoSoolar,
+              estoqueMinimoOutros: admin.estoqueMinimoOutros,
             }
           : null,
         fonte_admin: Boolean(admin),

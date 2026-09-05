@@ -163,24 +163,33 @@ export function seedEquipamentosFromYaml(yamlPath?: string): {
   const auxiliares: EquipamentoInput[] = [
     {
       sku_interno: 'KIT-ESTRUTURA-4MOD',
-      nome: 'KIT FIXAÇÃO PARA 4 MODULOS (padrão SOOLLAR)',
+      nome: 'KIT FIXAÇÃO FIBROCIMENTO INOX MADEIRA PARA 4 MODULOS (padrão preço)',
       categoria: 'estrutura',
-      prioridade_kit: 40,
-      aliases: ['kit estrutura 4 modulos', 'kit fixação 4 módulos'],
+      prioridade_kit: 35,
+      aliases: [
+        'kit estrutura 4 modulos',
+        'kit fixação 4 módulos',
+        'KIT FIXAÇÃO TELHA FIBROCIMENTO PARAFUSO INOX MADEIRA PARA 4 MODULOS',
+      ],
     },
     {
       sku_interno: 'TRILHO-236',
-      nome: 'PERFIL / TRILHO FIXAÇÃO ~2,36MT',
+      nome: 'PERFIL FIXAÇÃO MODULO FIBROCIMENTO/CERAMICA ~2,40MT (padrão preço)',
       categoria: 'estrutura',
-      prioridade_kit: 41,
-      aliases: ['trilho 2,36', 'PERFIL FIXAÇÃO MODULO 2,36MT', 'perfil 2,36'],
+      prioridade_kit: 35,
+      aliases: [
+        'trilho 2,36',
+        'trilho inox',
+        'PERFIL FIXAÇÃO MODULO 2,40MT FIBROCIMENTO/CERAMICA',
+        'perfil 2,36',
+      ],
     },
     {
       sku_interno: 'TRILHO-250',
-      nome: 'PERFIL / TRILHO FIXAÇÃO ~2,50MT',
+      nome: 'PERFIL FIXAÇÃO MODULO FIBROCIMENTO/CERAMICA (módulos maiores)',
       categoria: 'estrutura',
-      prioridade_kit: 42,
-      aliases: ['trilho 2,50'],
+      prioridade_kit: 36,
+      aliases: ['trilho 2,50', 'PERFIL FIXAÇÃO MODULO 2,40MT FIBROCIMENTO/CERAMICA'],
     },
     {
       sku_interno: 'CABO-4MM-25-V',

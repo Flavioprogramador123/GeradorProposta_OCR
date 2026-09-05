@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import InstallPWA from '@/components/InstallPWA';
+import { AdminThemePicker } from '@/components/AdminThemePicker';
 
 interface ClienteInfo {
   nome: string;
@@ -306,7 +307,7 @@ export default function AdminIndex() {
         <meta name="description" content="Área administrativa do sistema PIENG Solar" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             
@@ -314,32 +315,33 @@ export default function AdminIndex() {
             <div className="flex justify-between items-center mb-8">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold text-gray-800">
+                  <h1 className="text-3xl font-bold admin-title">
                     🏢 Área Administrativa
                   </h1>
-                  <span className="px-2 py-1 text-xs font-mono bg-blue-100 text-blue-700 rounded border border-blue-200">
-                    v2.4.1
+                  <span className="px-2 py-1 text-xs font-mono rounded border border-[var(--admin-border)] bg-[var(--admin-surface-muted)] text-[var(--admin-primary)]">
+                    v2.4.5
                   </span>
                 </div>
-                <p className="text-gray-600">
+                <p className="admin-subtitle">
                   Gerencie clientes, configurações e propostas do sistema PIENG Solar
                 </p>
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex flex-wrap items-center gap-3 justify-end">
+                <AdminThemePicker compact />
                 <Link href="/proposta/exemplo" legacyBehavior>
-                  <a className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium" target="_blank">
+                  <a className="admin-btn-primary" target="_blank" rel="noreferrer">
                     ✨ Ver Exemplo
                   </a>
                 </Link>
                 <Link href="/admin/configuracoes" legacyBehavior>
-                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xl" title="Configurações do Sistema">
+                  <a className="admin-btn-ghost text-xl" title="Configurações do Sistema">
                     ⚙️
                   </a>
                 </Link>
-                <Link href="/" legacyBehavior><a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
-                🏠 Site
-              </a></Link>
+                <Link href="/" legacyBehavior>
+                  <a className="admin-btn-ghost">🏠 Site</a>
+                </Link>
               </div>
             </div>
 
@@ -348,7 +350,7 @@ export default function AdminIndex() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
                     👥
@@ -364,7 +366,7 @@ export default function AdminIndex() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
                     📄
@@ -380,7 +382,7 @@ export default function AdminIndex() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
                     ⏳
@@ -397,47 +399,67 @@ export default function AdminIndex() {
               </div>
             </div>
 
-            {/* Ações Principais */}
+            {/* Ações Principais — azul e verde ok; demais em slate/sky/indigo (sem violeta/teal) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              <Link href="/gerador-rapido" legacyBehavior><a className="block p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
-                <div className="text-3xl mb-3">⚡</div>
-                <h3 className="font-semibold mb-1">Gerador Rápido</h3>
-                <p className="text-sm opacity-90">Geração rápida de propostas</p>
-              </a></Link>
+              <Link href="/gerador-rapido" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-blue-700 to-blue-900 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-blue-500/30">
+                  <div className="text-3xl mb-3">⚡</div>
+                  <h3 className="font-semibold mb-1">Gerador Rápido</h3>
+                  <p className="text-sm opacity-90">Propostas a partir de YAML / kits</p>
+                </a>
+              </Link>
 
-              <Link href="/admin/orcamentos" legacyBehavior><a className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center">
-                <div className="text-3xl mb-3">📋</div>
-                <h3 className="font-semibold text-gray-800 mb-1">Orçamentos</h3>
-                <p className="text-sm text-gray-600">Gerenciar orçamentos</p>
-              </a></Link>
+              <Link href="/admin/v3/orcamento-base" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-emerald-600 to-emerald-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-emerald-400/30">
+                  <div className="text-3xl mb-3">🧮</div>
+                  <h3 className="font-semibold mb-1">Orçamento base</h3>
+                  <p className="text-sm opacity-90">Monta kits e envia ao gerador</p>
+                </a>
+              </Link>
+
+              <Link href="/admin/v3/proposta-auto" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-sky-600 to-sky-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-sky-400/30">
+                  <div className="text-3xl mb-3">🤖</div>
+                  <h3 className="font-semibold mb-1">Proposta automática</h3>
+                  <p className="text-sm opacity-90">Dimensionamento por faixa de geração</p>
+                </a>
+              </Link>
+
+              <Link href="/admin/orcamentos" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-slate-600 to-slate-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-slate-400/30">
+                  <div className="text-3xl mb-3">📋</div>
+                  <h3 className="font-semibold mb-1">Orçamentos</h3>
+                  <p className="text-sm opacity-90">Gerenciar orçamentos de clientes</p>
+                </a>
+              </Link>
 
               <Link href="/admin/soollar-captura" legacyBehavior>
-                <a className="block p-6 bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
+                <a className="block p-6 bg-gradient-to-br from-indigo-600 to-indigo-900 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-indigo-400/30">
                   <div className="text-3xl mb-3">🛰️</div>
                   <h3 className="font-semibold mb-1">Captura SOOLLAR</h3>
                   <p className="text-sm opacity-90">Scraping + terminal ao vivo</p>
                 </a>
               </Link>
 
-              <Link href="/admin/v3" legacyBehavior>
-                <a className="block p-6 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border-2 border-amber-300/40">
-                  <div className="text-3xl mb-3">🧪</div>
-                  <h3 className="font-semibold mb-1">V3 Orçamento (espelho)</h3>
-                  <p className="text-sm opacity-90">SQLite · não altera produção</p>
+              <Link href="/admin/v3/precos" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-blue-400/30">
+                  <div className="text-3xl mb-3">💰</div>
+                  <h3 className="font-semibold mb-1">Preços por CD</h3>
+                  <p className="text-sm opacity-90">Tabela de preços / estoque</p>
                 </a>
               </Link>
 
-              <Link href="/propostas-publicas" legacyBehavior>
-                <a className="block p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center">
-                  <div className="text-3xl mb-3">🌐</div>
-                  <h3 className="font-semibold mb-1">Propostas Públicas</h3>
-                  <p className="text-sm opacity-90">Ver todas propostas online</p>
+              <Link href="/admin/v3/equipamentos" legacyBehavior>
+                <a className="block p-6 bg-gradient-to-br from-stone-600 to-stone-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 text-center border border-stone-400/30">
+                  <div className="text-3xl mb-3">🔧</div>
+                  <h3 className="font-semibold mb-1">Equipamentos</h3>
+                  <p className="text-sm opacity-90">Cadastro SQLite · módulos e inversores</p>
                 </a>
               </Link>
             </div>
 
             {/* Lista de Clientes */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="admin-surface overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-800">
                   📋 Lista de Clientes
@@ -626,7 +648,7 @@ export default function AdminIndex() {
       {/* Modal de Envio de Proposta */}
       {showEnviarModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+          <div className="bg-slate-100 rounded-xl p-6 w-full border border-slate-200/80 max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">📧 Enviar Proposta para Cliente</h3>
               <button

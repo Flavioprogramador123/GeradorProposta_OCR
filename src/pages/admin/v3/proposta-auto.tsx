@@ -6,6 +6,7 @@ import {
   saveConfigRapida,
   type ConfigRapidaShared,
 } from '@/lib/configRapidaShared';
+import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
 
 interface Params {
   hsp: number;
@@ -101,7 +102,7 @@ function fmtVal(v: number | string | boolean | null): string {
   if (typeof v === 'number') {
     if (!Number.isFinite(v)) return String(v);
     if (Math.abs(v) >= 1000 || (Math.abs(v) > 0 && Math.abs(v) < 0.01)) {
-      return v.toLocaleString('pt-BR', { maximumFractionDigits: 4 });
+      return formatNumberPt(v, 4);
     }
     return String(Math.round(v * 10000) / 10000);
   }
@@ -164,23 +165,24 @@ export default function AdminV3PropostaAuto() {
     ]);
     const data = await resV3.json();
     const admin = resAdmin.ok ? await resAdmin.json() : {};
+    // /admin/configuracoes (GET) manda em pdespesa/frete/HSP/tarifa
     const shared = resolveConfigRapida(admin);
 
     if (resV3.ok && data.params) {
       setParams(data.params);
     }
 
-    // Sessão compartilhada (Gerador) tem prioridade sobre seed V3
     applyShared(shared);
+    // Espelha comercial do admin na sessão (Gerador / próxima visita)
+    saveConfigRapida({
+      ...shared,
+      pdespesaFixo: shared.pdespesaFixo,
+      pdespesaVariavel: shared.pdespesaVariavel,
+      fretePadrao: shared.fretePadrao,
+      hsp: shared.hsp,
+      tarifa: shared.tarifa,
+    });
     setSharedReady(true);
-
-    // Se não havia sessão, comercial_defaults do admin já entrou via resolveConfigRapida
-    if (!shared.updatedAt && data.comercial_defaults) {
-      const c = data.comercial_defaults;
-      if (c.pdespesaFixo != null) setPdespesaFixo(Number(c.pdespesaFixo));
-      if (c.pdespesaVariavel != null) setPdespesaVariavel(Number(c.pdespesaVariavel));
-      if (c.fretePadrao != null) setFretePadrao(Number(c.fretePadrao));
-    }
   }, [applyShared]);
 
   useEffect(() => {
@@ -218,8 +220,7 @@ export default function AdminV3PropostaAuto() {
     valorMax,
   ]);
 
-  const money = (n: number) =>
-    n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const money = (n: number) => formatBRL(n);
 
   const persistSharedNow = () => {
     saveConfigRapida({
@@ -414,49 +415,63 @@ export default function AdminV3PropostaAuto() {
   return (
     <>
       <Head>
-        <title>V3 Proposta automática — PIENG</title>
+        <title>Proposta automática — PIENG</title>
       </Head>
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <div className="mb-6">
-            <Link href="/admin/v3" className="text-xs text-sky-400 hover:underline">
-              ← V3 home
-            </Link>
-            <h1 className="text-2xl font-semibold mt-1">4a · Proposta automática</h1>
-            <p className="text-sm text-slate-400">
-              Dimensionamento automático puro (faixa de geração). Kits da 3a vão direto ao{' '}
-              <Link href="/gerador-rapido" className="text-sky-400 hover:underline">
-                Gerador 5a
+      <div className="admin-shell">
+        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold admin-title">Proposta automática</h1>
+              <p className="text-sm admin-subtitle">
+                Dimensionamento automático puro (faixa de geração). Kits da 3a vão direto ao{' '}
+                <Link href="/gerador-rapido" className="text-sky-400 hover:underline">
+                  Gerador 5a
+                </Link>
+                {' '}· configs compartilhadas
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href="/admin"
+                className="admin-btn-ghost text-sm"
+              >
+                🏠 Admin
               </Link>
-              {' '}· configs compartilhadas
-            </p>
+              <Link
+                href="/admin"
+                className="admin-btn-ghost text-sm"
+              >
+                ← Voltar
+              </Link>
+            </div>
           </div>
 
           {/* Bloco espelhando Configurações Rápidas do Gerador */}
-          <div className="mb-4 rounded-xl border border-emerald-800/40 bg-emerald-950/20 p-4">
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h2 className="text-sm font-semibold text-emerald-200">⚙️ Configurações Rápidas (shared)</h2>
-              <span className="text-[10px] text-slate-500">mesmos campos do Gerador · localStorage</span>
+              <h2 className="text-sm font-semibold text-emerald-800">⚙️ Configurações Rápidas (shared)</h2>
+              <span className="text-[10px] text-gray-500">mesmos campos do Gerador · localStorage</span>
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <label className="text-sm">
-                <span className="text-xs text-slate-500">Nome do Cliente</span>
+                <span className="text-xs text-gray-500">Nome do Cliente</span>
                 <input
                   value={cliente}
                   onChange={(e) => setCliente(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
               <label className="text-sm">
-                <span className="text-xs text-slate-500">Cidade</span>
+                <span className="text-xs text-gray-500">Cidade</span>
                 <input
                   value={cidade}
                   onChange={(e) => setCidade(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
               <label className="text-sm">
-                <span className="text-xs text-slate-500">Consumo Mensal (kWh)</span>
+                <span className="text-xs text-gray-500">Consumo Mensal (kWh)</span>
                 <input
                   type="number"
                   value={consumoMensal}
@@ -465,15 +480,15 @@ export default function AdminV3PropostaAuto() {
                     setConsumoMensal(v);
                     if (modo === 'consumo_mensal' && !usarFaixa) setValor(v);
                   }}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
               <label className="text-sm">
-                <span className="text-xs text-slate-500">Template / tipo imóvel</span>
+                <span className="text-xs text-gray-500">Template / tipo imóvel</span>
                 <select
                   value={tipoImovel}
                   onChange={(e) => setTipoImovel(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 >
                   <option value="Residencial">Residencial</option>
                   <option value="Rural">Rural</option>
@@ -485,77 +500,77 @@ export default function AdminV3PropostaAuto() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="text-xs text-slate-500">HSP</span>
+                <span className="text-xs text-gray-500">HSP</span>
                 <input
                   type="number"
                   step={0.01}
                   value={hsp}
                   onChange={(e) => setHsp(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
               <label className="text-sm">
-                <span className="text-xs text-slate-500">Tarifa (R$/kWh)</span>
+                <span className="text-xs text-gray-500">Tarifa (R$/kWh)</span>
                 <input
                   type="number"
                   step={0.001}
                   value={tarifa}
                   onChange={(e) => setTarifa(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
             </div>
-            <div className="mt-3 rounded-lg border border-amber-800/40 bg-amber-950/30 p-3">
-              <p className="text-xs text-amber-200/90 mb-2">
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs text-amber-800 mb-2">
                 Pdespesa Total = Fixo + (Variável% × P.Custo) — mesma fórmula do Gerador
               </p>
               <div className="grid md:grid-cols-3 gap-3">
                 <label className="text-sm">
-                  <span className="text-xs text-slate-500">Valor Fixo (R$)</span>
+                  <span className="text-xs text-gray-500">Valor Fixo (R$)</span>
                   <input
                     type="number"
                     step={100}
                     value={pdespesaFixo}
                     onChange={(e) => setPdespesaFixo(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                    className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="text-xs text-slate-500">Percentual Variável (%)</span>
+                  <span className="text-xs text-gray-500">Percentual Variável (%)</span>
                   <input
                     type="number"
                     step={1}
                     value={pdespesaVariavel}
                     onChange={(e) => setPdespesaVariavel(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                    className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="text-xs text-slate-500">Frete padrão R$ (só 4a/V3)</span>
+                  <span className="text-xs text-gray-500">Frete padrão R$ (só 4a/V3)</span>
                   <input
                     type="number"
                     step={50}
                     min={0}
                     value={fretePadrao}
                     onChange={(e) => setFretePadrao(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg bg-slate-950 border border-amber-800/60 px-3 py-2"
+                    className="mt-1 w-full rounded-lg bg-white border border-amber-300 px-3 py-2"
                   />
                 </label>
               </div>
-              <p className="text-[11px] text-slate-500 mt-2">
+              <p className="text-[11px] text-gray-500 mt-2">
                 Ex.: R$ {pdespesaFixo.toFixed(2)} + ({pdespesaVariavel}% × R$ 6.000) = R${' '}
                 {(pdespesaFixo + 6000 * (pdespesaVariavel / 100)).toFixed(2)}
               </p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-6 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+          <div className="grid md:grid-cols-3 gap-4 mb-6 admin-surface p-4">
             <label className="text-sm">
-              <span className="text-xs text-slate-500">CD</span>
+              <span className="text-xs text-gray-500">CD</span>
               <select
                 value={cdId}
                 onChange={(e) => setCdId(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
                 {CDS.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -565,7 +580,7 @@ export default function AdminV3PropostaAuto() {
               </select>
             </label>
             <label className="text-sm">
-              <span className="text-xs text-slate-500">Modo</span>
+              <span className="text-xs text-gray-500">Modo</span>
               <select
                 value={modo}
                 onChange={(e) => {
@@ -575,7 +590,7 @@ export default function AdminV3PropostaAuto() {
                   else setUsarFaixa(true);
                   if (m === 'consumo_mensal' && !usarFaixa) setValor(consumoMensal);
                 }}
-                className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
                 <option value="geracao_mensal">Geração mensal (kWh)</option>
                 <option value="consumo_mensal">Consumo mensal (kWh)</option>
@@ -590,13 +605,13 @@ export default function AdminV3PropostaAuto() {
                   checked={usarFaixa}
                   onChange={(e) => setUsarFaixa(e.target.checked)}
                 />
-                <span className="text-slate-300">Usar faixa min–max</span>
+                <span className="text-gray-700">Usar faixa min–max</span>
               </label>
             )}
 
             {modo === 'potencia_kwp' || !usarFaixa ? (
               <label className="text-sm">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-gray-500">
                   {modo === 'potencia_kwp' ? 'kWp' : modo === 'consumo_mensal' ? 'Consumo (kWh)' : 'Geração (kWh)'}
                 </span>
                 <input
@@ -611,13 +626,13 @@ export default function AdminV3PropostaAuto() {
                       setValor(v);
                     } else setValor(v);
                   }}
-                  className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
                 />
               </label>
             ) : (
               <>
                 <label className="text-sm">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-gray-500">
                     {modo === 'geracao_mensal' ? 'Geração mín (kWh)' : 'Consumo mín (kWh)'}
                   </span>
                   <input
@@ -626,11 +641,11 @@ export default function AdminV3PropostaAuto() {
                     step={10}
                     value={valorMin}
                     onChange={(e) => setValorMin(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg bg-slate-950 border border-amber-800/50 px-3 py-2"
+                    className="mt-1 w-full rounded-lg bg-white border border-amber-300 px-3 py-2"
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-gray-500">
                     {modo === 'geracao_mensal' ? 'Geração máx (kWh)' : 'Consumo máx (kWh)'}
                   </span>
                   <input
@@ -639,7 +654,7 @@ export default function AdminV3PropostaAuto() {
                     step={10}
                     value={valorMax}
                     onChange={(e) => setValorMax(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg bg-slate-950 border border-amber-800/50 px-3 py-2"
+                    className="mt-1 w-full rounded-lg bg-white border border-amber-300 px-3 py-2"
                   />
                 </label>
               </>
@@ -647,9 +662,9 @@ export default function AdminV3PropostaAuto() {
           </div>
 
           {params && (
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4">
               PR {params.performanceRate} · dias {params.diasMes} · pdespesa comercial R$ {pdespesaFixo} +{' '}
-              {pdespesaVariavel}% · frete padrão R$ {fretePadrao.toLocaleString('pt-BR')} · (legado 4a: despesa{' '}
+              {pdespesaVariavel}% · frete padrão {formatBRL(fretePadrao)} · (legado 4a: despesa{' '}
               {params.percentualDespesa}% / PIX -{params.descontoPix}
               %) · até {params.maxAlternativas} alt. · {params.placasPorMicro} placas/micro
             </p>
@@ -660,7 +675,7 @@ export default function AdminV3PropostaAuto() {
               type="button"
               disabled={busy}
               onClick={() => gerar(false)}
-              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               Dimensionar
             </button>
@@ -668,7 +683,7 @@ export default function AdminV3PropostaAuto() {
               type="button"
               disabled={busy}
               onClick={() => gerar(true)}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               Dimensionar e salvar orçamentos base
             </button>
@@ -676,15 +691,15 @@ export default function AdminV3PropostaAuto() {
               type="button"
               disabled={busy || !geradorPayload}
               onClick={abrirGerador}
-              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
             >
               Abrir no Gerador Rápido (5a)
             </button>
           </div>
 
-          {msg && <p className="mb-4 text-sm text-amber-200">{msg}</p>}
+          {msg && <p className="mb-4 text-sm text-amber-800">{msg}</p>}
           {avisosGlobais.length > 0 && (
-            <ul className="mb-4 text-sm text-amber-300 list-disc pl-5">
+            <ul className="mb-4 text-sm text-amber-700 list-disc pl-5">
               {avisosGlobais.map((a, i) => (
                 <li key={i}>{a}</li>
               ))}
@@ -692,10 +707,10 @@ export default function AdminV3PropostaAuto() {
           )}
 
           {auditoriaAlvo.length > 0 && (
-            <section className="mb-6 rounded-xl border border-indigo-800/60 bg-indigo-950/30 p-4">
-              <h2 className="text-sm font-semibold text-indigo-200 mb-3">Auditoria do alvo (global)</h2>
+            <section className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+              <h2 className="text-sm font-semibold text-indigo-800 mb-3">Auditoria do alvo (global)</h2>
               {meta && (
-                <p className="text-sm text-slate-300 mb-3">
+                <p className="text-sm text-gray-700 mb-3">
                   Alvo mid: <strong>{meta.alvoKwp} kWp</strong> · geração ~<strong>{meta.alvoGeracao} kWh/mês</strong>
                   {meta.alvoGeracaoMin != null && meta.alvoGeracaoMax != null ? (
                     <>
@@ -713,18 +728,18 @@ export default function AdminV3PropostaAuto() {
               )}
               <div className="space-y-3">
                 {auditoriaAlvo.map((p, i) => (
-                  <div key={i} className="text-xs border-l-2 border-indigo-600 pl-3">
-                    <div className="font-medium text-indigo-100">{p.etapa}</div>
-                    <div className="text-slate-400 font-mono mt-0.5">{p.formula}</div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-slate-500">
+                  <div key={i} className="text-xs border-l-2 border-indigo-400 pl-3">
+                    <div className="font-medium text-indigo-900">{p.etapa}</div>
+                    <div className="text-gray-600 font-mono mt-0.5">{p.formula}</div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-gray-500">
                       {Object.entries(p.valores).map(([k, v]) => (
                         <span key={k}>
-                          <span className="text-slate-600">{k}=</span>
+                          <span className="text-gray-500">{k}=</span>
                           {fmtVal(v)}
                         </span>
                       ))}
                     </div>
-                    <div className="mt-1 text-emerald-300/90">→ {p.resultado}</div>
+                    <div className="mt-1 text-emerald-700/90">→ {p.resultado}</div>
                   </div>
                 ))}
               </div>
@@ -737,46 +752,46 @@ export default function AdminV3PropostaAuto() {
               return (
                 <article
                   key={idx}
-                  className="rounded-xl border border-slate-700 bg-slate-900/60 overflow-hidden"
+                  className="admin-surface border border-gray-200 overflow-hidden"
                 >
                   <button
                     type="button"
                     onClick={() => toggle(idx)}
-                    className="w-full text-left px-5 py-4 flex flex-wrap items-start justify-between gap-3 hover:bg-slate-800/40"
+                    className="w-full text-left px-5 py-4 flex flex-wrap items-start justify-between gap-3 hover:bg-gray-50"
                   >
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs uppercase tracking-wide text-slate-500">
+                        <span className="text-xs uppercase tracking-wide text-gray-500">
                           Alt {idx + 1} · {a.tipo}
                         </span>
                         {a.origem === 'manual_3a' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-200">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
                             3a
                           </span>
                         )}
                         {a.faixa_alvo_kwh != null && (
-                          <span className="text-[10px] text-slate-500">alvo ~{a.faixa_alvo_kwh} kWh</span>
+                          <span className="text-[10px] text-gray-500">alvo ~{a.faixa_alvo_kwh} kWh</span>
                         )}
                         {a.orcamento_base_id && (
-                          <span className="text-xs text-sky-400">#{a.orcamento_base_id}</span>
+                          <span className="text-xs text-blue-600">#{a.orcamento_base_id}</span>
                         )}
                       </div>
-                      <h2 className="font-semibold text-sky-200">{a.titulo}</h2>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <h2 className="font-semibold text-sky-700">{a.titulo}</h2>
+                      <p className="text-sm text-gray-600 mt-1">
                         {a.qtd_modulos} mód. · {a.qtd_inversores} inv. · {a.potencia_kwp} kWp · ~
                         {a.geracao_mensal_kwh} kWh
                         {a.cobertura_pct != null ? ` · ${a.cobertura_pct}% cobertura` : ''}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-semibold text-emerald-400">
+                      <div className="text-2xl font-semibold text-emerald-600">
                         {a.comercial ? money(a.comercial.ppix) : money(a.precos.pix)}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-gray-500">
                         PIX comercial · {open ? 'recolher' : 'expandir'}
                       </div>
                       {a.comercial && (
-                        <div className="text-[10px] text-slate-600 mt-0.5">
+                        <div className="text-[10px] text-gray-500 mt-0.5">
                           (legado 4a {money(a.precos.pix)})
                         </div>
                       )}
@@ -784,31 +799,31 @@ export default function AdminV3PropostaAuto() {
                   </button>
 
                   {open && (
-                    <div className="px-5 pb-5 border-t border-slate-800 space-y-5 pt-4">
+                    <div className="px-5 pb-5 border-t border-gray-200 space-y-5 pt-4">
                       {/* Resumo equipamentos */}
                       <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-3">
-                          <div className="text-xs text-slate-500 mb-1">Módulo</div>
+                        <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
+                          <div className="text-xs text-gray-500 mb-1">Módulo</div>
                           <div className="font-medium">{a.nome_modulo || a.sku_modulo}</div>
-                          <div className="text-xs text-slate-400 mt-1 font-mono">{a.sku_modulo}</div>
-                          <div className="mt-2 text-slate-300">
+                          <div className="text-xs text-gray-600 mt-1 font-mono">{a.sku_modulo}</div>
+                          <div className="mt-2 text-gray-700">
                             {a.potencia_modulo_w} W · unit.{' '}
                             {a.preco_unit_modulo != null ? money(a.preco_unit_modulo) : '—'} · qtd{' '}
                             {a.qtd_modulos}
                             {a.custo_rs_kwp_modulo != null && (
-                              <span className="block text-amber-300/90 text-xs mt-1">
+                              <span className="block text-amber-700 text-xs mt-1">
                                 R$ {a.custo_rs_kwp_modulo.toFixed(2)}/kWp (módulo)
                               </span>
                             )}
                           </div>
                         </div>
-                        <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-3">
-                          <div className="text-xs text-slate-500 mb-1">
+                        <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
+                          <div className="text-xs text-gray-500 mb-1">
                             {a.tipo === 'micro' ? 'Microinversor' : 'Inversor'}
                           </div>
                           <div className="font-medium">{a.nome_inversor || a.sku_inversor}</div>
-                          <div className="text-xs text-slate-400 mt-1 font-mono">{a.sku_inversor}</div>
-                          <div className="mt-2 text-slate-300">
+                          <div className="text-xs text-gray-600 mt-1 font-mono">{a.sku_inversor}</div>
+                          <div className="mt-2 text-gray-700">
                             {a.potencia_inversor_kw} kW · unit.{' '}
                             {a.preco_unit_inversor != null ? money(a.preco_unit_inversor) : '—'} · qtd{' '}
                             {a.qtd_inversores}
@@ -817,19 +832,19 @@ export default function AdminV3PropostaAuto() {
                       </div>
 
                       {/* Precificação comercial 5a */}
-                      <div className="rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-3 text-sm">
-                        <div className="text-xs font-semibold text-emerald-300 mb-2">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
+                        <div className="text-xs font-semibold text-emerald-700 mb-2">
                           Precificação comercial (igual Gerador) · 5a
                         </div>
                         {a.comercial ? (
                           <>
                             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-2 font-mono text-xs sm:text-sm">
                               <div>
-                                <div className="text-slate-500">kit</div>
+                                <div className="text-gray-500">kit</div>
                                 <div>{money(a.comercial.pcusto_kit ?? a.custo_total)}</div>
                               </div>
                               <div>
-                                <div className="text-slate-500">Frete R$</div>
+                                <div className="text-gray-500">Frete R$</div>
                                 <input
                                   type="number"
                                   min={0}
@@ -837,38 +852,38 @@ export default function AdminV3PropostaAuto() {
                                   value={a.frete ?? a.comercial.frete ?? 0}
                                   onChange={(e) => atualizarFreteAlt(idx, Number(e.target.value))}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="mt-0.5 w-full rounded bg-slate-950 border border-amber-700/70 px-2 py-1 text-amber-100"
+                                  className="mt-0.5 w-full rounded bg-white border border-amber-300 px-2 py-1 text-amber-800"
                                   title="Frete da transportadora — soma ao kit antes da pdespesa"
                                 />
                               </div>
                               <div>
-                                <div className="text-slate-500">pcusto (kit+frete)</div>
+                                <div className="text-gray-500">pcusto (kit+frete)</div>
                                 <div>{money(a.comercial.pcusto)}</div>
                               </div>
                               <div>
-                                <div className="text-slate-500">
+                                <div className="text-gray-500">
                                   + pdespesa (R$ {a.comercial.pdespesa_fixo} +{' '}
                                   {a.comercial.pdespesa_variavel_percent}%)
                                 </div>
                                 <div>{money(a.comercial.pdespesa_total)}</div>
                               </div>
                               <div>
-                                <div className="text-slate-500">= PIX</div>
-                                <div className="text-emerald-400 font-semibold">
+                                <div className="text-gray-500">= PIX</div>
+                                <div className="text-emerald-600 font-semibold">
                                   {money(a.comercial.ppix)}
                                 </div>
                               </div>
                             </div>
-                            <p className="mt-2 text-[11px] text-slate-500 font-mono">{a.comercial.formula}</p>
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-2 text-[11px] text-gray-500 font-mono">{a.comercial.formula}</p>
+                            <p className="mt-1 text-xs text-gray-600">
                               À vista {money(a.comercial.pavista)} · 12× {money(a.comercial.p12x)} · total 12×{' '}
                               {money(a.comercial.p12x_total)} · 18× {money(a.comercial.p18x_parcela)}
                             </p>
                           </>
                         ) : (
-                          <p className="text-amber-300 text-xs">Sem bloco comercial — redimensionar.</p>
+                          <p className="text-amber-700 text-xs">Sem bloco comercial — redimensionar.</p>
                         )}
-                        <div className="mt-3 pt-3 border-t border-slate-800 grid sm:grid-cols-4 gap-2 font-mono text-[11px] text-slate-500">
+                        <div className="mt-3 pt-3 border-t border-gray-200 grid sm:grid-cols-4 gap-2 font-mono text-[11px] text-gray-500">
                           <div>
                             <div>legado 4a custo</div>
                             <div>{money(a.precos.custo)}</div>
@@ -887,9 +902,9 @@ export default function AdminV3PropostaAuto() {
                           </div>
                         </div>
                         {a.auditoria?.economia_mensal_estimada != null && (
-                          <p className="mt-2 text-xs text-slate-400">
+                          <p className="mt-2 text-xs text-gray-600">
                             Economia mensal est. (min(geração, consumo) × tarifa {tarifa}):{' '}
-                            <strong className="text-slate-200">
+                            <strong className="text-gray-700">
                               {money(a.auditoria.economia_mensal_estimada)}
                             </strong>
                           </p>
@@ -899,28 +914,28 @@ export default function AdminV3PropostaAuto() {
                       {/* Passos de cálculo */}
                       {a.auditoria?.passos && a.auditoria.passos.length > 0 && (
                         <div>
-                          <div className="text-xs font-semibold text-slate-300 mb-2">
+                          <div className="text-xs font-semibold text-gray-700 mb-2">
                             Passos do cálculo
                           </div>
                           <div className="space-y-3">
                             {a.auditoria.passos.map((p, pi) => (
                               <div
                                 key={pi}
-                                className="text-xs border-l-2 border-sky-700 pl-3 py-0.5"
+                                className="text-xs border-l-2 border-sky-400 pl-3 py-0.5"
                               >
-                                <div className="font-medium text-sky-100">
+                                <div className="font-medium text-sky-800">
                                   {pi + 1}. {p.etapa}
                                 </div>
-                                <div className="text-slate-400 font-mono mt-0.5">{p.formula}</div>
-                                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-slate-500">
+                                <div className="text-gray-600 font-mono mt-0.5">{p.formula}</div>
+                                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-gray-500">
                                   {Object.entries(p.valores).map(([k, v]) => (
                                     <span key={k}>
-                                      <span className="text-slate-600">{k}=</span>
+                                      <span className="text-gray-500">{k}=</span>
                                       {fmtVal(v)}
                                     </span>
                                   ))}
                                 </div>
-                                <div className="mt-1 text-amber-200/90">→ {p.resultado}</div>
+                                <div className="mt-1 text-amber-800">→ {p.resultado}</div>
                               </div>
                             ))}
                           </div>
@@ -930,12 +945,12 @@ export default function AdminV3PropostaAuto() {
                       {/* Linhas do kit */}
                       {a.orcamento_itens && a.orcamento_itens.length > 0 && (
                         <div>
-                          <div className="text-xs font-semibold text-slate-300 mb-2">
+                          <div className="text-xs font-semibold text-gray-700 mb-2">
                             Itens do orçamento (kit + complementos)
                           </div>
-                          <div className="overflow-x-auto rounded-lg border border-slate-800">
+                          <div className="overflow-x-auto rounded-lg border border-gray-200">
                             <table className="w-full text-xs text-left">
-                              <thead className="bg-slate-950 text-slate-500">
+                              <thead className="bg-gray-50 text-gray-500">
                                 <tr>
                                   <th className="px-2 py-2">SKU</th>
                                   <th className="px-2 py-2">Nome</th>
@@ -952,12 +967,12 @@ export default function AdminV3PropostaAuto() {
                                   return (
                                     <tr
                                       key={ii}
-                                      className={`border-t border-slate-800/80 ${
+                                      className={`border-t border-gray-200 ${
                                         fallback
-                                          ? 'bg-violet-950/40 text-violet-200'
+                                          ? 'bg-violet-50 text-violet-800'
                                           : !it.valido_preco
-                                            ? 'bg-rose-950/30 text-rose-200'
-                                            : 'text-slate-300'
+                                            ? 'bg-rose-50 text-rose-700'
+                                            : 'text-gray-700'
                                       }`}
                                       title={
                                         fallback
@@ -965,13 +980,13 @@ export default function AdminV3PropostaAuto() {
                                           : it.aviso || undefined
                                       }
                                     >
-                                      <td className="px-2 py-1.5 font-mono text-slate-400">
+                                      <td className="px-2 py-1.5 font-mono text-gray-600">
                                         {it.sku_interno}
                                       </td>
                                       <td className="px-2 py-1.5">
                                         {it.nome}
                                         {fallback && (
-                                          <span className="ml-1 text-[10px] text-violet-300">
+                                          <span className="ml-1 text-[10px] text-violet-700">
                                             · {it.preco_origem_cd_nome}
                                           </span>
                                         )}
@@ -982,7 +997,7 @@ export default function AdminV3PropostaAuto() {
                                         {it.preco_unitario != null ? money(it.preco_unitario) : '—'}
                                       </td>
                                       <td className="px-2 py-1.5 text-right">{money(it.subtotal)}</td>
-                                      <td className="px-2 py-1.5 text-slate-500">
+                                      <td className="px-2 py-1.5 text-gray-500">
                                         {it.sugerido ? 'sugerido ' : ''}
                                         {fallback ? 'outra filial ' : ''}
                                         {!it.valido_preco ? '⚠ preço ' : ''}
@@ -994,11 +1009,11 @@ export default function AdminV3PropostaAuto() {
                                 })}
                               </tbody>
                               <tfoot>
-                                <tr className="border-t border-slate-700 bg-slate-950/80">
-                                  <td colSpan={5} className="px-2 py-2 text-right text-slate-400">
+                                <tr className="border-t border-gray-300 bg-gray-50">
+                                  <td colSpan={5} className="px-2 py-2 text-right text-gray-600">
                                     Custo total
                                   </td>
-                                  <td className="px-2 py-2 text-right font-semibold text-emerald-300">
+                                  <td className="px-2 py-2 text-right font-semibold text-emerald-700">
                                     {money(a.custo_total)}
                                   </td>
                                   <td />
@@ -1011,9 +1026,9 @@ export default function AdminV3PropostaAuto() {
 
                       {/* Breakdown por categoria */}
                       {a.breakdown && Object.keys(a.breakdown).length > 0 && (
-                        <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-600">
                           {Object.entries(a.breakdown).map(([k, v]) => (
-                            <span key={k} className="px-2 py-1 rounded bg-slate-800">
+                            <span key={k} className="px-2 py-1 rounded bg-gray-100">
                               {k}: {money(v)}
                             </span>
                           ))}
@@ -1021,7 +1036,7 @@ export default function AdminV3PropostaAuto() {
                       )}
 
                       {a.avisos && a.avisos.length > 0 && (
-                        <ul className="text-xs text-amber-300 list-disc pl-4">
+                        <ul className="text-xs text-amber-700 list-disc pl-4">
                           {a.avisos.map((av, ai) => (
                             <li key={ai}>{av}</li>
                           ))}
@@ -1035,11 +1050,12 @@ export default function AdminV3PropostaAuto() {
           </div>
 
           {alts.length === 0 && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-gray-500">
               Use CD Feira (já tem preços). Ex.: consumo 500 kWh → Dimensionar — os cards abrem com a trilha
               completa para você auditar.
             </p>
           )}
+          </div>
         </div>
       </div>
     </>

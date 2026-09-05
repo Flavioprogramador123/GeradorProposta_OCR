@@ -1,5 +1,9 @@
 import React from 'react';
 import { ConsultorConfig } from '@/hooks/useConsultorConfig';
+import {
+  MULTIPLICADOR_CARTAO,
+  percentualEconomiaPix,
+} from '@/lib/tabelaJurosCartao';
 
 interface ConsultorConfigPanelProps {
   config: ConsultorConfig;
@@ -8,6 +12,8 @@ interface ConsultorConfigPanelProps {
 }
 
 export default function ConsultorConfigPanel({ config, onConfigChange, onReset }: ConsultorConfigPanelProps) {
+  const mult12 = MULTIPLICADOR_CARTAO[12];
+  const economiaPixPct = percentualEconomiaPix(10000, 10000 * mult12);
   return (
     <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg p-6 text-white mb-6">
       <div className="flex justify-between items-center mb-4">
@@ -68,7 +74,9 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-1 opacity-80">Bônus Micro-inversor (%)</label>
+              <label className="block text-xs font-medium mb-1 opacity-80">
+                Eficiência adicional Micro-inversores
+              </label>
               <input
                 type="number"
                 step="0.5"
@@ -77,7 +85,7 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
                 value={config.bonusMicroPercent}
                 onChange={(e) => onConfigChange({ bonusMicroPercent: Number(e.target.value) })}
                 className="w-full px-2 py-1 text-sm bg-white/20 border border-white/30 rounded text-white placeholder-white/70 focus:border-white focus:outline-none"
-                title="Ganho extra de geração para micro-inversores (padrão 5%)"
+                title="Eficiência adicional de geração para micro-inversores (padrão 5%)"
               />
             </div>
             
@@ -143,12 +151,14 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
                 step="0.1"
                 min="0"
                 max="100"
-                value={Number(((1 - 1 / 1.117943) * 100).toFixed(1))}
+                value={Number(economiaPixPct.toFixed(1))}
                 readOnly
                 className="w-full px-2 py-1 text-sm bg-white/10 border border-white/30 rounded text-white/90 opacity-90 cursor-not-allowed"
-                title="Derivado automaticamente da tabela 12× do cartão (PIX = base)"
+                title="(à vista − PIX) / PIX — mesmo % do card do cliente"
               />
-              <p className="text-[10px] opacity-70 mt-1">Automático: à vista = total 12× cartão</p>
+              <p className="text-[10px] opacity-70 mt-1">
+                Automático: mult 12× {mult12.toFixed(6)} → card ~{Math.round(economiaPixPct)}%
+              </p>
             </div>
             
             <div>
@@ -166,7 +176,7 @@ export default function ConsultorConfigPanel({ config, onConfigChange, onReset }
             <div>
               <label className="block text-xs font-medium mb-1 opacity-80">Tabela cartão 12× / 18×</label>
               <div className="text-xs opacity-90 px-2 py-1 bg-white/10 rounded border border-white/20">
-                Mult. 12× 1,1179 · Mult. 18× 1,1794
+                Mult. 12× {mult12.toFixed(4)} · Mult. 18× {MULTIPLICADOR_CARTAO[18].toFixed(4)}
               </div>
             </div>
           </div>

@@ -3,7 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 import { pythonCalculator } from '@/lib/python-calculator';
-import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
+import { calcularPrecosDePix, buildMultiplicadoresFromTaxa, tagEconomiaPix } from '@/lib/tabelaJurosCartao';
+import { formatBRL } from '@/lib/formatBRL';
 import { getBonusMicroAtivo } from '@/lib/calcularPerformance';
 
 // Função para mapear tipo de imóvel para template CSS
@@ -220,10 +221,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.warn('⚠️ Validação Python não disponível, continuando sem validação:', validationError);
     }
 
-    // PIX = base; à vista = total 12× cartão; 12×/18× pela tabela real
+    // PIX = base; à vista = total 12× cartão; 12×/18× pela taxa mensal
+    const taxaCartaoMensal =
+      Number(config?.taxaCartaoMensal ?? configSistema.taxaCartaoMensal ?? 1.51) || 1.51;
     const calcularPrecos = (totalFinal: number) => {
       const markup = config?.fatorParcelado ?? configSistema.fatorParcelado ?? 1.20;
-      return calcularPrecosDePix(totalFinal, markup);
+      return calcularPrecosDePix(totalFinal, markup, taxaCartaoMensal);
     };
 
      // Calcular performance usando configurações dinâmicas (+ bônus micro se ativo)
@@ -443,10 +446,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 <div class="system-card">
                     <h3>OPÇÃO ${index + 1} ${index === 0 ? '⭐' : ''}</h3>
                     <div class="price-section">
-                        <div class="price-old">Promoção de <span class="valor-riscado">R$ ${(sistema.priscado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                        <div class="price-new">para R$ ${(sistema.pavista || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        <div class="price-tag">ECONOMIA DE ${(((sistema.pavista || 0) - (sistema.ppix || 0)) / (sistema.pavista || 1) * 100).toFixed(0)}%</div>
-                        <div><strong>PIX: R$ ${(sistema.ppix || 0).toFixed(2)}</strong></div>
+                        <div class="price-old">Promoção de <span class="valor-riscado">${formatBRL(sistema.priscado)}</span></div>
+                        <div class="price-new">para ${formatBRL(sistema.pavista)}</div>
+                        <div class="price-tag">${tagEconomiaPix(sistema.ppix || 0, sistema.pavista || 0)}</div>
+                        <div><strong>PIX: ${formatBRL(sistema.ppix)}</strong></div>
                     </div>
                     <div class="metrics">
                         <div class="metric">
@@ -530,6 +533,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const templateData = {
         slug,
+        taxaCartaoMensal,
         cliente: {
           nome: cliente.nome,
           cidade: cliente.cidade,
@@ -562,12 +566,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p18x_parcela: sistema.p18x_parcela,
 
           // Formatados para Next.js
-          precoRiscado: `R$ ${sistema.priscado.toFixed(2)}`,
-          precoAtual: `R$ ${sistema.pavista.toFixed(2)}`,
-          tagDesconto: `ECONOMIA DE ${((sistema.pavista - sistema.ppix) / sistema.pavista * 100).toFixed(0)}%`,
+          precoRiscado: formatBRL(sistema.priscado),
+          precoAtual: formatBRL(sistema.pavista),
+          tagDesconto: tagEconomiaPix(sistema.ppix, sistema.pavista),
           precoPixDecimal: sistema.ppix,
-          preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
-          preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
+          preco12x: formatBRL(sistema.p12x),
+          preco18x: formatBRL(sistema.p18x_parcela),
 
           // Performance (valores numéricos para template engine)
           geracaoMensal: sistema.geracaoMensal,
@@ -692,12 +696,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             'Cabeamento CC/CA completo',
             'String box DC/AC + proteções'
           ],
-          precoRiscado: `R$ ${sistema.priscado.toFixed(2)}`,
-          precoAtual: `R$ ${sistema.pavista.toFixed(2)}`,
-          tagDesconto: `ECONOMIA DE ${((sistema.pavista - sistema.ppix) / sistema.pavista * 100).toFixed(0)}%`,
+          precoRiscado: formatBRL(sistema.priscado),
+          precoAtual: formatBRL(sistema.pavista),
+          tagDesconto: tagEconomiaPix(sistema.ppix, sistema.pavista),
           precoPixDecimal: sistema.ppix,
-          preco12x: `R$ ${sistema.p12x.toFixed(2)}`,
-          preco18x: `R$ ${sistema.p18x_parcela.toFixed(2)}`,
+          preco12x: formatBRL(sistema.p12x),
+          preco18x: formatBRL(sistema.p18x_parcela),
           geracao: `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`,
           cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Número inteiro arredondado
           coberturaFormatada: `${Math.round(parseFloat(sistema.cobertura) || 0)}%`, // Formatado para exibição
@@ -813,15 +817,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         consumoMensal: config.consumoMensal || cliente.consumo_mensal || 600,
         metodo: config.metodo || 'variavel',
         descontoPix: (() => {
-          const sample = calcularPrecosDePix(10000, config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.2);
-          return sample.economiaPercent; // percentual aparente PIX vs à vista
+          const sample = calcularPrecosDePix(
+            10000,
+            config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.2,
+            taxaCartaoMensal
+          );
+          return sample.economiaPercent;
         })(),
         fatorParcelado: config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.20,
-        fator12x: 1 / 1.117943,
-        fator18x: 1 / 1.179384,
+        taxaCartaoMensal,
+        fator12x: 1 / buildMultiplicadoresFromTaxa(taxaCartaoMensal)[12],
+        fator18x: 1 / buildMultiplicadoresFromTaxa(taxaCartaoMensal)[18],
         bonusMicroPercent: config.bonusMicroPercent ?? configSistema.bonusMicroPercent ?? 5,
         precificacao: 'pix_base_tabela_cartao_v1',
-      }
+      },
+      taxaCartaoMensal,
     };
 
     // Salvar arquivo JSON para Next.js (apenas em desenvolvimento)

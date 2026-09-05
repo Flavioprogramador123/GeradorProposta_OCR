@@ -1,0 +1,242 @@
+/**
+ * Temas do Admin — 4 paletas de paletas.txt
+ * data-admin-theme="corporativo|tech|neutro|energia"
+ *
+ * Regras práticas:
+ * - 60% fundo/neutros · 30% primária · 10% destaque (ações)
+ * - Escala de cinzas para superfície/borda/texto sec.
+ * - Verde/amarelo/vermelho só para estados (sucesso/alerta/erro)
+ * - Contraste texto ≥ WCAG AA (escuro em claro / claro em escuro)
+ *
+ * Não altera CSS das propostas públicas (/proposta/*).
+ */
+
+/* Escala neutra compartilhada (referência) */
+:root {
+  --admin-neutral-50: #f9fafb;
+  --admin-neutral-100: #f3f4f6;
+  --admin-neutral-200: #e5e7eb;
+  --admin-neutral-400: #9ca3af;
+  --admin-neutral-500: #6b7280;
+  --admin-neutral-700: #374151;
+  --admin-neutral-900: #111827;
+  --admin-info: #3b82f6;
+  --admin-success: #16a34a;
+  --admin-warning: #f59e0b;
+  --admin-danger: #dc2626;
+}
+
+/* ── 1) Corporativo / Confiável ── */
+:root,
+html[data-admin-theme='corporativo'] {
+  --admin-primary: #1e3a8a; /* 30% */
+  --admin-secondary: #2563eb; /* 10% ações */
+  --admin-bg: #f8fafc; /* 60% */
+  --admin-bg-accent: #eff6ff;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f1f5f9;
+  --admin-border: #e2e8f0;
+  --admin-text: #0f172a;
+  --admin-text-muted: #64748b;
+  --admin-btn-ghost-bg: #ffffff;
+  --admin-btn-ghost-text: #1e3a8a;
+  --admin-btn-ghost-border: #cbd5e1;
+  --admin-btn-ghost-hover: #eff6ff;
+  --admin-shell-gradient: linear-gradient(160deg, #f8fafc 0%, #f1f5f9 55%, #eff6ff 100%);
+  --admin-card-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.05);
+  --admin-action-gradient: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+}
+
+/* ── 2) Tech / Moderno (modo escuro) ── */
+html[data-admin-theme='tech'],
+html[data-admin-theme='tecnologia'] {
+  --admin-primary: #6366f1;
+  --admin-secondary: #22d3ee; /* destaque ciano — ações */
+  --admin-bg: #0f0f17;
+  --admin-bg-accent: #1e1b2e;
+  --admin-surface: #16161f;
+  --admin-surface-muted: #1e1b2e;
+  --admin-border: #2e2a3d;
+  --admin-text: #f8fafc;
+  --admin-text-muted: #a5a3b5;
+  --admin-success: #22c55e;
+  --admin-warning: #fbbf24;
+  --admin-danger: #f87171;
+  --admin-btn-ghost-bg: #1e1b2e;
+  --admin-btn-ghost-text: #e0e7ff;
+  --admin-btn-ghost-border: #4f46e5;
+  --admin-btn-ghost-hover: #312e81;
+  --admin-shell-gradient: linear-gradient(145deg, #0f0f17 0%, #1e1b2e 50%, #0f0f17 100%);
+  --admin-card-shadow: 0 12px 28px -8px rgb(0 0 0 / 0.55);
+  --admin-action-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #22d3ee 120%);
+}
+
+/* ── 3) Neutro / Minimalista ── */
+html[data-admin-theme='neutro'] {
+  --admin-primary: #111827;
+  --admin-secondary: #3b82f6; /* único acento — 10% */
+  --admin-bg: #ffffff;
+  --admin-bg-accent: #f9fafb;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f3f4f6;
+  --admin-border: #e5e7eb;
+  --admin-text: #111827;
+  --admin-text-muted: #6b7280;
+  --admin-btn-ghost-bg: #ffffff;
+  --admin-btn-ghost-text: #374151;
+  --admin-btn-ghost-border: #e5e7eb;
+  --admin-btn-ghost-hover: #f3f4f6;
+  --admin-shell-gradient: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  --admin-card-shadow: 0 1px 3px rgb(17 24 39 / 0.08), 0 1px 2px rgb(17 24 39 / 0.04);
+  --admin-action-gradient: linear-gradient(135deg, #111827 0%, #374151 70%, #3b82f6 140%);
+}
+
+/* ── 4) Energia / Sustentabilidade ── */
+html[data-admin-theme='energia'],
+html[data-admin-theme='solar'] {
+  --admin-primary: #15803d; /* verde — 30% */
+  --admin-secondary: #0ea5e9; /* azul céu — ações (amarelo só alerta) */
+  --admin-bg: #f9fafb;
+  --admin-bg-accent: #ecfdf5;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f0fdf4;
+  --admin-border: #d1fae5;
+  --admin-text: #1f2937;
+  --admin-text-muted: #6b7280;
+  --admin-warning: #eab308; /* amarelo sol — só alerta */
+  --admin-btn-ghost-bg: #ffffff;
+  --admin-btn-ghost-text: #15803d;
+  --admin-btn-ghost-border: #86efac;
+  --admin-btn-ghost-hover: #ecfdf5;
+  --admin-shell-gradient: linear-gradient(160deg, #f9fafb 0%, #ecfdf5 45%, #e0f2fe 100%);
+  --admin-card-shadow: 0 10px 25px -5px rgb(21 128 61 / 0.1), 0 4px 6px -4px rgb(15 23 42 / 0.05);
+  --admin-action-gradient: linear-gradient(135deg, #15803d 0%, #0ea5e9 100%);
+}
+
+/* ── Utilitários ── */
+.admin-shell {
+  min-height: 100vh;
+  background: var(--admin-shell-gradient);
+  color: var(--admin-text);
+}
+
+.admin-surface {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--admin-card-shadow);
+  color: var(--admin-text);
+}
+
+.admin-surface-muted {
+  background: var(--admin-surface-muted);
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+}
+
+.admin-title {
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.admin-subtitle {
+  color: var(--admin-text-muted);
+}
+
+.admin-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  background: var(--admin-btn-ghost-bg);
+  color: var(--admin-btn-ghost-text);
+  border: 1px solid var(--admin-btn-ghost-border);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-btn-ghost:hover {
+  background: var(--admin-btn-ghost-hover);
+}
+
+.admin-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  background: var(--admin-secondary);
+  color: #ffffff;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.admin-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.admin-action-card {
+  display: block;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  color: #ffffff;
+  background: var(--admin-action-gradient);
+  box-shadow: var(--admin-card-shadow);
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 35%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-action-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 16px 32px -8px rgb(15 23 42 / 0.18);
+}
+
+/* Estados — só quando comunicam status real */
+.admin-state-success {
+  color: var(--admin-success);
+}
+.admin-state-warning {
+  color: var(--admin-warning);
+}
+.admin-state-danger {
+  color: var(--admin-danger);
+}
+.admin-state-info {
+  color: var(--admin-info);
+}
+
+.admin-theme-swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.15);
+  flex-shrink: 0;
+}
+
+.admin-theme-swatch--corporativo {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+}
+.admin-theme-swatch--tech {
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+}
+.admin-theme-swatch--neutro {
+  background: linear-gradient(135deg, #111827, #3b82f6);
+}
+.admin-theme-swatch--energia {
+  background: linear-gradient(135deg, #15803d, #eab308 55%, #0ea5e9);
+}
+
+/* Aliases legados (swatches) */
+.admin-theme-swatch--tecnologia {
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+}
+.admin-theme-swatch--solar {
+  background: linear-gradient(135deg, #15803d, #eab308 55%, #0ea5e9);
+}

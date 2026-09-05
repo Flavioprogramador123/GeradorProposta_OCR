@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
   CONFIG_PADRAO,
@@ -8,17 +9,24 @@ import {
   mergeConfiguracoes,
   type ConfiguracaoSistema,
 } from '@/utils/configuracoes';
-
+import { AdminThemePicker } from '@/components/AdminThemePicker';
+import {
+  TAXA_CARTAO_MENSAL_REF,
+  PARCELAS_REFERENCIA_AVISTA,
+  buildMultiplicadoresFromTaxa,
+  calcularPrecosDePix,
+  normalizeTaxaCartaoMensal,
+} from '@/lib/tabelaJurosCartao';
 const configPadrao: ConfiguracaoSistema = {
   ...CONFIG_PADRAO,
-  // UI comercial usa desconto PIX em % (0–100); util legado guarda 0–1
-  descontoPix: 10,
-  taxaCartao12x: CONFIG_PADRAO.taxaCartao12x ?? 12,
-  taxaCartao18x: CONFIG_PADRAO.taxaCartao18x ?? 17,
-  fatorAvista: CONFIG_PADRAO.fatorAvista ?? 0.9,
+  descontoPix: 11.79,
+  taxaCartaoMensal: TAXA_CARTAO_MENSAL_REF,
+  taxaCartao12x: CONFIG_PADRAO.taxaCartao12x ?? 10.6,
+  taxaCartao18x: CONFIG_PADRAO.taxaCartao18x ?? 15.2,
+  fatorAvista: CONFIG_PADRAO.fatorAvista ?? 1 / 1.117943,
   fatorParcelado: CONFIG_PADRAO.fatorParcelado ?? 1.2,
-  fator12x: CONFIG_PADRAO.fator12x ?? 0.88,
-  fator18x: CONFIG_PADRAO.fator18x ?? 0.83,
+  fator12x: CONFIG_PADRAO.fator12x ?? 1 / 1.117943,
+  fator18x: CONFIG_PADRAO.fator18x ?? 1 / 1.179384,
 };
 
 function mergeConfig(saved: Partial<ConfiguracaoSistema> | Record<string, unknown>): ConfiguracaoSistema {
@@ -42,6 +50,17 @@ export default function Configuracoes() {
   const [activeTab, setActiveTab] = useState('tecnico');
   const [limpandoTestes, setLimpandoTestes] = useState(false);
 
+  const taxaMensal = normalizeTaxaCartaoMensal(
+    config.taxaCartaoMensal ?? TAXA_CARTAO_MENSAL_REF
+  );
+  const mults = useMemo(() => buildMultiplicadoresFromTaxa(taxaMensal), [taxaMensal]);
+  const samplePrecos = useMemo(
+    () => calcularPrecosDePix(10000, config.fatorParcelado || 1.2, taxaMensal),
+    [config.fatorParcelado, taxaMensal]
+  );
+  const mult12 = mults[12];
+  const mult18 = mults[18];
+
   // Carregar configurações salvas
   useEffect(() => {
     const loadConfig = async () => {
@@ -61,10 +80,27 @@ export default function Configuracoes() {
   const handleSave = async () => {
     setLoading(true);
     try {
+      const taxa = normalizeTaxaCartaoMensal(config.taxaCartaoMensal);
+      const m = buildMultiplicadoresFromTaxa(taxa);
+      const sample = calcularPrecosDePix(10000, config.fatorParcelado || 1.2, taxa);
+      const f12 = 1 / m[12];
+      const f18 = 1 / m[18];
+      const payload: ConfiguracaoSistema = {
+        ...config,
+        taxaCartaoMensal: taxa,
+        fator12x: f12,
+        fator18x: f18,
+        fatorAvista: f12,
+        taxaCartao12x: Math.round((1 - f12) * 1000) / 10,
+        taxaCartao18x: Math.round((1 - f18) * 1000) / 10,
+        descontoPix: sample.economiaPercent,
+      };
+      setConfig(payload);
+
       const response = await fetch('/api/admin/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -176,26 +212,44 @@ export default function Configuracoes() {
         <title>Configurações do Sistema - PIENG Solar</title>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             
             {/* Header */}
-            <div className="text-center mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex-1"></div>
-                <div className="flex-1 text-center">
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-3xl font-bold admin-title">
                     ⚙️ Configurações do Sistema
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="admin-subtitle mt-1">
                     Configure parâmetros, cálculos e textos do sistema de propostas
                   </p>
-                  <p className="text-sm text-blue-600 mt-2">
-                    ✅ Configurações indexadas - Use o hook <code className="bg-blue-50 px-2 py-1 rounded">useConfiguracoes()</code> para acessar sem hardcode
+                  <p className="text-sm admin-subtitle mt-2">
+                    ✅ Configurações indexadas — use o hook{' '}
+                    <code className="px-2 py-1 rounded bg-[var(--admin-surface-muted)] text-[var(--admin-primary)]">
+                      useConfiguracoes()
+                    </code>{' '}
+                    para acessar sem hardcode
                   </p>
                 </div>
-                <div className="flex-1 flex justify-end">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <AdminThemePicker compact />
+                  <Link
+                    href="/admin"
+                    className="admin-btn-ghost"
+                  >
+                    🏠 Admin
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => router.back()}
+                    className="admin-btn-ghost"
+                    title="Voltar"
+                  >
+                    ← Voltar
+                  </button>
                   <button
                     onClick={handleLimpezaTestes}
                     disabled={limpandoTestes}
@@ -208,10 +262,14 @@ export default function Configuracoes() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="mb-6">
+              <AdminThemePicker />
+            </div>
+
+            <div className="admin-surface overflow-hidden">
               
               {/* Tabs */}
-              <div className="flex overflow-x-auto bg-gray-50 border-b">
+              <div className="flex overflow-x-auto bg-slate-200/70 border-b border-slate-200">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -299,7 +357,7 @@ export default function Configuracoes() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Bônus Micro-inversor (%)
+                          Eficiência adicional Micro-inversores
                         </label>
                         <input
                           type="number"
@@ -311,7 +369,7 @@ export default function Configuracoes() {
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                         <p className="text-sm text-gray-500 mt-1">
-                          Ganho extra de geração quando micro-inversor está ativo (padrão 5%)
+                          % a mais de geração vs string quando micro-inversor está ativo (padrão 5%)
                         </p>
                       </div>
 
@@ -349,7 +407,7 @@ export default function Configuracoes() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Estoque mínimo SOOLLAR
+                          Estoque mínimo — módulos
                         </label>
                         <input
                           type="number"
@@ -359,7 +417,26 @@ export default function Configuracoes() {
                           min="0"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Preço válido só com estoque &gt; este valor (padrão 20)</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          V3 / SOOLLAR: preço válido só com estoque &gt; este valor (padrão 20)
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Estoque mínimo — demais itens
+                        </label>
+                        <input
+                          type="number"
+                          value={config.estoqueMinimoOutros ?? 5}
+                          onChange={(e) => handleInputChange('estoqueMinimoOutros', parseInt(e.target.value, 10))}
+                          step="1"
+                          min="0"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Inversores, estruturas, cabos, MC4, DPS etc. (padrão 5)
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -421,19 +498,6 @@ export default function Configuracoes() {
                           value={config.reajusteEnergia}
                           onChange={(e) => handleInputChange('reajusteEnergia', parseFloat(e.target.value))}
                           step="0.1"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Desconto PIX (%)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.descontoPix * 100}
-                          onChange={(e) => handleInputChange('descontoPix', parseFloat(e.target.value) / 100)}
-                          step="0.5"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -499,65 +563,44 @@ export default function Configuracoes() {
                     </div>
 
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-4">💳 Taxas de Cartão e PIX</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                        💳 Cartão e PIX (tabela maquininha)
+                      </h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Premissa: <strong>PIX = menor valor</strong>; “à vista” = total embutido em{' '}
+                        {PARCELAS_REFERENCIA_AVISTA}×. A simulação original usava{' '}
+                        <strong>Taxa {TAXA_CARTAO_MENSAL_REF.toFixed(2).replace('.', ',')}% a.m.</strong> na
+                        maquininha. Se a taxa mudar (ex.: 1,49%), altere abaixo — a tabela 2×–18× recalcula na
+                        hora.
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mb-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Taxa Cartão 12x (%)
+                            Taxa mensal maquininha (% a.m.)
                           </label>
                           <input
                             type="number"
-                            value={config.taxaCartao12x}
-                            onChange={(e) => handleInputChange('taxaCartao12x', parseFloat(e.target.value))}
-                            step="0.1"
-                            min="0"
-                            max="30"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                            value={config.taxaCartaoMensal ?? TAXA_CARTAO_MENSAL_REF}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'taxaCartaoMensal',
+                                normalizeTaxaCartaoMensal(parseFloat(e.target.value))
+                              )
+                            }
+                            step="0.01"
+                            min="0.1"
+                            max="10"
+                            className="w-full px-4 py-3 border border-amber-400 rounded-lg bg-amber-50/50"
                           />
                           <p className="text-sm text-gray-500 mt-1">
-                            Taxa da operadora • Fator: {(config.fator12x ?? 0.88).toFixed(3)}
+                            Calibração de referência: {TAXA_CARTAO_MENSAL_REF.toFixed(2).replace('.', ',')}%
+                            (prints da máquina). 1× (MDR) permanece fixo.
                           </p>
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Taxa Cartão 18x (%)
-                          </label>
-                          <input
-                            type="number"
-                            value={config.taxaCartao18x}
-                            onChange={(e) => handleInputChange('taxaCartao18x', parseFloat(e.target.value))}
-                            step="0.1"
-                            min="0"
-                            max="30"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                          />
-                          <p className="text-sm text-gray-500 mt-1">
-                            Taxa da operadora • Fator: {(config.fator18x ?? 0.83).toFixed(3)}
-                          </p>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Desconto PIX (%)
-                          </label>
-                          <input
-                            type="number"
-                            value={config.descontoPix}
-                            onChange={(e) => handleInputChange('descontoPix', parseFloat(e.target.value))}
-                            step="0.5"
-                            min="0"
-                            max="20"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                          />
-                          <p className="text-sm text-gray-500 mt-1">
-                            Desconto à vista • Fator: {config.fatorAvista.toFixed(3)}
-                          </p>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Markup Parcelado
+                            Markup promoção (preço riscado)
                           </label>
                           <input
                             type="number"
@@ -568,8 +611,65 @@ export default function Configuracoes() {
                             max="2"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
-                          <p className="text-sm text-gray-500 mt-1">Multiplicador para parcelamento</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Preço riscado = PIX × este fator (só visual)
+                          </p>
                         </div>
+                      </div>
+
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 mb-6 overflow-x-auto">
+                        <table className="min-w-full text-sm text-gray-800">
+                          <thead>
+                            <tr className="text-left text-gray-600 border-b border-emerald-200">
+                              <th className="py-2 pr-4">Condição</th>
+                              <th className="py-2 pr-4">Multiplicador × PIX</th>
+                              <th className="py-2">Ex.: PIX R$ 10.000</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b border-emerald-100">
+                              <td className="py-2 pr-4 font-medium">PIX (base)</td>
+                              <td className="py-2 pr-4 font-mono">1,000000</td>
+                              <td className="py-2">R$ 10.000,00</td>
+                            </tr>
+                            <tr className="border-b border-emerald-100 bg-white/50">
+                              <td className="py-2 pr-4 font-medium">
+                                À vista (= total {PARCELAS_REFERENCIA_AVISTA}×)
+                              </td>
+                              <td className="py-2 pr-4 font-mono">{mult12.toFixed(6)}</td>
+                              <td className="py-2">
+                                R${' '}
+                                {samplePrecos.pavista.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                <span className="text-gray-500 text-xs ml-1">
+                                  ({PARCELAS_REFERENCIA_AVISTA}× de{' '}
+                                  {samplePrecos.p12x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                                </span>
+                              </td>
+                            </tr>
+                            <tr className="border-b border-emerald-100">
+                              <td className="py-2 pr-4 font-medium">12× no cartão</td>
+                              <td className="py-2 pr-4 font-mono">{mult12.toFixed(6)}</td>
+                              <td className="py-2">
+                                {PARCELAS_REFERENCIA_AVISTA}× R${' '}
+                                {samplePrecos.p12x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-2 pr-4 font-medium">18× no cartão</td>
+                              <td className="py-2 pr-4 font-mono">{mult18.toFixed(6)}</td>
+                              <td className="py-2">
+                                18× R${' '}
+                                {samplePrecos.p18x_parcela.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2,
+                                })}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <p className="text-xs text-emerald-800 mt-3">
+                          Taxa vigente {taxaMensal.toFixed(2).replace('.', ',')}% a.m. · Economia PIX vs à
+                          vista: ~{samplePrecos.economiaPercent}% · Modal da proposta: entrada + 2×–18×
+                        </p>
                       </div>
                     </div>
 
@@ -627,13 +727,26 @@ export default function Configuracoes() {
                     </div>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-blue-800 mb-2">📋 Resumo dos Fatores</h4>
+                      <h4 className="font-semibold text-blue-800 mb-2">📋 Resumo (fonte de verdade)</h4>
                       <div className="text-sm text-blue-700 space-y-1">
-                        <div>• <strong>À Vista:</strong> PIX = Custo + Despesa</div>
-                        <div>• <strong>À Vista (cartão):</strong> PIX ÷ {config.fatorAvista.toFixed(3)}</div>
-                        <div>• <strong>Parcelado:</strong> PIX × {config.fatorParcelado.toFixed(2)}</div>
-                        <div>• <strong>12x no cartão:</strong> PIX ÷ {(config.fator12x ?? 0.88).toFixed(3)}</div>
-                        <div>• <strong>18x no cartão:</strong> PIX ÷ {(config.fator18x ?? 0.83).toFixed(3)}</div>
+                        <div>
+                          • <strong>PIX:</strong> custo + pdespesa (+ frete) — menor valor
+                        </div>
+                        <div>
+                          • <strong>Taxa maquininha:</strong> {taxaMensal.toFixed(2).replace('.', ',')}% a.m.
+                        </div>
+                        <div>
+                          • <strong>À vista / 12× total:</strong> PIX × {mult12.toFixed(6)}
+                        </div>
+                        <div>
+                          • <strong>Parcela 12×:</strong> (PIX × {mult12.toFixed(6)}) ÷ 12
+                        </div>
+                        <div>
+                          • <strong>18× total:</strong> PIX × {mult18.toFixed(6)}
+                        </div>
+                        <div>
+                          • <strong>Riscado:</strong> PIX × {Number(config.fatorParcelado || 1.2).toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -755,21 +868,13 @@ export default function Configuracoes() {
               </div>
 
               {/* Botões de Ação */}
-              <div className="px-8 py-6 bg-gray-50 border-t flex justify-between">
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => router.push('/admin')}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
-                  >
-                    ← Voltar
-                  </button>
-                  <button
-                    onClick={resetToDefault}
-                    className="px-6 py-2 border border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50"
-                  >
-                    🔄 Restaurar Padrão
-                  </button>
-                </div>
+              <div className="px-8 py-6 bg-slate-200/70 border-t border-slate-200 flex justify-between flex-wrap gap-4">
+                <button
+                  onClick={resetToDefault}
+                  className="px-6 py-2 border border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50"
+                >
+                  🔄 Restaurar Padrão
+                </button>
                 
                 <button
                   onClick={handleSave}

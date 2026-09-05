@@ -224,7 +224,10 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           <link rel="image_src" href={ogImage} />
           <link rel="stylesheet" href="/styles/proposta-print.css" />
         </Head>
-        <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        <div
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
         <PropostaPdfToolbar clienteNome={slug} slug={slug} />
       </>
     );

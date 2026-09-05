@@ -495,7 +495,7 @@ export default function ConsultorOrcamentosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Carregando sistema do consultor...</p>
@@ -506,7 +506,7 @@ export default function ConsultorOrcamentosPage() {
 
   if (!cliente) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Cliente não encontrado</h1>
           <Link href="/admin" legacyBehavior><a className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -524,17 +524,17 @@ export default function ConsultorOrcamentosPage() {
         <meta name="description" content={`Sistema avançado de controle para consultor de energia solar - ${cliente.nome}`} />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-4">
+                <h1 className="text-3xl font-bold admin-title mb-4">
                   🎛️ Sistema do Consultor
                 </h1>
-                <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="bg-slate-100 rounded-lg p-4 shadow-sm border border-slate-200/80">
                   <h2 className="text-xl font-semibold text-gray-800 mb-1">
                     {cliente.nome}
                   </h2>
@@ -546,12 +546,12 @@ export default function ConsultorOrcamentosPage() {
               
               <div className="flex gap-3">
                 <Link href="/admin" legacyBehavior>
-                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                  <a className="admin-btn-ghost">
                     🏠 Admin
                   </a>
                 </Link>
                 <Link href={`/admin/orcamentos/${clienteId ?? cliente.id}`} legacyBehavior>
-                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                  <a className="admin-btn-ghost">
                     ← Voltar
                   </a>
                 </Link>
@@ -575,7 +575,7 @@ export default function ConsultorOrcamentosPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center border-2 border-dashed border-blue-300 hover:border-blue-500"
+                className="p-6 admin-surface hover:shadow-xl transition-shadow text-center border-2 border-dashed border-blue-300 hover:border-blue-500"
               >
                 <div className="text-3xl mb-3 text-blue-600">➕</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Novo Orçamento</h3>
@@ -593,7 +593,7 @@ export default function ConsultorOrcamentosPage() {
                   }
                 }}
                 disabled={loading || orcamentos.length === 0}
-                className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-6 admin-surface hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="text-3xl mb-3 text-green-600">
                   {loading ? '⏳' : '⚡'}
@@ -608,7 +608,7 @@ export default function ConsultorOrcamentosPage() {
                 </p>
               </button>
 
-              <div className="p-6 bg-white rounded-xl shadow-lg text-center">
+              <div className="p-6 admin-surface text-center">
                 <div className="text-3xl mb-3 text-purple-600">📊</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Total Orçamentos</h3>
                 <p className="text-sm text-gray-600">
@@ -616,7 +616,7 @@ export default function ConsultorOrcamentosPage() {
                 </p>
               </div>
 
-              <div className="p-6 bg-white rounded-xl shadow-lg text-center">
+              <div className="p-6 admin-surface text-center">
                 <div className="text-3xl mb-3 text-orange-600">🎯</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Melhor Payback</h3>
                 <p className="text-sm text-gray-600">
@@ -662,7 +662,7 @@ export default function ConsultorOrcamentosPage() {
                   if (pdfId) window.open(buildPropostaPdfUrl(pdfId, true), '_blank');
                 }}
                 disabled={!resolveClienteId(clienteIdParam, cliente?.id)}
-                className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed border-2 border-red-200 hover:border-red-400"
+                className="p-6 admin-surface hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed border-2 border-red-200 hover:border-red-400"
                 title="Abrir proposta formatada para salvar como PDF (ideal para clientes sem acesso digital)"
               >
                 <div className="text-3xl mb-3 text-red-600">📄</div>
@@ -700,7 +700,7 @@ export default function ConsultorOrcamentosPage() {
             )}
 
             {/* Tabela CRUD de Orçamentos - Controle Detalhado */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div className="admin-surface overflow-hidden mb-8">
               <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   📋 Tabela de Orçamentos - Controle Detalhado
@@ -878,7 +878,7 @@ export default function ConsultorOrcamentosPage() {
             </div>
 
             {/* Tabela Comparativa - Somente Resultados */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div className="admin-surface overflow-hidden mb-8">
               <div className="px-6 py-4 bg-gradient-to-r from-green-600 to-teal-600">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   📊 Tabela Comparativa - Resultados Financeiros
@@ -899,7 +899,7 @@ export default function ConsultorOrcamentosPage() {
             {/* Modal Adicionar Orçamento */}
             {showAddModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+                <div className="admin-surface shadow-2xl p-6 max-w-md w-full mx-4">
                   <h3 className="text-xl font-bold text-gray-800 mb-4">Adicionar Novo Orçamento</h3>
                   <p className="text-gray-600 mb-6">
                     Um novo orçamento será adicionado com valores padrão que você pode editar na tabela.

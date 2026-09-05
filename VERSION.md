@@ -1,12 +1,211 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.3** (04/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.5** (04/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.3** - 04/09/2026 ✅ **ATUAL**
+### **v2.4.5** - 04/09/2026 ✅ **ATUAL** (branch `v3-orcamento`)
+**🎨 UI Admin / navegação / coerência comercial:**
+- ✅ Tema admin azul tecnologia (`#070f1c` → `#0b2a4a`) + cards `slate-100`
+- ✅ **3 paletas CSS** (`admin-themes.css`): Corporativo · Tecnologia · Solar — seletor no Admin/Configurações (localStorage)
+- ✅ Botões **Admin** + **Voltar** padronizados no topo das telas
+- ✅ Hub **Módulo V3** removido — atalhos no `/admin` (orçamento base, proposta auto, preços, equipamentos)
+- ✅ `/admin/v3` redireciona para `/admin`; seed YAML na tela Equipamentos
+- ✅ Tag do card PIX = `(à vista − PIX) / PIX` (ex.: mult 1,117943 → ~12%; 1,11 → 11%) + `formatBRL`
+- ✅ Taxa cartão mensal editável regenera multiplicadores; à vista = total 12×
+
+**📦 Arquivos principais:** `admin-themes.css`, `adminTheme.ts`, `AdminThemePicker`, `admin/index.tsx`, `configuracoes.tsx`, `tabelaJurosCartao.ts`, `SystemCard.tsx`, `templateEngine*.ts`, `gerar-proposta.ts`, páginas `admin/v3/*`, `soollar-captura.tsx`, `gerador-rapido.tsx`
+
+---
+
+### **v2.4.4** - 04/09/2026 (branch `v3-orcamento` — WIP local)
+**🔙 Rollback se der errado:**
+- Último commit estável no remoto: `433815f` (`✨ V3 orçamento: captura SOOLLAR, preços por CD, agenda e dados rejeitados`)
+- Desfazer só as mudanças desta sessão (working tree):
+  ```bash
+  git checkout 433815f -- src/pages/admin/v3/precos.tsx src/pages/admin/configuracoes.tsx src/utils/configuracoes.ts src/data/sistema/configuracoes.json src/modules/v3/precos/ src/lib/soollar/scraper.ts src/pages/api/admin/config.ts src/pages/api/v3/precos/index.ts src/pages/api/v3/proposta-auto.ts src/pages/api/admin/soollar/captura.ts src/components/ConsultorConfigPanel.tsx src/pages/admin/v3/equipamentos.tsx src/modules/v3/orcamentos/ src/modules/v3/equipamentos/seedFromYaml.ts src/modules/v3/README.md VERSION.md
+  # remover arquivos novos desta sessão se necessário:
+  # git clean -n -- src/modules/v3/precos/estoqueMinimosConfig.ts src/modules/v3/precos/regrasCaptura.ts src/modules/v3/orcamentos/skuCanonico.ts
+  ```
+- Voltar o branch inteiro ao commit estável (descarta WIP não commitado):
+  ```bash
+  git reset --hard 433815f
+  ```
+  ⚠️ `reset --hard` apaga alterações locais não commitadas.
+
+---
+
+#### 📘 PREMISSAS V3 — fonte de verdade (não perder)
+
+Espelho no código: `src/modules/v3/README.md` · `regrasCaptura.ts` · `kitEngine.ts` · `skuCanonico.ts` · `kits_regras` (SQLite) · `/admin/configuracoes`.
+
+##### 1) Estoque (preço válido)
+| Categoria | Regra | Onde editar |
+|-----------|--------|-------------|
+| Módulos | estoque **>** `estoqueMinimoSoolar` (padrão **20**) | `/admin/configuracoes` → Técnico |
+| Demais (inversor, cabo, estrutura, MC4, DPS…) | estoque **>** `estoqueMinimoOutros` (padrão **5**) | idem |
+| Código | `estoqueMinimosConfig.ts` + `getEstoqueMinimoPorCategoria` | |
+
+##### 2) Lista principal vs consulta (whitelist captura)
+**Entram como ativos (`ativo=1`) — lista principal:**
+- Todos os **módulos**
+- **Inversores / micro** com potência **≤ 30 kW**
+- **Estrutura:** `TRILHO`; `PERFIL` de fixação de módulo (exceto junção); kits **INOX** (kit/estrutura/grampo/suporte/fixa)
+- **Cabo:** somente `CABO SOLAR` em bobinas **25 / 50 / 100 m** (não cabo flexível)
+- **Conector:** `MC4`
+- **Proteção:** `DPS` (exclui filtro de linha / tomada / carregador)
+
+**Demais → consulta** (`ativo=0` + rejeitados motivo `consulta`).  
+Arquivo: `src/modules/v3/precos/regrasCaptura.ts`.
+
+##### 3) Scraping SOOLLAR
+- Seções: `modulos`, `inversores`, `estruturas-inox`, `estrutura-galvanizada`, `cabos`, `componentes-eletricos`
+- 1 sessão × até 3 CDs (Aeroporto / Matriz / Feira)
+- Piso no scrape = `min(módulo, demais)` da config; regra fina por categoria no import
+- UI captura: `/admin/soollar-captura` (+ atalho no painel de `/admin/v3/precos`)
+
+##### 4) Montagem do orçamento base (3a) — `sugerirComplementos`
+**Estrutura / trilho (composição de preço; qtd final no fechamento da compra):**
+| Item | Fórmula | Default sugerido (SKU real) |
+|------|---------|-----------------------------|
+| Kit estrutura | `ceil(módulos / 4)` | `EST-AUTO-391003` — fibro + **parafuso inox madeira** 4 mód |
+| Trilho / perfil | **1 por módulo** | `EST-AUTO-52835` — perfil **fibro/cerâmica** 2,40 m |
+| Trilho 2,36 vs 2,50 | Wp módulo ≤ 690 → `TRILHO-236`; acima → `TRILHO-250` (ambos resolvem p/ fibro 2,40 por enquanto) | `kits_regras.trilho_236_ate_wp` |
+
+**Microinversor:**
+| Item | Fórmula |
+|------|---------|
+| Strings | ≈ qtd módulos |
+| MC4 kits | `ceil(max(0, módulos − micros) / 2)` — pacote = 2 pares (`MC4-PAR` → `MC4-AUTO-440111`) |
+| Cabo preto 25 m | `max(0, micros − 1)` → `CAB-AUTO-97081` |
+| Cabo vermelho | **0** (omitido) |
+
+Ex.: 2 micros · 8 módulos → 6 pares → **3** MC4; **1** bola preta; **2** kits estrutura; **8** trilhos.
+
+**Inversor string:**
+| Item | Fórmula |
+|------|---------|
+| Strings | 3–7,5 kW → 1; ≤12 → 2; ≤20 → 3; senão `ceil(kW/7.5)` × qtd inversores |
+| MC4 kits | = nº de strings |
+| Cabo V + P 25 m | 1 vermelho + 1 preto **por string** |
+
+**Observação comercial:** defaults fibro/inox são **só para preço**; troca de tipo de telha / qtd no fechamento é manual no card (`editado_manual` prevalece).
+
+##### 5) Mapa SKU canônico → SOOLLAR (`skuCanonico.ts`)
+| Canônico | Preferência atual |
+|----------|-------------------|
+| `KIT-ESTRUTURA-4MOD` | `EST-AUTO-391003` (fibro inox madeira) |
+| `TRILHO-236` / `TRILHO-250` | `EST-AUTO-52835` (perfil fibro/cerâmica) |
+| `MC4-PAR` | `MC4-AUTO-440111` |
+| `CABO-4MM-25-V` | `CAB-AUTO-97082` |
+| `CABO-4MM-25-P` | `CAB-AUTO-97081` |
+
+##### 6) Parâmetros técnicos / comerciais (admin)
+| Premissa | Campo | Padrão |
+|----------|-------|--------|
+| Eficiência adicional micro-inversores | `bonusMicroPercent` (label em Configurações) | 5% |
+| Placas por micro | `placasPorMicro` | 4 |
+| HSP / PR / dias mês / tarifa | configs sistema | ver `/admin/configuracoes` |
+| Micro com **maior Wp** no mesmo nº de placas é mais eficiente | aprendizado 4a/5a | v2.4.3 |
+
+##### 7) `kits_regras` (SQLite V3)
+| Chave | Valor padrão | Significado |
+|-------|--------------|-------------|
+| `estrutura_modulos_por_kit` | 4 | módulos por kit estrutura |
+| `trilho_236_ate_wp` | 690 | até este Wp usa trilho “236” |
+| `trilho_250_apartir_wp` | 700 | (referência) Wp altos |
+| `cabo_25m_por_string` | 1 | 1 V + 1 P por string (string) |
+| `mc4_pares_por_kit` | 2 | pares por SKU MC4-PAR |
+| `estoque_minimo_preco` | 20 | legado; estoque vivo vem da config admin |
+
+##### 8) Simulação de pagamento (proposta)
+| Premissa | Regra |
+|----------|--------|
+| CTA do card | **OUTRAS FORMAS DE PAGAMENTO** (não “escolher esta opção”) |
+| Base | Valor **PIX** do sistema |
+| Entrada | R$ livre (0 até PIX); restante = PIX − entrada |
+| Cartão | **2× a 18×** (`tabelaJurosCartao.ts`); padrão **12×** |
+| Superfícies | HTML (`templateEngine*`) + React `SystemCard` / `FormasPagamentoModal` |
+
+##### 9) Precificação comercial (PIX → cartão)
+| Conceito | Fórmula |
+|----------|---------|
+| PIX | Menor valor (= kit + frete + pdespesa no Gerador/V3) |
+| Taxa mensal | Config `taxaCartaoMensal` (calibração **1,51%** a.m. da maquininha) |
+| Multiplicadores 2×–18× | Escala da tabela calibrada: `1 + (mRef−1)×(taxa/1,51)` |
+| 1× | MDR fixo da calibração (na máquina não exibia “Taxa 1,51%”) |
+| À vista (âncora) | Total **12×** = PIX × mult(12) |
+| Riscado | `PIX × markup` (`fatorParcelado`) |
+| Fonte | `buildMultiplicadoresFromTaxa` / `calcularPrecosDePix` |
+
+---
+
+**📦 Premissas de estoque → Configurações gerais (`/admin/configuracoes`):**
+- ✅ Campos **Estoque mínimo — módulos** (`estoqueMinimoSoolar`, padrão 20) e **Estoque mínimo — demais itens** (`estoqueMinimoOutros`, padrão 5)
+- ✅ V3 lê esses valores na validação de preço/estoque
+- ✅ Arquivo: `src/modules/v3/precos/estoqueMinimosConfig.ts`
+- ✅ Em local, salvar config no Supabase também espelha `src/data/sistema/configuracoes.json`
+
+**🔧 3a Orçamento base — SKUs canônicos → captura SOOLLAR:**
+- ✅ `skuCanonico.ts` + defaults fibro inox madeira / perfil fibro (ver tabela §4–5 acima)
+- ✅ Trilho **1 por módulo**; whitelist inclui `PERFIL` de fixação
+- ✅ Complementos entram no custo com preço válido
+
+**💳 Simulação de pagamento (substitui “ESCOLHER ESTA OPÇÃO”):**
+- ✅ CTA nos cards → **OUTRAS FORMAS DE PAGAMENTO**
+- ✅ Modal: **entrada (R$)** + restante no **cartão 2×–18×** (tabela maquininha; padrão 12×)
+- ✅ Base = valor **PIX**; tabela mostra parcela e total por N; total geral = entrada + cartão
+- ✅ HTML gerado: `templateEngine.ts` / `templateEngineVariants.ts` + `getFormasPagamentoModalScript()`
+- ✅ React `/proposta/[slug]`: `SystemCard.tsx` + `FormasPagamentoModal.tsx` (mesma lógica)
+- ✅ Fonte: `src/lib/tabelaJurosCartao.ts` (`PARCELAS_CARTAO_MIN=2`, `MAX=18`)
+
+**🧾 Config / pdespesa (Gerador · V3 proposta-auto):**
+- ✅ GET `/api/admin/config` em **local** faz merge **arquivo ⊃ Supabase** (save em JSON deixa de “sumir” no reload)
+- ✅ `proposta-auto` aplica pdespesa/frete/HSP/tarifa de `/admin/configuracoes` na carga
+- ⚠️ Save no Supabase ainda falha com **RLS** (`new row violates row-level security`) — rodar `sql/fix_rls_configuracoes.sql` no Dashboard
+- ✅ Enquanto RLS não corrigir: local grava em `src/data/sistema/configuracoes.json` e a 4a lê esse valor
+
+**💳 Premissa PIX / cartão (anti-divergência de prestação):**
+- ✅ **PIX** = menor valor; **à vista** = total **12×** da maquininha
+- ✅ Taxa mensal editável `taxaCartaoMensal` (padrão **1,51%** — prints da máquina); regenera 2×–18×
+- ✅ Em `/admin/configuracoes` Comercial: campo taxa + preview ao vivo (ex. 1,49%)
+- ✅ `buildMultiplicadoresFromTaxa` em `tabelaJurosCartao.ts`; Gerador / modal / HTML usam a taxa salva
+- ✅ Ao salvar, espelha `fator12x`/`fator18x` a partir da taxa vigente
+
+**🏷️ Labels / UX:**
+- ✅ “Bônus Micro-inversor (%)” → **Eficiência adicional Micro-inversores**
+- ✅ Em `/admin/v3/precos`, link para Configurações (estoque)
+- ✅ Painel “Captura, rejeitados e agenda” + botão **Captura SOOLLAR (Chromium)**
+- ✅ Checkbox 3a: “Sugerir estrutura fibro inox / perfil / cabos / MC4…”
+
+**📋 Whitelist / captura V3:**
+- ✅ `regrasCaptura.ts` (ver §2)
+- ✅ Auto-cadastro ampliado + seção `componentes-eletricos`
+- ✅ Filtros em preços por seção/CD; lista só ativos
+- ✅ Equipamentos: Ativos/Inativos + ativar
+
+**📦 Arquivos principais tocados (v2.4.4):**
+- `src/utils/configuracoes.ts`, `src/data/sistema/configuracoes.json`, `src/pages/admin/configuracoes.tsx`
+- `src/modules/v3/precos/regrasCaptura.ts`, `estoqueMinimosConfig.ts`, `repository.ts`, `importCatalog.ts`, `capturaJob.ts`
+- `src/modules/v3/orcamentos/skuCanonico.ts`, `kitEngine.ts`, `src/modules/v3/README.md`
+- `src/pages/admin/v3/precos.tsx`, `equipamentos.tsx`, `orcamento-base.tsx`
+- `src/lib/soollar/scraper.ts`, `src/pages/api/admin/config.ts`, `src/pages/api/v3/precos/index.ts`
+- `src/components/ConsultorConfigPanel.tsx`, `src/modules/v3/equipamentos/seedFromYaml.ts`, `VERSION.md`
+- `src/lib/tabelaJurosCartao.ts`, `src/lib/templateEngine.ts`, `src/lib/templateEngineVariants.ts`
+- `src/components/SystemCard.tsx`, `src/components/FormasPagamentoModal.tsx`
+
+**🧭 Decisão de produto (ainda não implementada):**
+- Captura / rejeitados / agenda **não** deveriam ficar em `/admin/v3/precos` — unificar em `/admin/soollar-captura` (ou `/admin/v3/captura`).
+
+**🧹 Admin:**
+- ✅ Removido card **Propostas Públicas** de `/admin`
+- ✅ **Fix local Supabase**: URL ativa `ityeiqyjyhkmypjmnyhb.supabase.co` (~60 clientes / ~59 propostas). Tabela `orcamentos` vazia — Admin/Orçamentos lista `propostas`.
+
+---
+
+### **v2.4.3** - 04/09/2026
 **⚡ Aprendizado operacional (micro + módulos):**
 - ✅ **Micro com módulos maiores é mais eficiente** — na prática comercial (proposta automática V3 + Gerador), kits micro com Wp mais alto entregam melhor cobertura/geração por arranjo (ex.: preferir 680 Wp vs 630 Wp no mesmo número de placas/micro), além do bônus de geração já configurável para micro
 - ✅ Usar essa regra na escolha de alternativa recomendada e na auditoria de kits (4a/5a)
@@ -15,6 +214,7 @@
 - ✅ Pipeline 1a–4a (equipamentos → preços → orçamento base → proposta auto) + **5a** pdespesa igual ao Gerador
 - ✅ Botão **Abrir no Gerador Rápido** (`modo=v3`) — orçamento na frente do cliente com custo CD + PIX comercial
 - ✅ Piloto: `/proposta/cliente-premium-04-09-2026` (pcusto Feira + pdespesa das configs do sistema)
+- ✅ Commit referência: `433815f`
 
 ---
 

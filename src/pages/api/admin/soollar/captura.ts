@@ -14,6 +14,7 @@ import {
 } from '@/modules/v3/precos/capturaJob';
 import { applyCatalogToCd } from '@/modules/v3/precos/importCatalog';
 import { getPrecosStats } from '@/modules/v3/precos/repository';
+import { refreshEstoqueMinimosFromAdmin } from '@/modules/v3/precos/estoqueMinimosConfig';
 
 export const config = {
   api: {
@@ -28,6 +29,7 @@ function writeSse(res: NextApiResponse, payload: unknown) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
+    await refreshEstoqueMinimosFromAdmin();
     const creds = getSoolarCredentials();
     const base = creds.baseUrl || 'https://soollar.mygateway.com.br';
     const slug = creds.cdSlug || 'cdaeroportogo';
@@ -58,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'Chromium (Playwright) no seu PC — headless desmarcado = você vê o browser',
         'login → cd-selector-trigger → Aeroporto / Matriz / Feira',
         `varre seções: ${SOOLLAR_SECOES_CAPTURA.join(', ')} (com paginação)`,
-        'preço só se estoque > 20',
+        'preço só se estoque > mínimo (módulos/demais em /admin/configuracoes)',
         'marque "Gravar no SQLite V3" para applyCatalogToCd (senão só JSON na tela)',
       ],
       chromiumNotas: [
@@ -179,7 +181,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           dumps: dumps.map((f) => f.split(/[/\\]/).pop()),
         };
       } else if (!importarV3) {
-        log('warn', 'importarV3=false — captura NÃO gravou no SQLite (só resultado na tela)');
+        log('warn', 'Gravar na tabela de preços desligado — captura NÃO gravou no SQLite (só resultado na tela)');
       }
 
       const payload = { ...result, v3Import };

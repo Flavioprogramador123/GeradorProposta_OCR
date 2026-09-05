@@ -657,10 +657,13 @@ export default function GeradorRapido() {
     }
   }, [router.isReady, router.query.cliente, router.query.modo]);
 
-  // PIX = base; à vista = total 12× cartão; parcelas pela tabela real
+  // PIX = base; à vista = total 12× cartão; parcelas pela taxa mensal configurada
   const calcularPrecos = (totalFinalTabela: number) => {
     const markup = configSistema?.fatorParcelado || config.fatorParcelado || 1.20;
-    return calcularPrecosDePix(totalFinalTabela, markup);
+    const taxa =
+      Number(configSistema?.taxaCartaoMensal ?? (config as { taxaCartaoMensal?: number }).taxaCartaoMensal ?? 1.51) ||
+      1.51;
+    return calcularPrecosDePix(totalFinalTabela, markup, taxa);
   };
 
   // Função para calcular performance
@@ -1335,28 +1338,28 @@ consolidado_orcamentos_distribuidores:
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                <h1 className="text-3xl font-bold admin-title mb-2">
                   ⚡ Gerador Rápido PIENG
                 </h1>
-                <p className="text-gray-600">
+                <p className="admin-subtitle">
                   Geração rápida de propostas solares
                 </p>
               </div>
               
               <div className="flex gap-3">
-                <Link href="/admin" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                <Link href="/admin" className="admin-btn-ghost">
                   🏠 Admin
                 </Link>
                 <button 
                   onClick={() => router.back()}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className="admin-btn-ghost"
                   title="Voltar"
                 >
                   ← Voltar
@@ -1365,7 +1368,7 @@ consolidado_orcamentos_distribuidores:
             </div>
 
             {/* Controles de YAML e Histórico */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="admin-surface p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-gray-800">📄 Entrada YAML & Histórico</h3>
                 <div className="flex gap-2">
@@ -1457,7 +1460,7 @@ consolidado_orcamentos_distribuidores:
             </div>
 
             {/* Configurações Rápidas */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="admin-surface p-6 mb-8">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">⚙️ Configurações Rápidas</h3>
               <p className="text-xs text-gray-500 mb-4">
                 HSP, tarifa, pdespesa e dados do cliente sincronizam com a{' '}
@@ -1582,7 +1585,7 @@ consolidado_orcamentos_distribuidores:
 
             {/* Tabela de Orçamentos Estilo Excel - Editável */}
             {orcamentos.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+              <div className="admin-surface p-6 mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xl font-semibold text-gray-800">
                     🗂️ Tabela de Orçamentos ({orcamentos.length}) - Editável
@@ -1926,7 +1929,7 @@ consolidado_orcamentos_distribuidores:
             )}
 
             {/* Resultados Calculados */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="admin-surface p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-xl font-semibold text-gray-800">📊 Resultados Financeiros</h3>
@@ -2089,7 +2092,7 @@ consolidado_orcamentos_distribuidores:
       {/* Modal de Seleção de Template - responsivo para celular */}
       {showTemplateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col flex-shrink-0 my-auto sm:my-0">
+          <div className="bg-slate-100 rounded-t-2xl border border-slate-200/80 sm:rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col flex-shrink-0 my-auto sm:my-0">
             <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
                 🎨 Escolher Template CSS

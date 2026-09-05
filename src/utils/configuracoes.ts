@@ -1,3 +1,8 @@
+import {
+  TAXA_CARTAO_MENSAL_REF,
+  calcularPrecosDePix,
+} from '@/lib/tabelaJurosCartao';
+
 interface ConfiguracaoSistema {
   // Parâmetros Técnicos
   performanceRate: number;
@@ -7,7 +12,10 @@ interface ConfiguracaoSistema {
   bonusMicroPercent: number;
   diasMes: number;
   placasPorMicro: number;
+  /** Estoque mínimo para módulos (preço válido se estoque > este valor) */
   estoqueMinimoSoolar: number;
+  /** Estoque mínimo para demais categorias (inversor, cabo, etc.) */
+  estoqueMinimoOutros: number;
 
   // Parâmetros Financeiros
   taxaSelic: number;
@@ -24,6 +32,8 @@ interface ConfiguracaoSistema {
   jurosParcela12x: number;
   jurosParcela18x: number;
   descontoPix: number;
+  /** Taxa mensal da maquininha (% a.m.) — calibração 1,51%; altera regenera 2×–18× */
+  taxaCartaoMensal: number;
   taxaCartao12x: number;
   taxaCartao18x: number;
   fatorAvista: number;
@@ -68,6 +78,7 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   diasMes: 30.4,
   placasPorMicro: 4,
   estoqueMinimoSoolar: 20,
+  estoqueMinimoOutros: 5,
 
   taxaSelic: 11.25,
   inflacaoAnual: 4.5,
@@ -80,13 +91,16 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
 
   jurosParcela12x: 2.5,
   jurosParcela18x: 3.2,
-  descontoPix: 0.05,
-  taxaCartao12x: 12.0,
-  taxaCartao18x: 17.0,
-  fatorAvista: 0.9,
+  /** Economia PIX vs à vista (âncora 12×) — espelhada da tabela (~10,55%) */
+  descontoPix: 11.79, // ≈ (1,117943 − 1)×100 — sincronizado ao salvar taxaCartaoMensal
+  taxaCartaoMensal: 1.51,
+  /** Derivados da maquininha na taxa vigente */
+  taxaCartao12x: 10.6,
+  taxaCartao18x: 15.2,
+  fatorAvista: 1 / 1.117943,
   fatorParcelado: 1.2,
-  fator12x: 0.88,
-  fator18x: 0.83,
+  fator12x: 1 / 1.117943,
+  fator18x: 1 / 1.179384,
 
   pdespesaFixo: 3000,
   pdespesaVariavel: 22,
@@ -149,6 +163,7 @@ export function mergeConfiguracoes(
     'diasMes',
     'placasPorMicro',
     'estoqueMinimoSoolar',
+    'estoqueMinimoOutros',
     'bonusMicroPercent',
     'hspPadrao',
     'performanceRate',
@@ -199,10 +214,12 @@ export function extrairDefaultsV3(config: ConfiguracaoSistema) {
     bonusMicroPercent: config.bonusMicroPercent,
     placasPorMicro: config.placasPorMicro,
     estoqueMinimoSoolar: config.estoqueMinimoSoolar,
+    estoqueMinimoOutros: config.estoqueMinimoOutros,
     pdespesaFixo: config.pdespesaFixo,
     pdespesaVariavel: config.pdespesaVariavel,
     fretePadrao: config.fretePadrao,
     fatorParcelado: config.fatorParcelado,
+    taxaCartaoMensal: config.taxaCartaoMensal,
     descontoPix:
       typeof config.descontoPix === 'number' && config.descontoPix <= 1
         ? config.descontoPix * 100
@@ -216,16 +233,18 @@ export function calcularPrecoPixComDesconto(precoBase: number, config: Configura
   return precoBase * (1 - desc);
 }
 
-// Função para calcular parcelas
+// Função para calcular parcelas (usa taxa mensal da maquininha)
 export function calcularParcelas(precoBase: number, config: ConfiguracaoSistema) {
-  const preco12x = (precoBase * (1 + config.jurosParcela12x / 100)) / 12;
-  const preco18x = (precoBase * (1 + config.jurosParcela18x / 100)) / 18;
-
+  const precos = calcularPrecosDePix(
+    precoBase,
+    config.fatorParcelado || 1.2,
+    config.taxaCartaoMensal ?? TAXA_CARTAO_MENSAL_REF
+  );
   return {
-    parcela12x: preco12x,
-    parcela18x: preco18x,
-    valor12x: precoBase * (1 + config.jurosParcela12x / 100),
-    valor18x: precoBase * (1 + config.jurosParcela18x / 100),
+    parcela12x: precos.p12x,
+    parcela18x: precos.p18x_parcela,
+    valor12x: precos.p12x_total,
+    valor18x: precos.p18x_total,
   };
 }
 

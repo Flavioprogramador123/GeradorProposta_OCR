@@ -2,8 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { matchMany, type CatalogItem } from './matcher';
 import { resolveCdId, upsertPrecoCd } from './repository';
-import { upsertBySkuInterno } from '../equipamentos/repository';
-import { SOOLLAR_ESTOQUE_MINIMO } from '@/lib/soollar/scraper';
+import { upsertBySkuInterno, updateEquipamento, softDeleteEquipamento } from '../equipamentos/repository';
+import type { EquipamentoCategoria } from '../equipamentos/types';
+import {
+  ehEquipamentoPrincipal,
+  getEstoqueMinimoPorCategoria,
+} from './regrasCaptura';
 import type { ItemRejeitado, MotivoRejeicao } from './rejeitadosCaptura';
 
 export type { CatalogItem };
@@ -28,6 +32,7 @@ export function custoRsPorKwp(precoUnit: number | null | undefined, potenciaW: n
 
 function inferirModuloDoNome(nome: string): { potencia_w: number; marca: string; sku: string } | null {
   if (/Adicionar\s*R\$/i.test(nome)) return null;
+  if (/BICICLETA|EBIKE|PNEU|MOTOR\s*ELETR/i.test(nome)) return null;
   const potM = nome.match(/(\d{3,4})\s*w/i);
   if (!potM) return null;
   const potencia_w = Number(potM[1]);
@@ -36,6 +41,8 @@ function inferirModuloDoNome(nome: string): { potencia_w: number; marca: string;
     // ainda aceita se parece módulo solar por potência típica
     if (potencia_w < 500) return null;
   }
+  // Exige cara de módulo fotovoltaico
+  if (!/m[oó]dulo|painel|fotov|N-?TYPE|BIFACIAL|MONOFACIAL/i.test(nome)) return null;
   const marcas = [
     'TSUN',
     'RENEPV',
@@ -59,6 +66,146 @@ function inferirModuloDoNome(nome: string): { potencia_w: number; marca: string;
   }
   const sku = `MOD-AUTO-${marca}-${potencia_w}`.slice(0, 48);
   return { potencia_w, marca, sku };
+}
+
+function skuFromNome(prefix: string, nome: string, codigo?: string | null): string {
+  if (codigo && /^\d{5,7}$/.test(codigo)) return `${prefix}-${codigo}`.slice(0, 48);
+  const base = nome
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 36);
+  return `${prefix}-${base}`.slice(0, 48);
+}
+
+/** Classifica produto SOOLLAR para auto-cadastro (não só módulo). */
+export function inferirEquipamentoDoNome(
+  nome: string,
+  codigo?: string | null
+): {
+  categoria: EquipamentoCategoria;
+  potencia_w: number | null;
+  potencia_kw: number | null;
+  marca: string;
+  sku: string;
+} | null {
+  if (!nome || /Adicionar\s*R\$/i.test(nome)) return null;
+  const upper = nome.toUpperCase();
+
+  // Categorias irrelevantes ao kit solar
+  if (/\bEBIKE\b|\bPNEU|\bDRIVER\s*SOLAR\b/i.test(upper)) return null;
+
+  const mod = inferirModuloDoNome(nome);
+  if (mod) {
+    return {
+      categoria: 'modulo',
+      potencia_w: mod.potencia_w,
+      potencia_kw: null,
+      marca: mod.marca,
+      sku: mod.sku,
+    };
+  }
+
+  const marcaHint = (() => {
+    const marcas = [
+      'DEYE',
+      'SAJ',
+      'GROWATT',
+      'HOYMILES',
+      'APSYSTEMS',
+      'SOLIS',
+      'WEG',
+      'FRONIUS',
+      'SMA',
+      'CLAMPER',
+      'TSUN',
+      'RENEPV',
+    ];
+    for (const m of marcas) {
+      if (upper.includes(m)) return m;
+    }
+    return 'GEN';
+  })();
+
+  if (/MICRO\s*-?\s*INV|MICROINV/i.test(upper)) {
+    // Kits de fixação para micro não são o inversor
+    if (/KIT|FIXA|SUPORTE|TRILHO|PERFIL|GRAMPO/i.test(upper) && !/^MICRO/i.test(upper.trim())) {
+      return {
+        categoria: 'estrutura',
+        potencia_w: null,
+        potencia_kw: null,
+        marca: marcaHint,
+        sku: skuFromNome('EST-AUTO', nome, codigo),
+      };
+    }
+    const kwM = upper.match(/(\d+[.,]?\d*)\s*K(?:W)?\b/);
+    const potencia_kw = kwM ? Number(kwM[1].replace(',', '.')) : null;
+    return {
+      categoria: 'microinversor',
+      potencia_w: potencia_kw ? Math.round(potencia_kw * 1000) : null,
+      potencia_kw,
+      marca: marcaHint,
+      sku: skuFromNome('MIC-AUTO', nome, codigo),
+    };
+  }
+
+  if (/\bINVERSOR\b/i.test(upper)) {
+    const kwM = upper.match(/(\d+[.,]?\d*)\s*K(?:W)?\b/);
+    const potencia_kw = kwM ? Number(kwM[1].replace(',', '.')) : null;
+    return {
+      categoria: 'inversor',
+      potencia_w: potencia_kw ? Math.round(potencia_kw * 1000) : null,
+      potencia_kw,
+      marca: marcaHint,
+      sku: skuFromNome('INV-AUTO', nome, codigo),
+    };
+  }
+
+  if (/\bMC4\b|CONECTOR/i.test(upper)) {
+    return {
+      categoria: 'conector',
+      potencia_w: null,
+      potencia_kw: null,
+      marca: marcaHint,
+      sku: skuFromNome('MC4-AUTO', nome, codigo),
+    };
+  }
+
+  if (/\bCABO\b|CABO\s*SOLAR|\b\d\s*MM\b/i.test(upper) && !/ESTRUTURA|TRILHO/i.test(upper)) {
+    return {
+      categoria: 'cabo',
+      potencia_w: null,
+      potencia_kw: null,
+      marca: marcaHint,
+      sku: skuFromNome('CAB-AUTO', nome, codigo),
+    };
+  }
+
+  if (
+    /TRILHO|ESTRUTURA|PERFIL|GALVANIZ|INOX|GANCHO|GRAMPO|PARAFUS|SUPORTE\s*MOD/i.test(upper)
+  ) {
+    return {
+      categoria: 'estrutura',
+      potencia_w: null,
+      potencia_kw: null,
+      marca: marcaHint,
+      sku: skuFromNome('EST-AUTO', nome, codigo),
+    };
+  }
+
+  if (
+    /CLAMPER|DPS|STRING\s*BOX|QUADRO\s*DE\s*PROTE|DISJUNTOR|FUS[IÍ]VEL|PROTETOR/i.test(upper)
+  ) {
+    return {
+      categoria: 'protecao',
+      potencia_w: null,
+      potencia_kw: null,
+      marca: marcaHint,
+      sku: skuFromNome('PRT-AUTO', nome, codigo),
+    };
+  }
+
+  return null;
 }
 
 export function dedupeCatalogItems(items: CatalogItem[]): CatalogItem[] {
@@ -210,17 +357,25 @@ function classificarUnmatched(
   if (preco == null) {
     return { motivo: 'sem_preco', detalhe: reason || 'sem preço no card' };
   }
-  if (est == null || est <= SOOLLAR_ESTOQUE_MINIMO) {
+  const inf = inferirEquipamentoDoNome(nome, item?.codigo);
+  const min = getEstoqueMinimoPorCategoria(inf?.categoria || 'outro');
+  if (est == null || est <= min) {
     return {
       motivo: 'estoque_baixo',
-      detalhe: `estoque ${est ?? 'null'} ≤ ${SOOLLAR_ESTOQUE_MINIMO} · ${reason || 'sem match'}`,
+      detalhe: `estoque ${est ?? 'null'} ≤ ${min} (${inf?.categoria || 'outro'}) · ${reason || 'sem match'}`,
+    };
+  }
+  if (inf && !ehEquipamentoPrincipal({ nome, categoria: inf.categoria, potencia_kw: inf.potencia_kw })) {
+    return {
+      motivo: 'consulta',
+      detalhe: `fora da lista principal (${inf.categoria}) — ative no catálogo se precisar`,
     };
   }
   if (/baixo\(/i.test(reason)) {
     return { motivo: 'score_baixo', detalhe: reason };
   }
-  if (!inferirModuloDoNome(nome)) {
-    return { motivo: 'nao_modulo_auto', detalhe: reason || 'não reconhecido como módulo Wp/marca' };
+  if (!inf) {
+    return { motivo: 'consulta', detalhe: reason || 'categoria não reconhecida — consulta' };
   }
   return { motivo: 'sem_match', detalhe: reason || `score ${score}` };
 }
@@ -261,6 +416,7 @@ export function applyCatalogToCd(
     rs_por_kwp?: number | null;
   }> = [];
   const aceitosNomes = new Set<string>();
+  const rejeitadosConsulta: ItemRejeitado[] = [];
   let matched = 0;
   let validos = 0;
   let autoCriados = 0;
@@ -277,26 +433,44 @@ export function applyCatalogToCd(
     }
   }
 
-  // Auto-cadastro: módulos com estoque > mínimo e Wp no nome
+  // Auto-cadastro com whitelist + estoque por categoria
   if (opts?.autoCadastrarModulos !== false) {
-    // Preferir nome sem "PREVISÃO" quando há várias ofertas do mesmo SKU
     const autoBySku = new Map<
       string,
-      { nome: string; preco: number; estoque: number; potencia_w: number; marca: string; created?: boolean }
+      {
+        nome: string;
+        preco: number;
+        estoque: number;
+        potencia_w: number | null;
+        potencia_kw: number | null;
+        marca: string;
+        categoria: EquipamentoCategoria;
+        codigo?: string | null;
+        principal: boolean;
+      }
     >();
 
     for (const u of [...unmatched]) {
-      const est = limpos.find((i) => i.nome === u.nome)?.estoque ?? null;
-      const preco = limpos.find((i) => i.nome === u.nome)?.preco ?? null;
-      if (est == null || est <= SOOLLAR_ESTOQUE_MINIMO || preco == null) continue;
-      const inf = inferirModuloDoNome(u.nome);
+      const src = limpos.find((i) => i.nome === u.nome);
+      const est = src?.estoque ?? null;
+      const preco = src?.preco ?? null;
+      if (preco == null || est == null) continue;
+      const inf = inferirEquipamentoDoNome(u.nome, src?.codigo);
       if (!inf) continue;
+      const min = getEstoqueMinimoPorCategoria(inf.categoria);
+      if (est <= min) continue;
+
+      const principal = ehEquipamentoPrincipal({
+        nome: u.nome,
+        categoria: inf.categoria,
+        potencia_kw: inf.potencia_kw,
+      });
 
       const prev = autoBySku.get(inf.sku);
       const preferThis =
         !prev ||
         (/PREVIS/.test(prev.nome) && !/PREVIS/.test(u.nome)) ||
-        ((/PREVIS/.test(prev.nome) === /PREVIS/.test(u.nome)) && est > prev.estoque);
+        (/PREVIS/.test(prev.nome) === /PREVIS/.test(u.nome) && est > prev.estoque);
       if (!preferThis) continue;
 
       autoBySku.set(inf.sku, {
@@ -304,24 +478,26 @@ export function applyCatalogToCd(
         preco,
         estoque: est,
         potencia_w: inf.potencia_w,
+        potencia_kw: inf.potencia_kw,
         marca: inf.marca,
+        categoria: inf.categoria,
+        codigo: src?.codigo ?? null,
+        principal,
       });
     }
 
     for (const [sku, row] of autoBySku) {
       const { id, created } = upsertBySkuInterno({
         sku_interno: sku,
+        sku_soollar: row.codigo || null,
         nome: row.nome.slice(0, 180),
         marca: row.marca,
-        categoria: 'modulo',
-        potencia_w: row.potencia_w,
-        ativo: true,
-        prioridade_kit: 80,
-        aliases: [
-          row.nome.slice(0, 120),
-          `${row.marca} ${row.potencia_w}W`,
-          `MODULO ${row.potencia_w}W ${row.marca}`,
-        ],
+        categoria: row.categoria,
+        potencia_w: row.potencia_w ?? undefined,
+        potencia_kw: row.potencia_kw ?? undefined,
+        ativo: row.principal,
+        prioridade_kit: row.categoria === 'modulo' ? 80 : row.principal ? 50 : 20,
+        aliases: [row.nome.slice(0, 120), row.codigo || ''].filter(Boolean),
       });
       if (created) autoCriados++;
       const r = upsertPrecoCd({
@@ -331,20 +507,60 @@ export function applyCatalogToCd(
         estoque: row.estoque,
         fonte,
       });
-      matched++;
-      if (r.valido) validos++;
-      aceitosNomes.add(row.nome);
-      applied.push({
-        sku,
-        preco: row.preco,
-        estoque: row.estoque,
-        valido: r.valido,
-        rs_por_kwp: custoRsPorKwp(row.preco, row.potencia_w),
-      });
+      if (row.principal) {
+        matched++;
+        if (r.valido) validos++;
+        aceitosNomes.add(row.nome);
+        applied.push({
+          sku,
+          preco: row.preco,
+          estoque: row.estoque,
+          valido: r.valido,
+          rs_por_kwp: custoRsPorKwp(row.preco, row.potencia_w),
+        });
+      } else {
+        // Consulta: fica inativo + rejeitados para revisão
+        rejeitadosConsulta.push({
+          cd: cdLabel,
+          nome: row.nome,
+          preco: row.preco,
+          estoque: row.estoque,
+          codigo: row.codigo ?? null,
+          motivo: 'consulta',
+          detalhe: `${row.categoria} fora da lista principal (ativo=0)`,
+        });
+      }
     }
   }
 
   for (const m of Array.from(bySku.values())) {
+    const nomeEq = m.item.nome;
+    const inf = inferirEquipamentoDoNome(nomeEq, m.item.codigo);
+    const principal = inf
+      ? ehEquipamentoPrincipal({
+          nome: nomeEq,
+          categoria: inf.categoria,
+          potencia_kw: inf.potencia_kw,
+        })
+      : true; // já está no catálogo — mantém se não classificar
+
+    if (m.equipamentoId) {
+      if (principal) {
+        updateEquipamento(m.equipamentoId, { ativo: true });
+      } else {
+        softDeleteEquipamento(m.equipamentoId);
+        rejeitadosConsulta.push({
+          cd: cdLabel,
+          nome: nomeEq,
+          preco: m.item.preco,
+          estoque: m.item.estoque,
+          codigo: m.item.codigo ?? null,
+          motivo: 'consulta',
+          detalhe: `${inf?.categoria || '?'} fora da lista principal (ativo=0)`,
+        });
+      }
+    }
+
     const r = upsertPrecoCd({
       equipamentoId: m.equipamentoId!,
       cdId,
@@ -352,25 +568,28 @@ export function applyCatalogToCd(
       estoque: m.item.estoque,
       fonte,
     });
-    matched++;
-    if (r.valido) validos++;
-    aceitosNomes.add(m.item.nome);
-    const pot =
-      (m as { potencia_w?: number }).potencia_w ||
-      Number(String(m.item.nome).match(/(\d{3,4})\s*w/i)?.[1] || 0) ||
-      null;
-    applied.push({
-      sku: m.skuInterno!,
-      preco: m.item.preco,
-      estoque: m.item.estoque,
-      valido: r.valido,
-      rs_por_kwp: custoRsPorKwp(m.item.preco, pot),
-    });
+    if (principal) {
+      matched++;
+      if (r.valido) validos++;
+      aceitosNomes.add(m.item.nome);
+      const pot =
+        (m as { potencia_w?: number }).potencia_w ||
+        Number(String(m.item.nome).match(/(\d{3,4})\s*w/i)?.[1] || 0) ||
+        null;
+      applied.push({
+        sku: m.skuInterno!,
+        preco: m.item.preco,
+        estoque: m.item.estoque,
+        valido: r.valido,
+        rs_por_kwp: custoRsPorKwp(m.item.preco, pot),
+      });
+    }
   }
 
-  const rejeitados: ItemRejeitado[] = [];
+  const rejeitados: ItemRejeitado[] = [...rejeitadosConsulta];
   for (const u of unmatched) {
     if (aceitosNomes.has(u.nome)) continue;
+    if (rejeitadosConsulta.some((r) => r.nome === u.nome && r.cd === cdLabel)) continue;
     const item = limpos.find((i) => i.nome === u.nome);
     const { motivo, detalhe } = classificarUnmatched(u.nome, u.score, u.reason, item);
     rejeitados.push({

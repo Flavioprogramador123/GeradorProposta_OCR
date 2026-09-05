@@ -1,0 +1,75 @@
+PALETAS DE CORES PROFISSIONAIS PARA PROGRAMAS E PROJETOS
+===========================================================
+
+1. CORPORATIVO / CONFIÁVEL (SaaS, dashboards, sistemas internos)
+-----------------------------------------------------------------
+Primária:      #1E3A8A (azul marinho)
+Secundária:    #2563EB (azul vibrante para ações)
+Fundo:         #F8FAFC (quase branco)
+Superfície:    #FFFFFF
+Texto:         #0F172A (quase preto)
+Texto sec.:    #64748B (cinza)
+Sucesso:       #16A34A
+Alerta:        #F59E0B
+Erro:          #DC2626
+Uso: transmite seriedade e confiança. Muito usado em fintechs e ferramentas B2B.
+
+
+2. TECH / MODERNO (apps, produtos digitais)
+-----------------------------------------------------------------
+Primária:      #6366F1 (indigo)
+Secundária:    #8B5CF6 (roxo)
+Fundo:         #0F0F17 (modo escuro) ou #FFFFFF (modo claro)
+Destaque:      #22D3EE (ciano)
+Texto:         #1E1B2E
+Uso: visual mais "startup", usado por produtos como Linear, Stripe, Vercel.
+
+
+3. NEUTRO / MINIMALISTA (documentos, relatórios, apresentações técnicas)
+-----------------------------------------------------------------
+Primária:      #111827 (grafite)
+Secundária:    #374151
+Fundo:         #FFFFFF
+Linhas/bordas: #E5E7EB
+Destaque:      #3B82F6 (um único acento)
+Uso: ideal quando o conteúdo precisa ser o protagonista (relatórios técnicos, planilhas, engenharia).
+
+
+4. ENERGIA / SUSTENTABILIDADE (projetos ligados à área solar/energia)
+-----------------------------------------------------------------
+Primária:      #15803D (verde)
+Secundária:    #EAB308 (amarelo sol)
+Fundo:         #F9FAFB
+Texto:         #1F2937
+Destaque:      #0EA5E9 (azul céu)
+Uso: combina bem com projetos de energia solar, sustentabilidade, ESG.
+
+
+REGRAS PRÁTICAS PARA PARECER PROFISSIONAL
+===========================================================
+
+1. Use no máximo 1 cor primária + 1 de destaque
+   Escolha uma cor dominante (60% da interface), uma secundária (30%)
+   e uma de destaque para ações importantes (10%) — a clássica
+   regra 60-30-10.
+
+2. Defina uma escala de neutros
+   Tenha de 4 a 6 tons de cinza (do quase branco ao quase preto) para
+   fundos, bordas e textos secundários. Isso evita o efeito "colorido
+   demais" e dá hierarquia visual sem esforço.
+
+3. Reserve cores vivas para estados e ações
+   Verde para sucesso, vermelho para erro, amarelo/laranja para alerta,
+   azul para informação. Não use essas cores decorativamente — só
+   quando comunicam um estado real, senão perdem o significado.
+
+4. Teste contraste de texto
+   Texto escuro sobre fundo claro (ou vice-versa) precisa de contraste
+   mínimo de 4.5:1 para ser legível e acessível (padrão WCAG AA).
+   Ferramentas como o WebAIM Contrast Checker resolvem isso em segundos.
+
+5. Gere a paleta com uma ferramenta, não no olho
+   Sites como coolors.co, uicolors.app ou a paleta de cores do
+   Tailwind CSS (tailwindcss.com/docs/colors) já vêm com variações de
+   tonalidade (50 a 900) prontas e consistentes — muito mais rápido
+   que ajustar cor por cor manualmente.

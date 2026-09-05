@@ -120,18 +120,23 @@ export function saveConfigRapida(partial: Partial<ConfigRapidaShared>): ConfigRa
 }
 
 /**
- * Merge: defaults ← sessão (cliente/faixa) ← admin (HSP/tarifa/pdespesa…).
+ * Merge: defaults ← sessão (cliente/faixa) ← admin (HSP/tarifa/pdespesa/frete…).
  * Comercial/técnico de /admin/configuracoes sempre prevalece na carga.
  * Nome/cidade/consumo/faixa continuam da sessão compartilhada.
  */
 export function resolveConfigRapida(admin?: Record<string, unknown> | null): ConfigRapidaShared {
   const fromAdmin = configRapidaFromAdmin(admin);
   const fromStore = loadConfigRapida();
-  return {
+  const merged: ConfigRapidaShared = {
     ...CONFIG_RAPIDA_DEFAULTS,
     ...(fromStore || {}),
     ...fromAdmin,
   };
+  // Garante frete mesmo se sessão antiga não tinha o campo
+  if (fromAdmin.fretePadrao != null) merged.fretePadrao = fromAdmin.fretePadrao;
+  if (fromAdmin.pdespesaFixo != null) merged.pdespesaFixo = fromAdmin.pdespesaFixo;
+  if (fromAdmin.pdespesaVariavel != null) merged.pdespesaVariavel = fromAdmin.pdespesaVariavel;
+  return merged;
 }
 
 /** Campos do gerador-rapido que entram no compartilhamento */

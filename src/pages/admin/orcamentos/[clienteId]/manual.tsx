@@ -190,25 +190,33 @@ export default function EntradaManual() {
         <meta name="description" content="Entrada manual de dados técnicos do orçamento" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior><a className="text-blue-600 hover:text-blue-800">
-                ← Orçamentos
-              </a></Link>
-              <span className="text-gray-400">|</span>
-              <h1 className="text-3xl font-bold text-gray-800">
+            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+              <h1 className="text-3xl font-bold admin-title">
                 ✏️ Entrada Manual de Orçamento
               </h1>
+              <div className="flex gap-3">
+                <Link href="/admin" legacyBehavior>
+                  <a className="admin-btn-ghost">
+                    🏠 Admin
+                  </a>
+                </Link>
+                <Link href={`/admin/orcamentos/${clienteId}`} legacyBehavior>
+                  <a className="admin-btn-ghost">
+                    ← Voltar
+                  </a>
+                </Link>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
               
               {/* Informações Gerais */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">
                   📋 Informações Gerais
                 </h2>
@@ -257,7 +265,7 @@ export default function EntradaManual() {
               </div>
 
               {/* Módulos Solares */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">
                   🔋 Módulos Solares
                 </h2>
@@ -365,7 +373,7 @@ export default function EntradaManual() {
               </div>
 
               {/* Inversores */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">
                   ⚡ Inversores
                 </h2>
@@ -473,7 +481,7 @@ export default function EntradaManual() {
               </div>
 
               {/* Estrutura */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">
                   🏗️ Estrutura de Fixação
                 </h2>
@@ -527,7 +535,7 @@ export default function EntradaManual() {
               </div>
 
               {/* Outros Componentes */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="admin-surface p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-gray-800">
                     🔧 Outros Componentes

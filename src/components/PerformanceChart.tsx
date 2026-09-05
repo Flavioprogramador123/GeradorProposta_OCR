@@ -65,54 +65,63 @@ const PerformanceBarChart: React.FC<PerformanceBarChartProps> = ({
   tooltipType,
 }) => {
   const { ref, width } = useChartWidth();
+  // Recharts gera IDs internos distintos no SSR vs client → hydration mismatch
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(true);
+  }, []);
 
   return (
     <div ref={ref} className="pieng-chart-box w-full" style={{ height: CHART_HEIGHT, minHeight: CHART_HEIGHT }}>
-      <BarChart
-        width={width}
-        height={CHART_HEIGHT}
-        data={chartData}
-        margin={{ top: 8, right: 12, left: 4, bottom: 4 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="nome" tick={{ fontSize: 11 }} />
-        <YAxis tick={{ fontSize: 11 }} />
-        <Tooltip
-          content={({ active, payload }) => {
-            if (active && payload && payload.length) {
-              const data = payload[0].payload;
-              return (
-                <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 no-print">
-                  <p className="font-bold text-pieng-primary">{data.titulo}</p>
-                  {tooltipType === 'geracao' ? (
-                    <p className="text-sm">
-                      Geração: <strong>{data.geracao} kWh/mês</strong>
-                    </p>
-                  ) : (
-                    <>
+      {!ready ? (
+        <div className="w-full h-full bg-slate-50 rounded-lg animate-pulse" aria-hidden />
+      ) : (
+        <BarChart
+          width={width}
+          height={CHART_HEIGHT}
+          data={chartData}
+          margin={{ top: 8, right: 12, left: 4, bottom: 4 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="nome" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 no-print">
+                    <p className="font-bold text-pieng-primary">{data.titulo}</p>
+                    {tooltipType === 'geracao' ? (
                       <p className="text-sm">
-                        Payback: <strong>{data.payback} meses</strong>
+                        Geração: <strong>{data.geracao} kWh/mês</strong>
                       </p>
-                      <p className="text-sm">
-                        TIR: <strong>{data.tir}% ao ano</strong>
-                      </p>
-                    </>
-                  )}
-                  {data.isRecommended && (
-                    <p className="text-xs text-pieng-success font-bold mt-1">⭐ Recomendado</p>
-                  )}
-                </div>
-              );
-            }
-            return null;
-          }}
-        />
-        <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} isAnimationActive={false}>
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={getBarColor(index, entry.isRecommended)} />
-          ))}
-        </Bar>
-      </BarChart>
+                    ) : (
+                      <>
+                        <p className="text-sm">
+                          Payback: <strong>{data.payback} meses</strong>
+                        </p>
+                        <p className="text-sm">
+                          TIR: <strong>{data.tir}% ao ano</strong>
+                        </p>
+                      </>
+                    )}
+                    {data.isRecommended && (
+                      <p className="text-xs text-pieng-success font-bold mt-1">⭐ Recomendado</p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} isAnimationActive={false}>
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={getBarColor(index, entry.isRecommended)} />
+            ))}
+          </Bar>
+        </BarChart>
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
 
 interface Componente {
   id: string;
@@ -234,25 +235,12 @@ export default function GerenciarOrcamentos() {
         performanceRate: 0.75,
         pdespesaFixo: 3000,
         pdespesaVariavel: 22,
-        descontoPix: 10.0,
-        fatorParcelado: 1.20,
-        fator12x: 0.88,
-        fator18x: 0.83
+        fatorParcelado: 1.2,
       };
 
-      // 🔧 FUNÇÕES DE CÁLCULO (mesmo do Gerador Rápido)
-      const calcularPrecos = (totalFinal: number) => {
-        const ppix = totalFinal;
-        const descontoPix = configSistema.descontoPix > 1 ? configSistema.descontoPix / 100 : configSistema.descontoPix;
-        const pavista = ppix / (1 - descontoPix);
-        const priscado = ppix * configSistema.fatorParcelado;
-        const p12x_total = ppix / configSistema.fator12x;
-        const p12x = p12x_total / 12;
-        const p18x_total = ppix / configSistema.fator18x;
-        const p18x_parcela = p18x_total / 18;
-
-        return { ppix, pavista, priscado, p12x, p18x_parcela, p12x_total, p18x_total };
-      };
+      // Premissa: PIX base; à vista = total 12× (tabela maquininha)
+      const calcularPrecos = (totalFinal: number) =>
+        calcularPrecosDePix(totalFinal, configSistema.fatorParcelado);
 
       const calcularPerformance = (potenciaKw: number, hsp: number, consumoMensal: number, tarifa: number, investimentoPix: number) => {
         const performanceRate = configSistema.performanceRate;
@@ -361,7 +349,7 @@ export default function GerenciarOrcamentos() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Carregando orçamentos...</p>
@@ -372,7 +360,7 @@ export default function GerenciarOrcamentos() {
 
   if (!cliente) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+      <div className="admin-shell flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Cliente não encontrado</h1>
           <Link href="/admin" legacyBehavior><a className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -390,17 +378,17 @@ export default function GerenciarOrcamentos() {
         <meta name="description" content={`Gerenciar orçamentos para ${cliente.nome}`} />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50">
+      <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-4">
+                <h1 className="text-3xl font-bold admin-title mb-4">
                   📋 Orçamentos
                 </h1>
-                <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="bg-slate-100 rounded-lg p-4 shadow-sm border border-slate-200/80">
                   <h2 className="text-xl font-semibold text-gray-800 mb-1">
                     {cliente.nome}
                   </h2>
@@ -412,13 +400,13 @@ export default function GerenciarOrcamentos() {
               
               <div className="flex gap-3">
                 <Link href="/admin" legacyBehavior>
-                  <a className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                  <a className="admin-btn-ghost">
                     🏠 Admin
                   </a>
                 </Link>
                 <button 
                   onClick={() => router.back()}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className="admin-btn-ghost"
                   title="Voltar"
                 >
                   ← Voltar
@@ -428,7 +416,7 @@ export default function GerenciarOrcamentos() {
 
             {/* Analytics e Alertas */}
             {analytics && analytics.estatisticas && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+              <div className="admin-surface p-6 mb-8">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">📊 Analytics da Proposta</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -512,7 +500,7 @@ export default function GerenciarOrcamentos() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center border-2 border-dashed border-blue-300 hover:border-blue-500"
+                className="p-6 admin-surface hover:shadow-xl transition-shadow text-center border-2 border-dashed border-blue-300 hover:border-blue-500"
               >
                 <div className="text-3xl mb-3 text-blue-600">📄</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Novo Orçamento</h3>
@@ -571,14 +559,14 @@ export default function GerenciarOrcamentos() {
               <button
                 onClick={gerarPropostas}
                 disabled={orcamentos.filter(o => o.status === 'aprovado').length === 0}
-                className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-6 admin-surface hover:shadow-xl transition-shadow text-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="text-3xl mb-3 text-green-600">⚡</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Gerar Propostas</h3>
                 <p className="text-sm text-gray-600">Criar propostas finais</p>
               </button>
 
-              <div className="p-6 bg-white rounded-xl shadow-lg text-center">
+              <div className="p-6 admin-surface text-center">
                 <div className="text-3xl mb-3 text-orange-600">📊</div>
                 <h3 className="font-semibold text-gray-800 mb-1">Status</h3>
                 <p className="text-sm text-gray-600">
@@ -588,7 +576,7 @@ export default function GerenciarOrcamentos() {
             </div>
 
             {/* Lista de Orçamentos */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="admin-surface overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-800">
                   📋 Orçamentos ({orcamentos.length}/5)
@@ -716,7 +704,7 @@ export default function GerenciarOrcamentos() {
             {/* Modal Adicionar Orçamento */}
             {showAddModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="admin-surface shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                   <div className="p-6 border-b border-gray-200">
                     <h3 className="text-xl font-semibold text-gray-800">
                       📄 Adicionar Novo Orçamento
@@ -846,7 +834,7 @@ export default function GerenciarOrcamentos() {
             {/* Modal Buscar Orçamento */}
             {showBuscarModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-                <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="admin-surface shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                   <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
                     <h3 className="text-xl font-semibold text-gray-800">
                       🔍 Buscar Orçamento para Copiar
