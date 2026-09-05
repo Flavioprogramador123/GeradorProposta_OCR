@@ -76,6 +76,8 @@ export default function AdminV3Precos() {
   const [agenda, setAgenda] = useState<Agenda | null>(null);
   const [proxima, setProxima] = useState<string | null>(null);
   const [agendaMsg, setAgendaMsg] = useState('');
+  const [syncMsg, setSyncMsg] = useState('');
+  const [syncing, setSyncing] = useState(false);
   const [showRejeitados, setShowRejeitados] = useState(false);
   const [rejeitados, setRejeitados] = useState<{
     empty?: boolean;
@@ -175,6 +177,30 @@ export default function AdminV3Precos() {
       );
     } catch (e) {
       setAgendaMsg(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const publicarSupabase = async () => {
+    setSyncing(true);
+    setSyncMsg('');
+    try {
+      const res = await fetch('/api/v3/catalog-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: 'push admin preços' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setSyncMsg(data.message || data.hint || 'Falha ao publicar');
+        return;
+      }
+      setSyncMsg(
+        `Publicado no Supabase — ${data.stats?.equipamentos ?? '?'} equipamentos, ${data.stats?.precos ?? '?'} preços (${data.updatedAt})`
+      );
+    } catch (e) {
+      setSyncMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -323,6 +349,15 @@ export default function AdminV3Precos() {
                   </Link>
                   <button
                     type="button"
+                    disabled={syncing}
+                    onClick={() => publicarSupabase()}
+                    className="px-4 py-2 rounded-lg bg-sky-700 hover:bg-sky-600 text-white disabled:opacity-50 text-sm font-medium"
+                    title="Envia o catálogo local (SQLite) para o Supabase — a Vercel passa a usar estes dados"
+                  >
+                    {syncing ? 'Publicando…' : 'Publicar no Supabase'}
+                  </button>
+                  <button
+                    type="button"
                     disabled={busyRej}
                     onClick={() => abrirRejeitados()}
                     className="px-4 py-2 rounded-lg border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-medium"
@@ -330,6 +365,10 @@ export default function AdminV3Precos() {
                     Dados rejeitados
                   </button>
                 </div>
+
+                {syncMsg && (
+                  <p className="text-sm text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2">{syncMsg}</p>
+                )}
 
                 {msg && (
                   <pre className="text-xs whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-900 p-3 text-slate-300">

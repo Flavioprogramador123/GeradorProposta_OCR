@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createEquipamento, listEquipamentos, CATEGORIAS } from '@/modules/v3';
+import { createEquipamento, listEquipamentos, CATEGORIAS, ensureV3CatalogHydrated } from '@/modules/v3';
 import type { EquipamentoCategoria } from '@/modules/v3';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    await ensureV3CatalogHydrated();
     if (req.method === 'GET') {
       const categoria = typeof req.query.categoria === 'string' ? req.query.categoria : undefined;
       const q = typeof req.query.q === 'string' ? req.query.q : undefined;

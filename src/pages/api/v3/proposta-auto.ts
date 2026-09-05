@@ -4,6 +4,7 @@ import { montarPropostaAuto } from '@/modules/v3/calc/propostaAuto';
 import { resolveCdId } from '@/modules/v3/precos/repository';
 import { loadSistemaConfigFlat } from '@/lib/sistemaConfig';
 import { extrairDefaultsV3, mergeConfiguracoes } from '@/utils/configuracoes';
+import { ensureV3CatalogHydrated } from '@/modules/v3';
 
 async function loadAdminDefaultsV3() {
   try {
@@ -16,6 +17,7 @@ async function loadAdminDefaultsV3() {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    await ensureV3CatalogHydrated();
     if (req.method === 'GET') {
       const params = getCalcParams();
       const admin = await loadAdminDefaultsV3();

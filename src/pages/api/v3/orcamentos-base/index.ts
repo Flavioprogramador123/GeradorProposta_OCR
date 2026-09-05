@@ -5,9 +5,11 @@ import {
 } from '@/modules/v3/orcamentos/repository';
 import { calcularOrcamentoBase, listCatalogoComPreco } from '@/modules/v3/orcamentos/kitEngine';
 import { resolveCdId } from '@/modules/v3/precos/repository';
+import { ensureV3CatalogHydrated } from '@/modules/v3';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    await ensureV3CatalogHydrated();
     if (req.method === 'GET') {
       if (req.query.catalogo === '1') {
         const cdRaw = req.query.cd || req.query.cdId || '3';

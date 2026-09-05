@@ -63,8 +63,9 @@ function montarItemPreco(
   opts: { sugerido: boolean; editado_manual: boolean; permitirFallback?: boolean }
 ): KitItemCalculado {
   const minEstoque = getEstoqueMinimoPreco();
-  // Complementos e principais: se faltar no CD, usa outra filial
-  const permitirFallback = opts.permitirFallback !== false;
+  const permitirFallback =
+    opts.permitirFallback !== false &&
+    !['modulo', 'inversor', 'microinversor'].includes(eq.categoria);
 
   const resolved = resolverPrecoEquipamento(eq.id, cdId, {
     permitirFallback,

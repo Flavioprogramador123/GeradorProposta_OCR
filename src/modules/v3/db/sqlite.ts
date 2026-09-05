@@ -1,12 +1,16 @@
 /**
  * SQLite V3 — isolado da produção.
- * Só carrega better-sqlite3 no servidor (API routes).
- * Em Vercel: DB em /tmp (efêmero); schema embutido no bundle.
+ * Em Vercel: hidrata /tmp a partir do snapshot Supabase (v3_catalog_snapshot).
  */
 import fs from 'fs';
 import path from 'path';
 import { getV3DataDir, isV3ServerlessFs } from './paths';
 import { V3_SCHEMA_SQL } from './schema';
+import {
+  exportCatalogDump,
+  importCatalogDump,
+  type V3CatalogDump,
+} from './catalogSnapshot';
 
 export const V3_ENABLED = process.env.V3_ENABLED !== 'false';
 
@@ -21,18 +25,15 @@ export function getV3DbPath() {
 type Database = import('better-sqlite3').Database;
 
 let cached: Database | null = null;
+let hydratePromise: Promise<void> | null = null;
+let lastHydratedAt: string | null = null;
 
 function loadBetterSqlite3(): typeof import('better-sqlite3') {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require('better-sqlite3');
 }
 
-export function getV3Db(): Database {
-  if (cached) {
-    cached.exec(V3_SCHEMA_SQL);
-    return cached;
-  }
-
+function openDbFresh(): Database {
   const dbPath = getV3DbPath();
   try {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -58,12 +59,122 @@ export function getV3Db(): Database {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(V3_SCHEMA_SQL);
+  return db;
+}
 
+/** Garante snapshot Supabase no /tmp antes de usar o DB em serverless. */
+export async function ensureV3CatalogHydrated(opts?: { force?: boolean }): Promise<{
+  hydrated: boolean;
+  source: 'local' | 'supabase' | 'empty';
+  updatedAt?: string | null;
+}> {
+  if (!isV3ServerlessFs() && !opts?.force) {
+    return { hydrated: false, source: 'local' };
+  }
+
+  if (!hydratePromise || opts?.force) {
+    hydratePromise = (async () => {
+      const { supabase } = await import('@/lib/supabase');
+      if (!supabase) {
+        console.warn('V3: Supabase indisponível — catálogo serverless vazio');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('v3_catalog_snapshot')
+        .select('dump, updated_at, source, note')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('V3: erro ao ler v3_catalog_snapshot:', error.message);
+        return;
+      }
+      if (!data?.dump) {
+        console.warn('V3: snapshot vazio no Supabase — rode push do localhost');
+        return;
+      }
+
+      if (!opts?.force && lastHydratedAt && data.updated_at === lastHydratedAt && cached) {
+        return;
+      }
+
+      if (cached) {
+        cached.close();
+        cached = null;
+      }
+
+      const dbPath = getV3DbPath();
+      try {
+        if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+      } catch {
+        /* ignore */
+      }
+
+      const db = openDbFresh();
+      importCatalogDump(db, data.dump as V3CatalogDump);
+      cached = db;
+      lastHydratedAt = data.updated_at || new Date().toISOString();
+      console.log('✅ V3 catálogo hidratado do Supabase', {
+        updatedAt: lastHydratedAt,
+        source: data.source,
+      });
+    })();
+  }
+
+  await hydratePromise;
+  const hasEquip =
+    cached &&
+    (cached.prepare('SELECT COUNT(*) AS c FROM equipamentos').get() as { c: number }).c > 0;
+  return {
+    hydrated: Boolean(hasEquip),
+    source: hasEquip ? 'supabase' : 'empty',
+    updatedAt: lastHydratedAt,
+  };
+}
+
+export function getV3Db(): Database {
+  if (cached) {
+    cached.exec(V3_SCHEMA_SQL);
+    return cached;
+  }
+
+  const db = openDbFresh();
   seedCdsIfEmpty(db);
   seedRegrasIfEmpty(db);
-
   cached = db;
   return db;
+}
+
+/** Exporta dump do DB local (para push Supabase). */
+export function buildLocalCatalogDump(): V3CatalogDump {
+  return exportCatalogDump(getV3Db());
+}
+
+export async function pushCatalogToSupabase(note?: string): Promise<{
+  ok: boolean;
+  stats: ReturnType<typeof import('./catalogSnapshot').dumpStats>;
+  updatedAt: string;
+}> {
+  const { dumpStats } = await import('./catalogSnapshot');
+  const dump = buildLocalCatalogDump();
+  const { supabase } = await import('@/lib/supabase');
+  if (!supabase) throw new Error('Supabase não configurado');
+
+  const updatedAt = new Date().toISOString();
+  const { error } = await supabase.from('v3_catalog_snapshot').upsert(
+    {
+      id: 1,
+      updated_at: updatedAt,
+      source: 'sqlite-local',
+      note: note || 'push localhost',
+      dump,
+    },
+    { onConflict: 'id' }
+  );
+  if (error) throw new Error(error.message);
+
+  return { ok: true, stats: dumpStats(dump), updatedAt };
 }
 
 function seedCdsIfEmpty(db: Database) {
@@ -132,4 +243,6 @@ export function closeV3Db() {
     cached.close();
     cached = null;
   }
+  lastHydratedAt = null;
+  hydratePromise = null;
 }

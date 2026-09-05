@@ -5,10 +5,12 @@ import {
   SECOES_PRECO_FILTRO,
 } from '@/modules/v3/precos/repository';
 import { refreshEstoqueMinimosFromAdmin } from '@/modules/v3/precos/estoqueMinimosConfig';
+import { ensureV3CatalogHydrated } from '@/modules/v3';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' });
   try {
+    await ensureV3CatalogHydrated();
     await refreshEstoqueMinimosFromAdmin();
     const cdId = req.query.cdId ? Number(req.query.cdId) : undefined;
     const apenasValidos = req.query.validos === '1' || req.query.validos === 'true';
