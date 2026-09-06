@@ -1,0 +1,137 @@
+/**
+ * Tema SOBRIO — ferramenta técnica (vanilla CSS + tokens).
+ * Fonte de verdade / rollback: pasta temp_css/
+ *
+ * Escuro: data-admin-theme="sobrio"
+ * Claro:  data-admin-theme="sobrio-claro"
+ *
+ * Tipografia: DM Sans (UI) · JetBrains Mono (.mono / KPI)
+ */
+
+/* ── Escuro (padrão sobrio) ── */
+html[data-admin-theme='sobrio'] {
+  --sobrio-fundo: #101318;
+  --sobrio-superficie: #1c232d;
+  --sobrio-texto: #e8edf2;
+  --sobrio-muted: #8b95a3;
+  --sobrio-destaque: #e8a317;
+  --sobrio-ok: #3d8b5f;
+  --sobrio-erro: #c45c5c;
+  --sobrio-borda: #2a3340;
+  --sobrio-muted-bg: #161b22;
+
+  --admin-primary: #c9d1d9;
+  --admin-secondary: #e8a317;
+  --admin-bg: #101318;
+  --admin-bg-accent: #161b22;
+  --admin-surface: #1c232d;
+  --admin-surface-muted: #161b22;
+  --admin-border: #2a3340;
+  --admin-text: #e8edf2;
+  --admin-text-muted: #8b95a3;
+  --admin-info: #5b8fb8;
+  --admin-success: #3d8b5f;
+  --admin-warning: #e8a317;
+  --admin-danger: #c45c5c;
+  --admin-btn-ghost-bg: #161b22;
+  --admin-btn-ghost-text: #e8edf2;
+  --admin-btn-ghost-border: #2a3340;
+  --admin-btn-ghost-hover: #232b36;
+  --admin-shell-gradient: #101318;
+  --admin-card-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  --admin-action-gradient: linear-gradient(135deg, #2a3340 0%, #1c232d 60%, #e8a317 160%);
+  --admin-radius: 10px;
+  --admin-font: 'DM Sans', system-ui, sans-serif;
+  --admin-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ── Claro ── */
+html[data-admin-theme='sobrio-claro'] {
+  --sobrio-fundo: #eef2f6;
+  --sobrio-superficie: #ffffff;
+  --sobrio-texto: #1a2330;
+  --sobrio-muted: #4b5563;
+  --sobrio-destaque: #1d6fa8;
+  --sobrio-ok: #2f6f4e;
+  --sobrio-erro: #a94444;
+  --sobrio-borda: #d5dde6;
+  --sobrio-muted-bg: #e4eaf0;
+
+  --admin-primary: #1a2330;
+  --admin-secondary: #1d6fa8;
+  --admin-bg: #eef2f6;
+  --admin-bg-accent: #e4eaf0;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f4f7fa;
+  --admin-border: #d5dde6;
+  --admin-text: #1a2330;
+  --admin-text-muted: #4b5563;
+  --admin-info: #1d6fa8;
+  --admin-success: #2f6f4e;
+  --admin-warning: #b8860b;
+  --admin-danger: #a94444;
+  --admin-btn-ghost-bg: #ffffff;
+  --admin-btn-ghost-text: #1a2330;
+  --admin-btn-ghost-border: #d5dde6;
+  --admin-btn-ghost-hover: #eef2f6;
+  --admin-shell-gradient: #eef2f6;
+  --admin-card-shadow: 0 1px 3px rgb(26 35 48 / 0.08);
+  --admin-action-gradient: linear-gradient(135deg, #1a2330 0%, #1d6fa8 120%);
+  --admin-radius: 10px;
+  --admin-font: 'DM Sans', system-ui, sans-serif;
+  --admin-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Layout sobrio — sobrescreve utilitários só nestes temas */
+html[data-admin-theme='sobrio'] .admin-shell,
+html[data-admin-theme='sobrio-claro'] .admin-shell {
+  font-family: var(--admin-font);
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  letter-spacing: 0.01em;
+}
+
+html[data-admin-theme='sobrio'] .admin-surface,
+html[data-admin-theme='sobrio-claro'] .admin-surface,
+html[data-admin-theme='sobrio'] .admin-surface-muted,
+html[data-admin-theme='sobrio-claro'] .admin-surface-muted {
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-card-shadow);
+}
+
+html[data-admin-theme='sobrio'] .admin-btn-ghost,
+html[data-admin-theme='sobrio-claro'] .admin-btn-ghost,
+html[data-admin-theme='sobrio'] .admin-btn-primary,
+html[data-admin-theme='sobrio-claro'] .admin-btn-primary {
+  border-radius: 8px;
+  font-family: var(--admin-font);
+  font-weight: 500;
+}
+
+html[data-admin-theme='sobrio'] .admin-action-card,
+html[data-admin-theme='sobrio-claro'] .admin-action-card {
+  border-radius: var(--admin-radius);
+  transform: none;
+}
+html[data-admin-theme='sobrio'] .admin-action-card:hover,
+html[data-admin-theme='sobrio-claro'] .admin-action-card:hover {
+  transform: none;
+  filter: brightness(1.04);
+}
+
+html[data-admin-theme='sobrio'] .mono,
+html[data-admin-theme='sobrio-claro'] .mono,
+html[data-admin-theme='sobrio'] .font-mono,
+html[data-admin-theme='sobrio-claro'] .font-mono,
+html[data-admin-theme='sobrio'] .kpi,
+html[data-admin-theme='sobrio-claro'] .kpi {
+  font-family: var(--admin-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-theme-swatch--sobrio {
+  background: linear-gradient(135deg, #101318 40%, #e8a317);
+}
+.admin-theme-swatch--sobrio-claro {
+  background: linear-gradient(135deg, #eef2f6 35%, #1d6fa8);
+}

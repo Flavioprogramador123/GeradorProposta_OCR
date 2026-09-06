@@ -22,7 +22,9 @@ export function AdminThemePicker({ compact = false }: AdminThemePickerProps) {
         <div className="mb-3">
           <h3 className="admin-title text-sm font-semibold">Paleta visual do Admin</h3>
           <p className="admin-subtitle text-xs mt-0.5">
-            Altera a aparência de todo o painel admin neste navegador · 4 paletas · regra 60-30-10
+            Altera a aparência de todo o painel admin neste navegador · compare as 4 paletas
+            clássicas com <strong>Sobrio</strong> / <strong>Sobrio claro</strong> (candidato
+            temp_css)
           </p>
         </div>
       )}

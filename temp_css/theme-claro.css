@@ -1,0 +1,24 @@
+/*
+ * temp_css/theme-claro.css — overrides tema CLARO
+ * Ativar: html.theme-claro  (ou data-admin-theme="sobrio-claro" no app)
+ */
+
+html.theme-claro,
+html[data-admin-theme='sobrio-claro'] {
+  --fundo: #eef2f6;
+  --superficie: #ffffff;
+  --texto: #1a2330;
+  --muted: #4b5563;
+  --destaque: #1d6fa8;
+  --ok: #2f6f4e;
+  --erro: #a94444;
+  --borda: #d5dde6;
+  --muted-bg: #f4f7fa;
+  --sombra: 0 1px 3px rgb(26 35 48 / 0.08);
+}
+
+html.theme-claro .btn-primary,
+html[data-admin-theme='sobrio-claro'] .btn-primary {
+  background: var(--destaque);
+  color: #ffffff;
+}

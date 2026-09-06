@@ -25,10 +25,17 @@ export default function Document() {
           href="/icon-512x512.png"
           media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
         />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
+
         {/* Evita flash da paleta Admin antes do React */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='pieng-admin-theme';var t=localStorage.getItem(k);if(t==='tecnologia')t='tech';if(t==='solar')t='energia';if(t!=='corporativo'&&t!=='tech'&&t!=='neutro'&&t!=='energia')t='corporativo';document.documentElement.setAttribute('data-admin-theme',t);}catch(e){document.documentElement.setAttribute('data-admin-theme','corporativo');}})();`,
+            __html: `(function(){try{var k='pieng-admin-theme';var t=localStorage.getItem(k);if(t==='tecnologia')t='tech';if(t==='solar')t='energia';var ok=['corporativo','tech','neutro','energia','sobrio','sobrio-claro'];if(ok.indexOf(t)<0)t='corporativo';document.documentElement.setAttribute('data-admin-theme',t);document.documentElement.classList.toggle('theme-claro',t==='sobrio-claro');}catch(e){document.documentElement.setAttribute('data-admin-theme','corporativo');}})();`,
           }}
         />
       </Head>

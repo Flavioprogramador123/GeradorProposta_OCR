@@ -1,11 +1,17 @@
 /**
- * Paletas do Admin — espelho de paletas.txt (regras 60-30-10, neutros, estados).
- * CSS: src/styles/admin-themes.css
+ * Paletas do Admin — espelho de paletas.txt + candidato sobrio (temp_css/).
+ * CSS: src/styles/admin-themes.css + admin-sobrio.css
  */
 
 export const ADMIN_THEME_STORAGE_KEY = 'pieng-admin-theme';
 
-export type AdminThemeId = 'corporativo' | 'tech' | 'neutro' | 'energia';
+export type AdminThemeId =
+  | 'corporativo'
+  | 'tech'
+  | 'neutro'
+  | 'energia'
+  | 'sobrio'
+  | 'sobrio-claro';
 
 export interface AdminThemeMeta {
   id: AdminThemeId;
@@ -34,15 +40,26 @@ export const ADMIN_THEMES: AdminThemeMeta[] = [
     label: 'Energia',
     description: 'Verde + sol + céu — solar / ESG',
   },
+  {
+    id: 'sobrio',
+    label: 'Sobrio',
+    description: 'Ferramenta técnica — escuro, DM Sans / Mono',
+  },
+  {
+    id: 'sobrio-claro',
+    label: 'Sobrio claro',
+    description: 'Mesmo visual sobrio — fundo claro',
+  },
 ];
 
 export const ADMIN_THEME_DEFAULT: AdminThemeId = 'corporativo';
 
+const VALID = new Set<string>(ADMIN_THEMES.map((t) => t.id));
+
 /** Aceita ids atuais e aliases legados (tecnologia → tech, solar → energia). */
 export function normalizeAdminThemeId(value: unknown): AdminThemeId | null {
-  if (value === 'corporativo' || value === 'tech' || value === 'neutro' || value === 'energia') {
-    return value;
-  }
+  if (typeof value !== 'string') return null;
+  if (VALID.has(value)) return value as AdminThemeId;
   if (value === 'tecnologia') return 'tech';
   if (value === 'solar') return 'energia';
   return null;
@@ -76,4 +93,5 @@ export function writeAdminTheme(id: AdminThemeId): void {
 export function applyAdminThemeToDocument(id: AdminThemeId): void {
   if (typeof document === 'undefined') return;
   document.documentElement.setAttribute('data-admin-theme', id);
+  document.documentElement.classList.toggle('theme-claro', id === 'sobrio-claro');
 }

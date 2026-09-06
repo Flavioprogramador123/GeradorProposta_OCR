@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prévia · tema sobrio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./index.css" />
+    <link rel="stylesheet" href="./theme-claro.css" />
+    <style>
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .row .card {
+        flex: 1 1 220px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="toolbar">
+        <strong>Prévia sobrio</strong>
+        <button type="button" class="btn" onclick="document.documentElement.classList.remove('theme-claro')">
+          Escuro
+        </button>
+        <button type="button" class="btn btn-primary" onclick="document.documentElement.classList.add('theme-claro')">
+          Claro
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em">
+          Alt 2 · string
+        </div>
+        <h2 style="margin: 0.35rem 0 0; font-size: 1.1rem">String max 8×680W + 6kW</h2>
+        <p class="muted" style="margin: 0.4rem 0 0; font-size: 0.9rem">
+          8 mód. · 1 inv. · ~703 kWh · 141% cobertura
+        </p>
+        <p class="mono muted" style="margin: 0.5rem 0 0; font-size: 0.8rem">
+          P_usina 5.44 kWp · P_inv 6 kW · FDI 0.91 (kWp/kW)
+        </p>
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: end">
+          <span class="muted" style="font-size: 0.75rem">PIX comercial</span>
+          <span class="kpi destaque">R$ 13.660,60</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <div class="field">
+            <label>HSP</label>
+            <input type="text" value="5.45" class="mono" />
+          </div>
+        </div>
+        <div class="card">
+          <div class="muted" style="font-size: 0.75rem">Status</div>
+          <p><span class="ok">ok</span> · <span class="erro">erro</span></p>
+          <button type="button" class="btn btn-primary" style="margin-top: 0.5rem">Ação</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
