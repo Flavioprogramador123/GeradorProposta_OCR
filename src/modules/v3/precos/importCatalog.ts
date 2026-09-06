@@ -44,6 +44,8 @@ function inferirModuloDoNome(nome: string): { potencia_w: number; marca: string;
   }
   // Exige cara de módulo fotovoltaico
   if (!/m[oó]dulo|painel|fotov|N-?TYPE|BIFACIAL|MONOFACIAL/i.test(nome)) return null;
+  // Fallback local: lista conhecida. Com scraping, o agente deve gravar `marca` explícita
+  // (ver src/data/knowledge/V3_MARCA_TAG_SCRAPING.md) — esta lista só cobre o gap.
   const marcas = [
     'TSUN',
     'RENEPV',

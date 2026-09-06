@@ -11,6 +11,7 @@ import {
 import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
 import { isInversorHibrido } from '@/modules/v3/calc/dcAcRatio';
 import { precificarComercialV2 } from '@/modules/v3/bridge/comercial';
+import { marcaCurtaEquipamento, resolveMarcaCurtaCard, sortByPrecoAsc } from '@/lib/equipamentoLabel';
 
 interface Params {
   hsp: number;
@@ -53,6 +54,9 @@ interface Alt {
   sku_inversor: string;
   nome_modulo?: string;
   nome_inversor?: string;
+  /** Tag de marca do catálogo/scraping */
+  marca_modulo?: string | null;
+  marca_inversor?: string | null;
   potencia_modulo_w?: number;
   potencia_inversor_kw?: number;
   preco_unit_modulo?: number;
@@ -167,7 +171,10 @@ export default function AdminV3PropostaAuto() {
   const [catalogo, setCatalogo] = useState<CatalogItem[]>([]);
 
   const modsCatalogo = useMemo(
-    () => catalogo.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1),
+    () =>
+      sortByPrecoAsc(
+        catalogo.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1)
+      ),
     [catalogo]
   );
   const invsCatalogo = useMemo(
@@ -180,13 +187,16 @@ export default function AdminV3PropostaAuto() {
   );
   const invsPrincipais = useMemo(
     () =>
-      invsCatalogo.filter(
-        (c) => c.categoria === 'microinversor' || !isInversorHibrido(c)
+      sortByPrecoAsc(
+        invsCatalogo.filter((c) => c.categoria === 'microinversor' || !isInversorHibrido(c))
       ),
     [invsCatalogo]
   );
   const invsHibridos = useMemo(
-    () => invsCatalogo.filter((c) => c.categoria === 'inversor' && isInversorHibrido(c)),
+    () =>
+      sortByPrecoAsc(
+        invsCatalogo.filter((c) => c.categoria === 'inversor' && isInversorHibrido(c))
+      ),
     [invsCatalogo]
   );
 
@@ -578,6 +588,8 @@ export default function AdminV3PropostaAuto() {
         sku_inversor: a.sku_inversor,
         nome_modulo: mod?.nome || a.nome_modulo,
         nome_inversor: inv?.nome || a.nome_inversor,
+        marca_modulo: mod?.marca ?? a.marca_modulo ?? null,
+        marca_inversor: inv?.marca ?? a.marca_inversor ?? null,
         potencia_modulo_w: potW,
         potencia_inversor_kw: potKwInv,
         preco_unit_modulo: mod?.preco_custo ?? a.preco_unit_modulo,
@@ -610,6 +622,16 @@ export default function AdminV3PropostaAuto() {
         if (!prev) return prev;
         const orcs = [...((prev.orcamentos as Record<string, unknown>[]) || [])];
         const base = orcs[idx] || {};
+        const marcaMod =
+          resolveMarcaCurtaCard({
+            marca: mod?.marca ?? a.marca_modulo,
+            nomeCompleto: mod?.nome || a.nome_modulo,
+          }) || 'Padrão';
+        const marcaInv =
+          resolveMarcaCurtaCard({
+            marca: inv?.marca ?? a.marca_inversor,
+            nomeCompleto: inv?.nome || a.nome_inversor,
+          }) || 'Padrão';
         orcs[idx] = {
           ...base,
           fornecedor: `V3/${tipo}`,
@@ -619,10 +641,10 @@ export default function AdminV3PropostaAuto() {
           frete,
           modulos: qtdMod,
           pot_modulo: potW,
-          marca_modulo: (mod?.nome || a.nome_modulo || '').split(/\s+/)[0] || 'Padrão',
+          marca_modulo: marcaMod,
           inversores: qtdInv,
           pot_inv: potKwInv,
-          marca_inversor: (inv?.nome || a.nome_inversor || '').split(/\s+/)[0] || 'Padrão',
+          marca_inversor: marcaInv,
           bonusMicroAtivo: tipo === 'micro',
           titulo_v3: titulo,
           sku_modulo: a.sku_modulo,

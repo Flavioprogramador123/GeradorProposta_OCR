@@ -1,12 +1,27 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.12** (05/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.13** (05/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.12** - 05/09/2026 ✅ **ATUAL**
+### **v2.4.13** - 05/09/2026 ✅ **ATUAL**
+**🏷️ Marca tag + cards admin + limpeza:**
+- ✅ Campo canônico `marca` (catálogo/scraping) → `marca_modulo` / `marca_inversor` no bridge e cards
+- ✅ Prioridade: tag `marca` > parse do nome > hint SKU (sem “MODULO”/“INVERSOR” como marca)
+- ✅ Cards “Todos os Orçamentos”: marca curta + potência; catálogo V3 ordenado por menor preço
+- ✅ Labels SQLite esclarecidos (kits locais ≠ Supabase clientes/propostas)
+- ✅ Limpeza raiz → `obsoleto/` (docs/SQL/scripts legados; pasta gitignored)
+- ✅ Knowledge: `V3_MARCA_TAG_SCRAPING.md`; roadmap consultor: `ROADMAP_CONSULTOR_V4.md`
+
+**🌿 Próximo foco:** módulo **Consultor** (UX tabelas no padrão V3) em branch temp / V4
+
+**📦 Arquivos:** `equipamentoLabel.ts`, `toGerador.ts`, `propostaAuto.ts`, `proposta-auto.tsx`, `orcamentos/index.tsx`, `orcamentos-todos.ts`, `importCatalog.ts`, knowledge
+
+---
+
+### **v2.4.12** - 05/09/2026
 **⚙️ V3 / Proposta automática — edição de kit por card (fechamento):**
 - ✅ Após Dimensionar: na tabela do card, **Nome** = select de módulo/inversor; **Qtd** editável
 - ✅ **Recalcular kit** só naquele card (`preview` orçamentos-base + complementos) — demais cards intactos

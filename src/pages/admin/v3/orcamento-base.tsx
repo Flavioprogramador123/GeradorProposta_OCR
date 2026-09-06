@@ -9,6 +9,7 @@ import {
 import { formatBRL } from '@/lib/formatBRL';
 import { V3_GERADOR_STORAGE_KEY } from '@/modules/v3/bridge/toGerador';
 import { isInversorHibrido } from '@/modules/v3/calc/dcAcRatio';
+import { sortByPrecoAsc } from '@/lib/equipamentoLabel';
 
 interface CatalogItem {
   id: number;
@@ -127,7 +128,10 @@ export default function AdminV3OrcamentoBase() {
   const [busy, setBusy] = useState(false);
 
   const mods = useMemo(
-    () => catalogo.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1),
+    () =>
+      sortByPrecoAsc(
+        catalogo.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1)
+      ),
     [catalogo]
   );
   const invs = useMemo(
@@ -138,13 +142,17 @@ export default function AdminV3OrcamentoBase() {
       ),
     [catalogo]
   );
-  /** Lista principal: on-grid / micro — híbridos só no optgroup secundário */
+  /** Lista principal: on-grid / micro — híbridos só no optgroup secundário; menor preço primeiro */
   const invsPrincipais = useMemo(
-    () => invs.filter((i) => i.categoria === 'microinversor' || !isInversorHibrido(i)),
+    () =>
+      sortByPrecoAsc(
+        invs.filter((i) => i.categoria === 'microinversor' || !isInversorHibrido(i))
+      ),
     [invs]
   );
   const invsHibridos = useMemo(
-    () => invs.filter((i) => i.categoria === 'inversor' && isInversorHibrido(i)),
+    () =>
+      sortByPrecoAsc(invs.filter((i) => i.categoria === 'inversor' && isInversorHibrido(i))),
     [invs]
   );
 
@@ -1079,7 +1087,11 @@ export default function AdminV3OrcamentoBase() {
           )}
 
           <div className="admin-surface border border-gray-200 p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Salvos no SQLite</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Kits salvos (V3 · SQLite local)</h2>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Staging do módulo V3 neste servidor. Clientes/propostas ficam no Supabase; catálogo em
+              produção na Vercel vem do botão Publicar no Supabase (Preços).
+            </p>
             {lista.length === 0 && <p className="text-xs text-gray-500">Nenhuma proposta por kits salva ainda.</p>}
             <ul className="space-y-2 text-sm">
               {lista.map((o) => (

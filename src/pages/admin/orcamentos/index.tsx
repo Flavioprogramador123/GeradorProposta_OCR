@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { resolveMarcaCurtaCard } from '@/lib/equipamentoLabel';
 
 interface SistemaItem {
   titulo: string;
@@ -12,6 +13,9 @@ interface SistemaItem {
   pot_modulo?: number;
   marca_inversor?: string;
   pot_inversor?: number;
+  nome_modulo?: string;
+  nome_inversor?: string;
+  especificacoes?: string[];
   valorTotal?: number;
   total_final?: number;
   ppix?: number;
@@ -393,11 +397,21 @@ export default function TodosOrcamentos() {
                             <div className="flex justify-between items-center">
                               <span className="text-gray-600">
                                 Módulos:{' '}
-                                {sistema.marca_modulo && (
-                                  <span className="font-medium text-blue-600" title={sistema.marca_modulo}>
-                                    {sistema.marca_modulo.length > 6 ? sistema.marca_modulo.slice(0, 6) + '…' : sistema.marca_modulo}
-                                  </span>
-                                )}
+                                {(() => {
+                                  const marca = resolveMarcaCurtaCard({
+                                    marca: sistema.marca_modulo,
+                                    nomeCompleto: sistema.nome_modulo,
+                                    especificacao: sistema.especificacoes?.[0],
+                                  });
+                                  return marca ? (
+                                    <span
+                                      className="font-medium text-blue-600"
+                                      title={sistema.marca_modulo || sistema.nome_modulo || marca}
+                                    >
+                                      {marca}
+                                    </span>
+                                  ) : null;
+                                })()}
                                 {sistema.pot_modulo ? (
                                   <span className="text-xs text-gray-500 ml-0.5">{sistema.pot_modulo}wp</span>
                                 ) : null}
@@ -407,11 +421,21 @@ export default function TodosOrcamentos() {
                             <div className="flex justify-between items-center">
                               <span className="text-gray-600">
                                 Inversores:{' '}
-                                {sistema.marca_inversor && (
-                                  <span className="font-medium text-indigo-600" title={sistema.marca_inversor}>
-                                    {sistema.marca_inversor.length > 6 ? sistema.marca_inversor.slice(0, 6) + '…' : sistema.marca_inversor}
-                                  </span>
-                                )}
+                                {(() => {
+                                  const marca = resolveMarcaCurtaCard({
+                                    marca: sistema.marca_inversor,
+                                    nomeCompleto: sistema.nome_inversor,
+                                    especificacao: sistema.especificacoes?.[1],
+                                  });
+                                  return marca ? (
+                                    <span
+                                      className="font-medium text-indigo-600"
+                                      title={sistema.marca_inversor || sistema.nome_inversor || marca}
+                                    >
+                                      {marca}
+                                    </span>
+                                  ) : null;
+                                })()}
                                 {sistema.pot_inversor ? (
                                   <span className="text-xs text-gray-500 ml-0.5">{sistema.pot_inversor}kW</span>
                                 ) : null}

@@ -82,6 +82,9 @@ export interface AlternativaProposta {
   sku_inversor: string;
   nome_modulo?: string;
   nome_inversor?: string;
+  /** Tag de marca do catálogo/scraping (fonte preferida para cards) */
+  marca_modulo?: string | null;
+  marca_inversor?: string | null;
   potencia_modulo_w?: number;
   potencia_inversor_kw?: number;
   preco_unit_modulo?: number;
@@ -290,6 +293,8 @@ function montarAltFromKit(opts: {
     sku_inversor: inv.sku_interno,
     nome_modulo: mod.nome,
     nome_inversor: inv.nome,
+    marca_modulo: mod.marca || null,
+    marca_inversor: inv.marca || null,
     potencia_modulo_w: mod.potencia_w,
     potencia_inversor_kw: inv.potencia_kw,
     preco_unit_modulo: mod.preco_custo,

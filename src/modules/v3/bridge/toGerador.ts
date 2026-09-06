@@ -3,6 +3,7 @@
  */
 import type { AlternativaProposta } from '../calc/propostaAuto';
 import type { PrecificacaoComercial } from './comercial';
+import { marcaCurtaEquipamento } from '@/lib/equipamentoLabel';
 
 export const V3_GERADOR_STORAGE_KEY = 'v3-gerador-bridge';
 
@@ -40,12 +41,30 @@ export interface GeradorBridgePayload {
   orcamentos: GeradorBridgeOrcamento[];
 }
 
-function marcaFromNome(nome?: string, sku?: string): string {
-  if (nome) {
-    const first = nome.trim().split(/\s+/)[0];
-    if (first) return first;
+function marcaFromNome(
+  marcaTag?: string | null,
+  nome?: string,
+  sku?: string
+): string {
+  // 1) Tag explícita do catálogo/scraping (preferida)
+  const tag = String(marcaTag || '')
+    .trim()
+    .replace(/\s+/g, '');
+  if (tag && !/^(GEN|PADR[AÃ]O|N\/?A|MODULO|INVERSOR)$/i.test(tag)) {
+    return tag.toUpperCase();
   }
-  return sku || 'Padrão';
+  // 2) Parse do nome completo
+  const curta = marcaCurtaEquipamento(nome);
+  if (curta) return curta;
+  // 3) Fallback SKU (ex.: MOD-AUTO-RENEPV-680)
+  if (sku) {
+    const parts = String(sku)
+      .split(/[-_]/)
+      .filter((p) => p && !/^(MOD|INV|MIC|AUTO|SKU)$/i.test(p) && !/^\d/.test(p));
+    const candidate = parts.find((p) => /^[A-Za-z]{2,}$/.test(p));
+    if (candidate) return candidate.toUpperCase();
+  }
+  return 'Padrão';
 }
 
 export function alternativaToGeradorOrc(
@@ -58,10 +77,10 @@ export function alternativaToGeradorOrc(
     valorTotal: pcusto,
     modulos: alt.qtd_modulos,
     pot_modulo: alt.potencia_modulo_w || Math.round((alt.potencia_kwp * 1000) / Math.max(1, alt.qtd_modulos)),
-    marca_modulo: marcaFromNome(alt.nome_modulo, alt.sku_modulo),
+    marca_modulo: marcaFromNome(alt.marca_modulo, alt.nome_modulo, alt.sku_modulo),
     inversores: alt.qtd_inversores,
     pot_inv: alt.potencia_inversor_kw || 0,
-    marca_inversor: marcaFromNome(alt.nome_inversor, alt.sku_inversor),
+    marca_inversor: marcaFromNome(alt.marca_inversor, alt.nome_inversor, alt.sku_inversor),
     bonusMicroAtivo: alt.tipo === 'micro',
     titulo_v3: alt.titulo,
     sku_modulo: alt.sku_modulo,

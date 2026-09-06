@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { supabase } from '@/lib/supabase';
+import { resolveMarcaCurtaCard } from '@/lib/equipamentoLabel';
 
 interface PropostaData {
   cliente: {
@@ -162,10 +163,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   potencia,
                   modulos,
                   inversores,
-                  marca_modulo: sistema.marca_modulo || sistema.marcaModulo || sistema.especificacoes?.[0] || '',
+                  marca_modulo: resolveMarcaCurtaCard({
+                    marca: sistema.marca_modulo || sistema.marcaModulo,
+                    nomeCompleto: sistema.nome_modulo || sistema.nomeModulo,
+                    especificacao: sistema.especificacoes?.[0],
+                  }),
                   pot_modulo: sistema.pot_modulo || sistema.potModulo || 0,
-                  marca_inversor: sistema.marca_inversor || sistema.marcaInversor || sistema.especificacoes?.[1] || '',
+                  marca_inversor: resolveMarcaCurtaCard({
+                    marca: sistema.marca_inversor || sistema.marcaInversor,
+                    nomeCompleto: sistema.nome_inversor || sistema.nomeInversor,
+                    especificacao: sistema.especificacoes?.[1],
+                  }),
                   pot_inversor: sistema.pot_inv || sistema.pot_inversor || sistema.potInversor || 0,
+                  especificacoes: sistema.especificacoes,
                   valorTotal,
                   geracaoMensal: sistema.geracaoMensal,
                   paybackMeses: sistema.paybackMeses,
@@ -261,12 +271,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return {
             titulo: sistema.titulo || `Sistema ${index + 1}`,
             potencia,
-            modulos,
-            inversores,
-            marca_modulo: sistema.marca_modulo || sistema.marcaModulo || sistema.especificacoes?.[0] || '',
+            modulos: sistema.modulos || Math.round((potencia * 1000) / 605),
+            inversores: sistema.inversores || Math.ceil(potencia / 15),
+            marca_modulo: resolveMarcaCurtaCard({
+              marca: sistema.marca_modulo || sistema.marcaModulo,
+              nomeCompleto: sistema.nome_modulo || sistema.nomeModulo,
+              especificacao: sistema.especificacoes?.[0],
+            }),
             pot_modulo: sistema.pot_modulo || sistema.potModulo || 0,
-            marca_inversor: sistema.marca_inversor || sistema.marcaInversor || sistema.especificacoes?.[1] || '',
+            marca_inversor: resolveMarcaCurtaCard({
+              marca: sistema.marca_inversor || sistema.marcaInversor,
+              nomeCompleto: sistema.nome_inversor || sistema.nomeInversor,
+              especificacao: sistema.especificacoes?.[1],
+            }),
             pot_inversor: sistema.pot_inv || sistema.pot_inversor || sistema.potInversor || 0,
+            especificacoes: sistema.especificacoes,
             valorTotal: sistema.valorTotal ?? 0,
             geracaoMensal: sistema.geracaoMensal,
             paybackMeses: sistema.paybackMeses,

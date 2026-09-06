@@ -174,7 +174,9 @@ export default function AdminV3Equipamentos() {
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
             <div className="min-w-0">
               <h1 className="text-3xl font-bold admin-title">Equipamentos</h1>
-              <p className="text-sm admin-subtitle mt-1">Cadastro SQLite · módulos, inversores e auxiliares</p>
+              <p className="text-sm admin-subtitle mt-1">
+                Cadastro V3 (SQLite local) · publicar catálogo no Supabase em Preços
+              </p>
             </div>
             <div className="flex gap-2 flex-wrap items-center flex-shrink-0">
               <Link
