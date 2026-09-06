@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { AdminThemePicker } from '@/components/AdminThemePicker';
 
 type Estatisticas = {
   totalVisualizacoes: number;
@@ -15,12 +14,16 @@ type Estatisticas = {
   diasSemVisualizar: number | null;
   ipsDistintos?: number;
   equipamentosDistintos?: number;
+  locaisDistintos?: number;
+  cidadeCliente?: string | null;
+  localDivergente?: boolean;
   diagnosticoCompartilhamento?: {
     indício: boolean;
     confianca: string;
     motivo: string;
     equipamentos: string[];
     ipsMascarados: string[];
+    locais?: string[];
   };
   alertas?: Array<{ tipo: string; mensagem: string; data?: string }>;
 };
@@ -30,6 +33,10 @@ type AnalyticsRow = {
   ip_address?: string;
   ip_mascarado?: string;
   equipamento_rotulo?: string;
+  local_rotulo?: string;
+  local_divergente?: boolean;
+  geo_isp?: string | null;
+  geo_cidade?: string | null;
   device_type?: string;
   browser?: string;
   os?: string;
@@ -117,7 +124,6 @@ export default function AnalyticsPropostaPage() {
               <p className="text-sm admin-subtitle font-mono mt-1 break-all">{slug || '…'}</p>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              <AdminThemePicker compact />
               {slug && (
                 <>
                   <a
@@ -207,7 +213,7 @@ export default function AnalyticsPropostaPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="admin-surface p-4">
                   <div className="text-xs text-slate-500 uppercase tracking-wide">Quantas vezes abriu</div>
                   <div className="text-2xl font-bold text-blue-700 mt-1">{stats.totalVisualizacoes}</div>
@@ -236,6 +242,27 @@ export default function AnalyticsPropostaPage() {
                   <div className="text-xs text-slate-500 mt-1">
                     {stats.ipsDistintos ?? 0} IP(s) · confiança{' '}
                     {stats.diagnosticoCompartilhamento?.confianca || '—'}
+                  </div>
+                </div>
+                <div
+                  className={`admin-surface p-4 ${
+                    stats.localDivergente ? 'ring-2 ring-amber-400/80 bg-amber-50/50' : ''
+                  }`}
+                >
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Local aproximado</div>
+                  <div
+                    className={`text-sm font-bold mt-1 ${
+                      stats.localDivergente ? 'text-amber-800' : 'text-slate-800'
+                    }`}
+                  >
+                    {stats.localDivergente
+                      ? '⚠️ Fora da cidade'
+                      : stats.locaisDistintos && stats.locaisDistintos > 1
+                        ? `${stats.locaisDistintos} locais`
+                        : stats.diagnosticoCompartilhamento?.locais?.[0] || '—'}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Cliente: {stats.cidadeCliente || '—'}
                   </div>
                 </div>
                 <div className="admin-surface p-4">
@@ -272,10 +299,23 @@ export default function AnalyticsPropostaPage() {
                       ))}
                     </ul>
                   )}
+                  {stats.diagnosticoCompartilhamento.locais &&
+                    stats.diagnosticoCompartilhamento.locais.length > 0 && (
+                      <p className="mt-3 text-sm text-slate-700">
+                        <span className="font-medium">Locais:</span>{' '}
+                        {stats.diagnosticoCompartilhamento.locais.join(' · ')}
+                        {stats.cidadeCliente ? (
+                          <span className="text-slate-500">
+                            {' '}
+                            (cliente em {stats.cidadeCliente})
+                          </span>
+                        ) : null}
+                      </p>
+                    )}
                   <p className="text-xs text-slate-400 mt-3">
-                    Sem instalar app: usamos só dados de acesso do navegador (IP, tipo de aparelho,
-                    navegador, tempo com a aba aberta, scroll). Não é 100% certeza — Wi‑Fi vs 4G da
-                    mesma pessoa também muda o IP.
+                    Sem instalar app: usamos IP, aparelho, tempo com a aba aberta, scroll e local
+                    aproximado (cidade/UF via edge da Vercel). Não é GPS preciso — Wi‑Fi vs 4G e VPN
+                    podem alterar o local.
                   </p>
                 </div>
               )}
@@ -312,6 +352,7 @@ export default function AnalyticsPropostaPage() {
                       <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                         <tr>
                           <th className="px-4 py-3">Equipamento</th>
+                          <th className="px-4 py-3">Local aproximado</th>
                           <th className="px-4 py-3">IP</th>
                           <th className="px-4 py-3">Aberturas</th>
                           <th className="px-4 py-3">Tempo</th>
@@ -323,13 +364,33 @@ export default function AnalyticsPropostaPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {rows.map((row, i) => (
-                          <tr key={row.id || i} className="hover:bg-slate-50/80">
+                          <tr
+                            key={row.id || i}
+                            className={`hover:bg-slate-50/80 ${
+                              row.local_divergente ? 'bg-amber-50/60' : ''
+                            }`}
+                          >
                             <td className="px-4 py-3">
                               <div className="font-medium text-slate-800">
                                 {row.equipamento_rotulo ||
                                   [row.device_type, row.browser, row.os].filter(Boolean).join(' · ') ||
                                   '—'}
                               </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div
+                                className={`text-sm font-medium ${
+                                  row.local_divergente ? 'text-amber-900' : 'text-slate-800'
+                                }`}
+                              >
+                                {row.local_divergente ? '⚠️ ' : ''}
+                                {row.local_rotulo || '—'}
+                              </div>
+                              {row.geo_isp ? (
+                                <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[180px]">
+                                  {row.geo_isp}
+                                </div>
+                              ) : null}
                             </td>
                             <td className="px-4 py-3 font-mono text-xs text-slate-600">
                               {row.ip_mascarado || '—'}

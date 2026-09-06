@@ -15,7 +15,10 @@ Módulo isolado — **não altera** YAML / Gerador Rápido / produção.
 Ver `temp/PIPELINE_V3_ORCAMENTO.md`
 
 ## Branch
-`v3-orcamento`
+`v3-orcamento` (ciclo V3 — fechamento v2.4.12)
+
+**Próximo:** melhorias **V4** em branch temp → merge em `clean-main` só quando consolidado.
+Ver knowledge: `src/data/knowledge/V3_PROPOSTA_AUTO_EDICAO_KIT.md`.
 
 ## Premissas — inventário completo
 
@@ -78,12 +81,19 @@ Resolver: `orcamentos/skuCanonico.ts` (`resolveEquipPorSkuCanonico` + aliases).
 ### Preferência de marca (4a automática)
 Ordem ao escolher inversor/micro: **SAJ → DEye → demais** (`INVERSOR_MARCAS_PREFERENCIA` em `propostaAuto.ts`).
 
+### Dimensionamento DC/AC (gerador automático / 4a)
+Regras em `calc/dcAcRatio.ts` + `dimensionarString` em `propostaAuto.ts`:
+- **Sobrecarga:** kWp módulos ≤ kW inversor × **1,40** (ex.: 6 kW → 8,4 kWp); tolerância **+5 p.p.** → teto **1,45**
+- **Subcarga:** kWp ≥ kW × **0,50** (−50%) — evita inversor caro subutilizado
+- **Híbridos:** fora da lista principal do auto (3a: optgroup “sob demanda”)
+
 ### Fluxos
 - **3a** usa essas sugestões ao Incluir/Recalcular (editável no card).
 - **4a** herda via `calcularOrcamentoBase` / auto-complementos.
 - Ajuste manual no card sempre prevalece (`editado_manual`).
 
 ## Changelog / aprendizados
+- **2026-09-05:** Gerador automático: DC/AC 0,50–1,40 (+tol 1,45); híbridos fora da lista principal.
 - **2026-09-05:** Cabo preto micro 25 m: 1→0 · 2–3→2 · 4–5→3 (`bolasCaboPretoMicro`).
 - **2026-09-05:** Strings por faixa de kW CA (+ atalho **6–8 kW → 2**) + cabo 25 m V/P = nº strings; preferência SAJ/DEye na 4a.
 - **2026-09-04:** Premissas MC4/cabos micro vs string documentadas e aplicadas em `sugerirComplementos`.

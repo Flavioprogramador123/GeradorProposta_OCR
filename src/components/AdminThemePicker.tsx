@@ -20,9 +20,9 @@ export function AdminThemePicker({ compact = false }: AdminThemePickerProps) {
     >
       {!compact && (
         <div className="mb-3">
-          <h3 className="admin-title text-sm font-semibold">Paleta visual</h3>
+          <h3 className="admin-title text-sm font-semibold">Paleta visual do Admin</h3>
           <p className="admin-subtitle text-xs mt-0.5">
-            4 paletas (paletas.txt) · regra 60-30-10 · salva neste navegador
+            Altera a aparência de todo o painel admin neste navegador · 4 paletas · regra 60-30-10
           </p>
         </div>
       )}

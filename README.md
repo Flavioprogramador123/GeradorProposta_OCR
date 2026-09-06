@@ -1,6 +1,6 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.4.7-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.12-blue.svg)](VERSION.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
@@ -8,8 +8,29 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.4.7` (05/09/2026) ✅
+**📌 Versão Atual**: `v2.4.12` (05/09/2026) ✅
 **📖** [Ver Changelog Completo](VERSION.md) | [Restrições cliente](RESTRICOES_CLIENTE.md) | [Documentação PWA](PWA.md)
+
+## 🆕 Novidades v2.4.12 (05/09/2026)
+- **V3 fechada:** proposta automática com edição de módulo/inversor/qtd por card + Recalcular kit isolado.
+- Layout clássico; skins em `_estudo/`. Próximas melhorias = **V4 em branch temp** antes do merge.
+
+## 🆕 Novidades v2.4.11 (05/09/2026)
+- **Layout clássico** de volta: skins editoriais fora do pipeline (arquivos em `public/styles/_estudo/`).
+- Card único (1 sistema) mantido; sem flash/`proposta-skin-alt.css`.
+
+## 🆕 Novidades v2.4.10 (05/09/2026)
+- Gerador **automático** (V3): DC/AC 0,50–1,40 (+tol 1,45); híbridos fora da lista principal.
+- Proposta ao cliente com **1 card**: modo `card-unico` (sem comparação/recomendado).
+
+## 🆕 Novidades v2.4.9 (05/09/2026)
+- Skin editorial **alt** (piloto) — **revertido** em v2.4.11; ver `_estudo/`.
+## 🆕 Novidades v2.4.8 (05/09/2026)
+
+**🎨 / ☀️ / 📍:**
+- Piloto **panificadora**: fundo trigo + padrão de pães (marketing 70·20·10) — ver `VARIANTES_MARKETING_CORES.md`
+- Gráfico: Otimista/Pessimista = faixa PR 72–80% (não mês pico/vale)
+- Analytics: local aproximado do visitante (geo IP) + alerta se cidade ≠ cliente
 
 ## 🆕 Novidades v2.4.7 (05/09/2026)
 

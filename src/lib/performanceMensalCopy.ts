@@ -134,3 +134,18 @@ export function buildPerformanceMensalView(input: PerformanceMensalInput): Perfo
     html,
   };
 }
+
+/** Escala geração (kWh) da PR de referência para a faixa pessimista/otimista (72–80%). */
+export function escalaGeracaoPorFaixaPr(
+  geracaoRef: number,
+  performanceRateRef: number,
+  prMin = PR_FAIXA_MIN,
+  prMax = PR_FAIXA_MAX
+): { pessimista: number; otimista: number } {
+  const gRef = Math.max(0, geracaoRef || 0);
+  const prRef = performanceRateRef > 0 ? performanceRateRef : prMax;
+  return {
+    pessimista: Math.round(gRef * (prMin / prRef)),
+    otimista: Math.round(gRef * (prMax / prRef)),
+  };
+}

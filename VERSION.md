@@ -1,12 +1,91 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.7** (05/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.12** (05/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.7** - 05/09/2026 ✅ **ATUAL**
+### **v2.4.12** - 05/09/2026 ✅ **ATUAL**
+**⚙️ V3 / Proposta automática — edição de kit por card (fechamento):**
+- ✅ Após Dimensionar: na tabela do card, **Nome** = select de módulo/inversor; **Qtd** editável
+- ✅ **Recalcular kit** só naquele card (`preview` orçamentos-base + complementos) — demais cards intactos
+- ✅ Checkboxes micro + string **ON** por default
+- ✅ DC/AC 0,50–1,40 (+teto 1,45); híbridos sob demanda
+- ✅ Layout clássico na proposta ao cliente; skins em `_estudo/`; header marca > cliente
+- ✅ Knowledge: `src/data/knowledge/V3_PROPOSTA_AUTO_EDICAO_KIT.md`
+
+**🌿 Política de branch (próximas):**
+- Esta linha fecha o ciclo **V3** em produção
+- Próximas melhorias = **V4 em branch temp** → merge em `clean-main` só quando consolidado (evitar regressão do dia)
+
+**📦 Arquivos:** `proposta-auto.tsx`, `dcAcRatio.ts`, `propostaAuto.ts`, `Header.tsx`, `proposta/[slug].tsx`, `propostaTemplatePolicy.ts`, `public/styles/_estudo/`, knowledge V3/VARIANTES
+
+---
+
+### **v2.4.11** - 05/09/2026
+**⏪ Layout clássico de volta (sem skins novos):**
+- ✅ Removido inject/link de `proposta-skin-alt.css` em `/proposta/[slug]` e nos template engines
+- ✅ `globals.css` com gradiente clássico de novo (sem `body.skin-alt`)
+- ✅ Skins movidos para `public/styles/_estudo/`
+- ✅ Modo **card único** (1 sistema) mantido via React
+
+**📦 Arquivos:** `proposta/[slug].tsx`, `templateEngine.ts`, `globals.css`, `propostaTemplatePolicy.ts`
+
+---
+
+### **v2.4.10** - 05/09/2026
+**⚙️ Gerador automático (V3 / 4a) — dimensionamento DC/AC:**
+- ✅ kWp ≤ kW × **1,40** (+tol → teto **1,45**); subcarga **−50%**; híbridos fora do auto
+
+**📦 Arquivos:** `dcAcRatio.ts`, `propostaAuto.ts`, `SystemCard.tsx`, `InsightsSection.tsx`
+
+---
+
+### **v2.4.9** - 05/09/2026
+**🎨 Layout skin “alt” (piloto — revertido em v2.4.11):**
+- Skin editorial cobre/teal — desligado; arquivos em `_estudo/`
+
+---
+
+### **v2.4.8** - 05/09/2026
+**🎨 Template panificadora (piloto marketing de cores):**
+- ✅ Tema **trigo/bege** + padrão SVG de pães (sem gradiente vermelho-promo / emoji gigante)
+- ✅ Regra **70·20·10** (atmosfera · leitura · CTA verde) documentada em knowledge
+- ✅ Tokens/copy em `variantConfig.ts` + `public/styles/comercial-panificadora.css`
+- ⏳ Demais variantes comerciais/rural: replicar após avaliação da padaria
+
+**🖨️ Print / PDF (lições do mock `.temp` alt):**
+- ✅ Sem fundo quadriculado/padrão na impressão e em `proposta-pdf-mode` (`?pdf=1`)
+- ✅ Gráfico sazonal força **12 meses completos** no print/PDF (não modo compacto de toque)
+- ✅ `page-break-inside: avoid` em cards/linhas/notas/gráficos; CTA/WhatsApp/pay ocultos
+- ✅ Knowledge: `src/data/knowledge/PROPOSTA_PRINT_PDF.md`
+
+**☀️ Gráfico sazonal — significado correto:**
+- ✅ **Otimista / Pessimista** = faixa de desempenho **PR 72–80%** (média mensal escalada), **não** mês de maior/menor geração
+- ✅ Mesma lógica do card “Desempenho e abatimento” (`escalaGeracaoPorFaixaPr` em `performanceMensalCopy.ts`)
+- ✅ Barras do gráfico continuam sazonais (HSP mensal); só KPIs/legenda mudam
+
+**📍 Analytics (master) — local aproximado:**
+- ✅ Colunas geo em `proposta_analytics` (`sql/8_proposta_analytics_geo.sql`) — **rodar no Supabase**
+- ✅ Track grava cidade/UF/país via headers Vercel (fallback ip-api em dev)
+- ✅ Admin `/admin/analytics/[slug]`: KPI + coluna “Local aproximado”; alerta se divergir da cidade do cliente (possível envio a outro integrador)
+- ✅ RLS track público: `sql/7_proposta_analytics_rls_track.sql` (abertura sem 42501)
+
+**🧭 Proposta / gerador (sessão):**
+- ✅ Cabeçalho da proposta com bloco “Preparada para” + nome do cliente
+- ✅ Config rápida: bridge sem overwrite de `performanceRate` / `bonusMicroPercent`; nome do título priorizado
+- ✅ Microinversores: aviso se módulos > 4× micros; cabo preto CC 25 m (1→0 · 2–3→2 · 4–5→3)
+
+**📦 Knowledge:**
+- ✅ `src/data/knowledge/VARIANTES_MARKETING_CORES.md`
+- ✅ `SISTEMA_VARIANTES.md` (seção panificadora)
+
+**📦 Arquivos:** `comercial-panificadora.css`, `variantConfig.ts`, `ProjecaoGeracaoChart.tsx`, `chartGenerator.ts`, `performanceMensalCopy.ts`, `geoFromRequest.ts`, `track.ts`, `admin/analytics/[slug].*`, `Header.tsx`, `kitEngine.ts`, `orcamento-base.tsx`, `configRapidaShared.ts`, `sql/7_*.sql`, `sql/8_*.sql`
+
+---
+
+### **v2.4.7** - 05/09/2026
 **☀️ Config / geração / proposta:**
 - ✅ HSP Goiás alinhado a **5,45** (`hspPadrao` + `hspPorEstado.GO`; sync ao salvar config)
 - ✅ Faixa de desempenho do card: PR até **80%** (disclaimer 72–80%)

@@ -503,10 +503,14 @@ export default function GerenciarOrcamentos() {
                     <div className="space-y-2">
                       {analytics.analytics.map((item: any, index: number) => (
                         <div key={index} className="text-sm text-gray-600">
-                          <span className="font-medium">IP:</span> {item.ip_address} • 
-                          <span className="font-medium ml-2">Dispositivo:</span> {item.device_type} • 
-                          <span className="font-medium ml-2">Visualizações:</span> {item.visualizacoes_count} • 
-                          <span className="font-medium ml-2">Tempo:</span> {Math.floor((item.tempo_total_segundos || 0) / 60)}min
+                          <span className="font-medium">IP:</span> {item.ip_mascarado || item.ip_address} •
+                          <span className="font-medium ml-2">Local:</span>{' '}
+                          {item.local_rotulo || item.geo_local || '—'}
+                          {item.local_divergente ? ' ⚠️' : ''} •
+                          <span className="font-medium ml-2">Dispositivo:</span> {item.device_type} •
+                          <span className="font-medium ml-2">Visualizações:</span> {item.visualizacoes_count} •
+                          <span className="font-medium ml-2">Tempo:</span>{' '}
+                          {Math.floor((item.tempo_total_segundos || 0) / 60)}min
                         </div>
                       ))}
                     </div>

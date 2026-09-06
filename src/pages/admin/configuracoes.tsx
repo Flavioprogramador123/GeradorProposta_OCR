@@ -323,7 +323,6 @@ export default function Configuracoes() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <AdminThemePicker compact />
                   <Link
                     href="/admin"
                     className="admin-btn-ghost"

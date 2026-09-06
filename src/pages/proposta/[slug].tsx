@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
@@ -26,6 +26,7 @@ import { getLogoMetaTags } from '@/lib/logoConfig';
 import PropostaPdfToolbar from '@/components/PropostaPdfToolbar';
 import { abrirDialogoPdf, stripPdfToolbar } from '@/lib/propostaPdf';
 import { parseTarifaKwh } from '@/lib/performanceMensalCopy';
+import { resolveTemplateParaExibir } from '@/lib/propostaTemplatePolicy';
 
 function parseTarifaFromAnalise(economiaTarifa: unknown): number | undefined {
   const n = parseTarifaKwh(economiaTarifa);
@@ -62,59 +63,54 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
     intervalId: null as NodeJS.Timeout | null
   });
 
-  // 🎨 Carregar CSS do template selecionado
-  useEffect(() => {
-    // ✅ Prioridade: query parameter > template salvo > padrão
-    const template = (router.query.template as string) || templateUsado || 'padrao';
+  // Variantes de cor em estudo: só com ?template=xxx (lab). Produção = layout clássico (globals).
+  useLayoutEffect(() => {
+    const template = resolveTemplateParaExibir({
+      queryTemplate: router.query.template,
+      templateSalvo: templateUsado,
+    });
+
+    Array.from(document.body.classList).forEach((c) => {
+      if (c.startsWith('variant-') || c === 'skin-alt') document.body.classList.remove(c);
+    });
+    document.documentElement.classList.remove('skin-alt');
+    document.getElementById('template-css-dynamic')?.remove();
+    document.getElementById('pieng-skin-alt')?.remove();
+
     if (!template || template === 'padrao') {
       setTemplateCss(null);
       return;
     }
 
-    // Mapear template para arquivo CSS (usando os mesmos nomes do variantConfig)
     const cssMap: Record<string, string> = {
-      'residencial': '/styles/residencial.css',
-      'residencial-premium': '/styles/residencial.css', // Alias
-      'rural': '/styles/rural.css',
-      'rural-agro': '/styles/rural.css', // Alias
+      residencial: '/styles/residencial.css',
+      'residencial-premium': '/styles/residencial.css',
+      rural: '/styles/rural.css',
+      'rural-agro': '/styles/rural.css',
       'comercial-panificadora': '/styles/comercial-panificadora.css',
       'comercial-acougue': '/styles/comercial-acougue.css',
       'comercial-restaurante': '/styles/comercial-restaurante.css',
       'comercial-mercado': '/styles/comercial-mercado.css',
-      'industrial': '/styles/industrial.css',
-      'industrial-premium': '/styles/industrial.css', // Alias
+      industrial: '/styles/industrial.css',
+      'industrial-premium': '/styles/industrial.css',
     };
 
     const cssFile = cssMap[template];
-    if (cssFile) {
-      // Carregar CSS dinamicamente
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = cssFile;
-      link.id = 'template-css-dynamic';
-      
-      // Remover CSS anterior se existir
-      const existing = document.getElementById('template-css-dynamic');
-      if (existing) {
-        existing.remove();
-      }
-      
-      document.head.appendChild(link);
-      setTemplateCss(cssFile);
-      
-      // Adicionar classe ao body para aplicar variantes
-      document.body.classList.add(`variant-${template}`);
-      
-      return () => {
-        // Cleanup
-        const linkToRemove = document.getElementById('template-css-dynamic');
-        if (linkToRemove) {
-          linkToRemove.remove();
-        }
-        document.body.classList.remove(`variant-${template}`);
-      };
-    }
-  }, [router.query.template]);
+    if (!cssFile) return;
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = cssFile;
+    link.id = 'template-css-dynamic';
+    document.head.appendChild(link);
+    setTemplateCss(cssFile);
+    document.body.classList.add(`variant-${template}`);
+
+    return () => {
+      document.getElementById('template-css-dynamic')?.remove();
+      document.body.classList.remove(`variant-${template}`);
+    };
+  }, [router.query.template, templateUsado]);
 
   // Abrir diálogo PDF automaticamente (?pdf=1)
   useEffect(() => {
@@ -435,7 +431,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
         <link rel="stylesheet" href="/styles/proposta-print.css" />
       </Head>
 
-      <div className="pieng-container">
+      <div className={`pieng-container${sistemas.length === 1 ? ' card-unico' : ''}`}>
         <Header
           clienteNome={cliente.nome}
           clienteCidade={cliente.cidade}
@@ -450,6 +446,9 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
             <SystemCard
               key={index}
               {...sistema}
+              modoUnico={sistemas.length === 1}
+              badge={sistemas.length === 1 ? undefined : sistema.badge}
+              isRecommended={sistemas.length === 1 ? false : sistema.isRecommended}
               tarifaEnergia={
                 (cliente as { tarifa?: number; tarifaEnergia?: number }).tarifa ??
                 (cliente as { tarifaEnergia?: number }).tarifaEnergia ??
@@ -466,9 +465,9 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           ))}
         </section>
 
-        <ComparisonTable systems={tableData} />
+        {sistemas.length > 1 && <ComparisonTable systems={tableData} />}
 
-        <PerformanceChart sistemas={sistemas} />
+        {sistemas.length > 1 && <PerformanceChart sistemas={sistemas} />}
 
         <ProjecaoGeracaoChart
           potenciaKwp={(() => {
@@ -561,6 +560,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
           economiaTarifa={analise.economiaTarifa || 'R$ 0.80'}
           tirMax={analise.tirMax || insights.tirMax}
           clienteNome={cliente.nome}
+          modoUnico={sistemas.length === 1}
         />
 
         <MarketingBeneficios marketing={marketing} />

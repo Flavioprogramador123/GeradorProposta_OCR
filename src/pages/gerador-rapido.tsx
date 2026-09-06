@@ -18,6 +18,10 @@ import {
   resolveConfigRapida,
   saveConfigRapida,
 } from '@/lib/configRapidaShared';
+import {
+  TEMPLATE_APROVADO_PRODUCAO,
+  resolveTemplateParaSalvar,
+} from '@/lib/propostaTemplatePolicy';
 
 interface Orcamento {
   nome: string;
@@ -70,7 +74,7 @@ export default function GeradorRapido() {
   const [configSistema, setConfigSistema] = useState<any>(null);
   const [slugAtual, setSlugAtual] = useState<string | null>(null); // ✅ Slug da proposta carregada
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [templateSelecionado, setTemplateSelecionado] = useState<string>('padrao');
+  const [templateSelecionado, setTemplateSelecionado] = useState<string>(TEMPLATE_APROVADO_PRODUCAO);
   const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
   const [configRapidaReady, setConfigRapidaReady] = useState(false);
   const lastTemplateTapRef = useRef<{ template: string; time: number }>({ template: '', time: 0 });
@@ -78,7 +82,7 @@ export default function GeradorRapido() {
   // Duplo clique / duplo toque no template = confirmar e salvar com esse template
   const confirmarComTemplate = (template: string) => {
     setShowTemplateModal(false);
-    salvarProposta(salvarComoPendente, template);
+    salvarProposta(salvarComoPendente, resolveTemplateParaSalvar(template));
   };
 
   const handleTemplateClick = (template: string) => {
@@ -1205,44 +1209,17 @@ consolidado_orcamentos_distribuidores:
       return;
     }
 
-    // Se já tem template selecionado no config, usar ele como padrão
-    const templateAtual = mapearTipoImovelParaTemplate(config.tipoImovel);
-    setTemplateSelecionado(templateAtual);
+    // Produção: sempre abre no template aprovado. Tipo imóvel não escolhe CSS.
+    setTemplateSelecionado(TEMPLATE_APROVADO_PRODUCAO);
     setSalvarComoPendente(salvarComo);
     setShowTemplateModal(true);
   };
 
-  // Função para mapear tipo de imóvel para template CSS
-  const mapearTipoImovelParaTemplate = (tipoImovel: string): string => {
-    const tipoLower = tipoImovel.toLowerCase();
-    
-    if (tipoLower.includes('residencial')) {
-      return 'residencial';
-    }
-    if (tipoLower.includes('rural')) {
-      return 'rural';
-    }
-    if (tipoLower.includes('panificadora')) {
-      return 'comercial-panificadora';
-    }
-    if (tipoLower.includes('açougue') || tipoLower.includes('acougue')) {
-      return 'comercial-acougue';
-    }
-    if (tipoLower.includes('restaurante')) {
-      return 'comercial-restaurante';
-    }
-    if (tipoLower.includes('mercado')) {
-      return 'comercial-mercado';
-    }
-    if (tipoLower.includes('industrial')) {
-      return 'industrial';
-    }
-    
-    return 'padrao';
-  };
-
   // ✅ Função para salvar proposta (atualiza existente ou cria nova)
-  const salvarProposta = async (salvarComo: boolean = false, templateEscolhido: string = 'padrao') => {
+  const salvarProposta = async (
+    salvarComo: boolean = false,
+    templateEscolhido: string = TEMPLATE_APROVADO_PRODUCAO
+  ) => {
     setLoading(true);
     try {
       // ✅ Determinar slug: se "Salvar Como" ou não tem slug atual, criar novo
@@ -1298,7 +1275,7 @@ consolidado_orcamentos_distribuidores:
             tipo_imovel: config.tipoImovel,
             hsp: config.hsp,
             tarifa: config.tarifa,
-            template: templateEscolhido // ✅ Enviar template escolhido
+            template: resolveTemplateParaSalvar(templateEscolhido),
           },
           orcamentos: resultados.map(resultado => {
             // USAR DADOS DOS RESULTADOS FINANCEIROS (já calculados)
@@ -1585,7 +1562,7 @@ consolidado_orcamentos_distribuidores:
                     <option value="Comercial - Mercado">🛒 Comercial - Mercado</option>
                     <option value="Industrial">🏭 Industrial</option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">Escolha o template visual da proposta</p>
+                  <p className="text-xs text-gray-500 mt-1">Tipo do imóvel (dados) — visual da proposta = Template Padrão</p>
                 </div>
 
                 <div>
@@ -2222,38 +2199,53 @@ consolidado_orcamentos_distribuidores:
                 🎨 Escolher Template CSS
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Selecione um template para a proposta. O template será salvo junto com os dados.
+                <strong>Produção:</strong> use o Template Padrão (aprovado — igual ao site).
+                <span className="block mt-1 text-amber-700">
+                  Demais opções = <strong>em estudo</strong> (teste de cores). Não envie ao cliente como padrão.
+                </span>
                 <span className="block mt-1 text-gray-500">Toque duas vezes no template para confirmar e salvar direto.</span>
               </p>
             </div>
             
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-2">
+                  Aprovado · produção
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* Template Padrão */}
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('padrao')}
                   className={`p-4 border-2 rounded-lg transition-all text-left ${
                     templateSelecionado === 'padrao' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                      ? 'border-emerald-500 bg-emerald-50' 
+                      : 'border-gray-300 hover:border-emerald-500 hover:bg-emerald-50'
                   }`}
                 >
                   <div className="text-2xl mb-2">📄</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Template Padrão</h4>
-                  <p className="text-sm text-gray-600">Visualização padrão universal</p>
+                  <p className="text-sm text-gray-600">Engine principal · layout clássico</p>
                 </button>
+                </div>
+              </div>
 
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">
+                  Em estudo · só teste
+                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* Residencial */}
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('residencial')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'residencial' 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🏠</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Residencial Premium</h4>
                   <p className="text-sm text-gray-600">Foco em economia doméstica</p>
@@ -2263,12 +2255,13 @@ consolidado_orcamentos_distribuidores:
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('rural')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'rural' 
                       ? 'border-green-500 bg-green-50' 
                       : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🌾</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Rural Agro</h4>
                   <p className="text-sm text-gray-600">Análise de irrigação e safra</p>
@@ -2278,12 +2271,13 @@ consolidado_orcamentos_distribuidores:
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('comercial-panificadora')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'comercial-panificadora' 
                       ? 'border-orange-500 bg-orange-50' 
                       : 'border-gray-300 hover:border-orange-500 hover:bg-orange-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🥖</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Panificadora</h4>
                   <p className="text-sm text-gray-600">Foco em margem por produto</p>
@@ -2293,12 +2287,13 @@ consolidado_orcamentos_distribuidores:
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('comercial-acougue')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'comercial-acougue' 
                       ? 'border-red-500 bg-red-50' 
                       : 'border-gray-300 hover:border-red-500 hover:bg-red-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🥩</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Açougue</h4>
                   <p className="text-sm text-gray-600">Economia em refrigeração</p>
@@ -2308,12 +2303,13 @@ consolidado_orcamentos_distribuidores:
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('comercial-restaurante')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'comercial-restaurante' 
                       ? 'border-teal-500 bg-teal-50' 
                       : 'border-gray-300 hover:border-teal-500 hover:bg-teal-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🍽️</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Restaurante</h4>
                   <p className="text-sm text-gray-600">AC e cozinha profissional</p>
@@ -2323,12 +2319,13 @@ consolidado_orcamentos_distribuidores:
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('comercial-mercado')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'comercial-mercado' 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🛒</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Mercado</h4>
                   <p className="text-sm text-gray-600">Economia completa (iluminação + refrigeração + AC)</p>
@@ -2338,16 +2335,18 @@ consolidado_orcamentos_distribuidores:
                 <button
                   type="button"
                   onClick={() => handleTemplateClick('industrial')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                  className={`p-4 border-2 rounded-lg transition-all text-left relative ${
                     templateSelecionado === 'industrial' 
                       ? 'border-gray-600 bg-gray-50' 
                       : 'border-gray-300 hover:border-gray-600 hover:bg-gray-50'
                   }`}
                 >
+                  <span className="absolute top-2 right-2 text-[10px] font-bold uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">teste</span>
                   <div className="text-2xl mb-2">🏭</div>
                   <h4 className="font-semibold text-gray-800 mb-1">Industrial Premium</h4>
                   <p className="text-sm text-gray-600">Demanda contratada e créditos</p>
                 </button>
+              </div>
               </div>
             </div>
             
@@ -2363,7 +2362,7 @@ consolidado_orcamentos_distribuidores:
                 type="button"
                 onClick={async () => {
                   setShowTemplateModal(false);
-                  await salvarProposta(salvarComoPendente, templateSelecionado);
+                  await salvarProposta(salvarComoPendente, resolveTemplateParaSalvar(templateSelecionado));
                 }}
                 className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-green-600 text-white rounded-xl sm:rounded-lg hover:bg-green-700 active:bg-green-800 min-h-[44px] touch-manipulation"
               >

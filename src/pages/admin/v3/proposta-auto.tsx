@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import {
+  clearConfigRapida,
+  CONFIG_RAPIDA_DEFAULTS,
   resolveConfigRapida,
   saveConfigRapida,
   type ConfigRapidaShared,
 } from '@/lib/configRapidaShared';
 import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
+import { isInversorHibrido } from '@/modules/v3/calc/dcAcRatio';
+import { precificarComercialV2 } from '@/modules/v3/bridge/comercial';
 
 interface Params {
   hsp: number;
@@ -96,6 +100,19 @@ const CDS = [
   { id: 3, nome: 'Feira de Santana' },
 ];
 
+interface CatalogItem {
+  id: number;
+  sku_interno: string;
+  nome: string;
+  marca: string | null;
+  categoria: string;
+  potencia_w: number | null;
+  potencia_kw: number | null;
+  preco_custo: number | null;
+  estoque: number | null;
+  valido_estoque: number | null;
+}
+
 function fmtVal(v: number | string | boolean | null): string {
   if (v === null) return 'null';
   if (typeof v === 'boolean') return v ? 'true' : 'false';
@@ -123,7 +140,7 @@ export default function AdminV3PropostaAuto() {
   const [valorMax, setValorMax] = useState(1200);
   const [usarFaixa, setUsarFaixa] = useState(true);
   const [incluirMicro, setIncluirMicro] = useState(true);
-  const [incluirString, setIncluirString] = useState(false);
+  const [incluirString, setIncluirString] = useState(true);
   const [hsp, setHsp] = useState(5.45);
   const [hspTexto, setHspTexto] = useState('5.45');
   const [tarifa, setTarifa] = useState(1.17);
@@ -144,8 +161,34 @@ export default function AdminV3PropostaAuto() {
   const [avisosGlobais, setAvisosGlobais] = useState<string[]>([]);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [recalcIdx, setRecalcIdx] = useState<number | null>(null);
   const [aberto, setAberto] = useState<Record<number, boolean>>({});
   const [sharedReady, setSharedReady] = useState(false);
+  const [catalogo, setCatalogo] = useState<CatalogItem[]>([]);
+
+  const modsCatalogo = useMemo(
+    () => catalogo.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1),
+    [catalogo]
+  );
+  const invsCatalogo = useMemo(
+    () =>
+      catalogo.filter(
+        (c) =>
+          (c.categoria === 'inversor' || c.categoria === 'microinversor') && c.valido_estoque === 1
+      ),
+    [catalogo]
+  );
+  const invsPrincipais = useMemo(
+    () =>
+      invsCatalogo.filter(
+        (c) => c.categoria === 'microinversor' || !isInversorHibrido(c)
+      ),
+    [invsCatalogo]
+  );
+  const invsHibridos = useMemo(
+    () => invsCatalogo.filter((c) => c.categoria === 'inversor' && isInversorHibrido(c)),
+    [invsCatalogo]
+  );
 
   const applyShared = useCallback((shared: ConfigRapidaShared) => {
     setCliente(shared.nomeCliente);
@@ -194,6 +237,23 @@ export default function AdminV3PropostaAuto() {
     loadParams().catch(() => undefined);
   }, [loadParams]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/v3/orcamentos-base?catalogo=1&cdId=${cdId}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+        if (!cancelled) setCatalogo(data.catalogo || []);
+      } catch {
+        if (!cancelled) setCatalogo([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cdId]);
+
   // Persistir de volta para o Gerador
   useEffect(() => {
     if (!sharedReady) return;
@@ -226,6 +286,29 @@ export default function AdminV3PropostaAuto() {
   ]);
 
   const money = (n: number) => formatBRL(n);
+
+  const limparConfigRapida = useCallback(async () => {
+    try {
+      const resAdmin = await fetch('/api/admin/config');
+      const admin = resAdmin.ok ? await resAdmin.json() : {};
+      const shared = clearConfigRapida(admin);
+      applyShared(shared);
+      setValorMin(shared.geracaoMin ?? CONFIG_RAPIDA_DEFAULTS.geracaoMin ?? 800);
+      setValorMax(shared.geracaoMax ?? CONFIG_RAPIDA_DEFAULTS.geracaoMax ?? 1200);
+      setValor(500);
+      setUsarFaixa(true);
+      setModo('geracao_mensal');
+      setAlts([]);
+      setMeta(null);
+      setGeradorPayload(null);
+      setAuditoriaAlvo([]);
+      setAvisosGlobais([]);
+      setAberto({});
+      setMsg('Configurações Rápidas e faixa min–max resetadas.');
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Falha ao limpar configurações');
+    }
+  }, [applyShared]);
 
   const persistSharedNow = () => {
     saveConfigRapida({
@@ -387,48 +470,172 @@ export default function AdminV3PropostaAuto() {
       prev.map((a, i) => {
         if (i !== idx) return a;
         const kit = a.custo_total;
-        const pcusto = kit + frete;
-        const pdespesa_variavel_valor = (pcusto * pdespesaVariavel) / 100;
-        const pdespesa_total = pdespesaFixo + pdespesa_variavel_valor;
-        const ppix = Math.round((pcusto + pdespesa_total) * 100) / 100;
-        const oldPix = a.comercial?.ppix || ppix;
-        const ratio = oldPix > 0 ? ppix / oldPix : 1;
-        return {
-          ...a,
-          frete,
-          comercial: {
-            ...(a.comercial || {
-              p12x: 0,
-              p12x_total: 0,
-              p18x_parcela: 0,
-              formula: '',
-              pavista: ppix,
-              pdespesa_fixo: pdespesaFixo,
-              pdespesa_variavel_percent: pdespesaVariavel,
-              pdespesa_variavel_valor: 0,
-              pdespesa_total: 0,
-              total_final: ppix,
-              ppix,
-              pcusto,
-            }),
-            pcusto_kit: kit,
-            frete,
-            pcusto: Math.round(pcusto * 100) / 100,
-            pdespesa_fixo: pdespesaFixo,
-            pdespesa_variavel_percent: pdespesaVariavel,
-            pdespesa_variavel_valor: Math.round(pdespesa_variavel_valor * 100) / 100,
-            pdespesa_total: Math.round(pdespesa_total * 100) / 100,
-            total_final: ppix,
-            ppix,
-            pavista: Math.round((a.comercial?.pavista || ppix) * ratio * 100) / 100,
-            p12x: Math.round((a.comercial?.p12x || 0) * ratio * 100) / 100,
-            p12x_total: Math.round((a.comercial?.p12x_total || 0) * ratio * 100) / 100,
-            p18x_parcela: Math.round((a.comercial?.p18x_parcela || 0) * ratio * 100) / 100,
-            formula: 'pcusto = kit + frete; pdespesa = fixo + pcusto×var%; PIX = pcusto + pdespesa',
-          },
-        };
+        const comercial = precificarComercialV2(
+          kit,
+          { pdespesaFixo, pdespesaVariavel, hsp, tarifa },
+          frete
+        );
+        return { ...a, frete, comercial };
       })
     );
+  };
+
+  /** Troca SKU / qtd no card (ainda sem BOM novo — use Recalcular kit) */
+  const patchEquipamentoAlt = (
+    idx: number,
+    patch: Partial<Pick<Alt, 'sku_modulo' | 'sku_inversor' | 'qtd_modulos' | 'qtd_inversores'>>
+  ) => {
+    setAlts((prev) =>
+      prev.map((a, i) => {
+        if (i !== idx) return a;
+        const next = { ...a, ...patch };
+        if (patch.sku_modulo) {
+          const mod = modsCatalogo.find((m) => m.sku_interno === patch.sku_modulo);
+          if (mod) {
+            next.nome_modulo = mod.nome;
+            next.potencia_modulo_w = mod.potencia_w || next.potencia_modulo_w;
+            next.preco_unit_modulo = mod.preco_custo ?? next.preco_unit_modulo;
+          }
+        }
+        if (patch.sku_inversor) {
+          const inv = invsCatalogo.find((m) => m.sku_interno === patch.sku_inversor);
+          if (inv) {
+            next.nome_inversor = inv.nome;
+            next.potencia_inversor_kw = inv.potencia_kw || next.potencia_inversor_kw;
+            next.preco_unit_inversor = inv.preco_custo ?? next.preco_unit_inversor;
+            next.tipo = inv.categoria === 'microinversor' ? 'micro' : 'string';
+          }
+        }
+        return next;
+      })
+    );
+  };
+
+  /**
+   * Recalcula SOMENTE o card `idx` (preview orçamentos-base + complementos).
+   * Não chama proposta-auto — os outros cards permanecem intactos.
+   */
+  const recalcularKitCard = async (idx: number) => {
+    const a = alts[idx];
+    if (!a) return;
+    setRecalcIdx(idx);
+    setMsg('');
+    try {
+      const qtdMod = Math.max(1, Number(a.qtd_modulos) || 1);
+      const qtdInv = Math.max(1, Number(a.qtd_inversores) || 1);
+      const res = await fetch('/api/v3/orcamentos-base', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preview: true,
+          cdId,
+          autoComplementos: true,
+          itens: [
+            { sku_interno: a.sku_modulo, quantidade: qtdMod },
+            { sku_interno: a.sku_inversor, quantidade: qtdInv },
+          ],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+      const calc = data.calc as {
+        custo_total: number;
+        itens: ItemKit[];
+        breakdown: Record<string, number>;
+        avisos: string[];
+      };
+      if (!calc) throw new Error('Preview sem calc');
+
+      const mod = modsCatalogo.find((m) => m.sku_interno === a.sku_modulo);
+      const inv = invsCatalogo.find((m) => m.sku_interno === a.sku_inversor);
+      const potW = mod?.potencia_w || a.potencia_modulo_w || 550;
+      const potKwInv = inv?.potencia_kw || a.potencia_inversor_kw || 0;
+      const isMicro = (inv?.categoria || a.tipo) === 'microinversor' || a.tipo === 'micro';
+      const potencia_kwp = Math.round(((qtdMod * potW) / 1000) * 1000) / 1000;
+      const pr = params?.performanceRate ?? 0.75;
+      const dias = params?.diasMes ?? 30.4;
+      const bonus = isMicro ? 1 + (params?.bonusMicroPercent ?? 5) / 100 : 1;
+      const geracao_mensal_kwh = Math.round(potencia_kwp * hsp * dias * pr * bonus);
+      const consumoRef = meta?.consumoRef ?? consumoMensal;
+      const cobertura_pct =
+        consumoRef && consumoRef > 0 ? Math.round((geracao_mensal_kwh / consumoRef) * 100) : null;
+      const frete = a.frete ?? fretePadrao;
+      const comercial = precificarComercialV2(
+        calc.custo_total,
+        { pdespesaFixo, pdespesaVariavel, hsp, tarifa },
+        frete
+      );
+      const tipo: 'micro' | 'string' = isMicro ? 'micro' : 'string';
+      const titulo = `${tipo === 'micro' ? 'Micro' : 'String'} ${inv?.marca || ''} ${qtdMod}×${potW}W`
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const patched: Alt = {
+        ...a,
+        titulo,
+        tipo,
+        sku_modulo: a.sku_modulo,
+        sku_inversor: a.sku_inversor,
+        nome_modulo: mod?.nome || a.nome_modulo,
+        nome_inversor: inv?.nome || a.nome_inversor,
+        potencia_modulo_w: potW,
+        potencia_inversor_kw: potKwInv,
+        preco_unit_modulo: mod?.preco_custo ?? a.preco_unit_modulo,
+        preco_unit_inversor: inv?.preco_custo ?? a.preco_unit_inversor,
+        custo_rs_kwp_modulo:
+          potW > 0 && mod?.preco_custo != null
+            ? Math.round((mod.preco_custo / (potW / 1000)) * 100) / 100
+            : a.custo_rs_kwp_modulo,
+        qtd_modulos: qtdMod,
+        qtd_inversores: qtdInv,
+        potencia_kwp,
+        geracao_mensal_kwh,
+        cobertura_pct,
+        custo_total: calc.custo_total,
+        frete,
+        comercial,
+        orcamento_itens: calc.itens,
+        breakdown: calc.breakdown,
+        avisos: calc.avisos,
+        precos: {
+          ...a.precos,
+          custo: calc.custo_total,
+          pix: comercial.ppix,
+          aVista: comercial.pavista,
+        },
+      };
+
+      setAlts((prev) => prev.map((x, i) => (i === idx ? patched : x)));
+      setGeradorPayload((prev) => {
+        if (!prev) return prev;
+        const orcs = [...((prev.orcamentos as Record<string, unknown>[]) || [])];
+        const base = orcs[idx] || {};
+        orcs[idx] = {
+          ...base,
+          fornecedor: `V3/${tipo}`,
+          precoCusto: comercial.pcusto,
+          valorTotal: comercial.pcusto,
+          custo_kit: calc.custo_total,
+          frete,
+          modulos: qtdMod,
+          pot_modulo: potW,
+          marca_modulo: (mod?.nome || a.nome_modulo || '').split(/\s+/)[0] || 'Padrão',
+          inversores: qtdInv,
+          pot_inv: potKwInv,
+          marca_inversor: (inv?.nome || a.nome_inversor || '').split(/\s+/)[0] || 'Padrão',
+          bonusMicroAtivo: tipo === 'micro',
+          titulo_v3: titulo,
+          sku_modulo: a.sku_modulo,
+          sku_inversor: a.sku_inversor,
+        };
+        return { ...prev, orcamentos: orcs, quantidadeTotal: orcs.length };
+      });
+      setMsg(`Card ${idx + 1} recalculado · kit ${money(calc.custo_total)} · PIX ${money(comercial.ppix)}`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRecalcIdx(null);
+    }
   };
 
   return (
@@ -439,8 +646,8 @@ export default function AdminV3PropostaAuto() {
       <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold admin-title">Proposta automática</h1>
               <p className="text-sm admin-subtitle">
                 Dimensionamento automático por faixa de geração. Kits da{' '}
@@ -454,7 +661,7 @@ export default function AdminV3PropostaAuto() {
                 {' '}· configs compartilhadas
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-shrink-0">
               <Link
                 href="/admin"
                 className="admin-btn-ghost text-sm"
@@ -474,6 +681,14 @@ export default function AdminV3PropostaAuto() {
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-emerald-800">⚙️ Configurações Rápidas (shared)</h2>
+              <button
+                type="button"
+                onClick={() => void limparConfigRapida()}
+                className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-800 text-xs font-medium hover:bg-emerald-100"
+                title="Resetar configs shared + geração mín/máx para o padrão"
+              >
+                Limpar
+              </button>
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <label className="text-sm">
@@ -976,12 +1191,32 @@ export default function AdminV3PropostaAuto() {
                         </div>
                       )}
 
-                      {/* Linhas do kit */}
+                      {/* Linhas do kit — editar mód/inv + qtd; Recalcular só este card */}
                       {a.orcamento_itens && a.orcamento_itens.length > 0 && (
                         <div>
-                          <div className="text-xs font-semibold text-gray-700 mb-2">
-                            Itens do orçamento (kit + complementos)
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <div className="text-xs font-semibold text-gray-700">
+                              Itens do orçamento (kit + complementos)
+                              {recalcIdx === idx && (
+                                <span className="ml-2 font-normal text-sky-600">recalculando…</span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={recalcIdx !== null || busy}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void recalcularKitCard(idx);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 text-white text-xs font-medium disabled:opacity-50"
+                              title="Recalcula só este card (BOM + preço). Os outros cards não mudam."
+                            >
+                              Recalcular kit
+                            </button>
                           </div>
+                          <p className="text-[11px] text-gray-500 mb-2">
+                            Altere módulo/inversor ou quantidades abaixo e clique em Recalcular kit neste card.
+                          </p>
                           <div className="overflow-x-auto rounded-lg border border-gray-200">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-gray-50 text-gray-500">
@@ -998,9 +1233,12 @@ export default function AdminV3PropostaAuto() {
                               <tbody>
                                 {a.orcamento_itens.map((it, ii) => {
                                   const fallback = Boolean(it.preco_fallback);
+                                  const isMod = it.categoria === 'modulo';
+                                  const isInv =
+                                    it.categoria === 'inversor' || it.categoria === 'microinversor';
                                   return (
                                     <tr
-                                      key={ii}
+                                      key={`${it.sku_interno}-${ii}`}
                                       className={`border-t border-gray-200 ${
                                         fallback
                                           ? 'bg-violet-50 text-violet-800'
@@ -1014,19 +1252,98 @@ export default function AdminV3PropostaAuto() {
                                           : it.aviso || undefined
                                       }
                                     >
-                                      <td className="px-2 py-1.5 font-mono text-gray-600">
-                                        {it.sku_interno}
+                                      <td className="px-2 py-1.5 font-mono text-gray-600 whitespace-nowrap">
+                                        {isMod ? a.sku_modulo : isInv ? a.sku_inversor : it.sku_interno}
                                       </td>
-                                      <td className="px-2 py-1.5">
-                                        {it.nome}
-                                        {fallback && (
-                                          <span className="ml-1 text-[10px] text-violet-700">
-                                            · {it.preco_origem_cd_nome}
-                                          </span>
+                                      <td className="px-2 py-1.5 min-w-[14rem] max-w-[28rem]">
+                                        {isMod ? (
+                                          <select
+                                            value={a.sku_modulo}
+                                            disabled={recalcIdx !== null || busy}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) =>
+                                              patchEquipamentoAlt(idx, { sku_modulo: e.target.value })
+                                            }
+                                            className="w-full min-h-[2.25rem] rounded border border-sky-300 bg-white px-2 py-2 text-xs leading-snug"
+                                          >
+                                            {!modsCatalogo.some((m) => m.sku_interno === a.sku_modulo) && (
+                                              <option value={a.sku_modulo}>
+                                                {a.nome_modulo || a.sku_modulo}
+                                              </option>
+                                            )}
+                                            {modsCatalogo.map((m) => (
+                                              <option key={m.sku_interno} value={m.sku_interno}>
+                                                {m.nome}
+                                                {m.potencia_w ? ` · ${m.potencia_w}W` : ''}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        ) : isInv ? (
+                                          <select
+                                            value={a.sku_inversor}
+                                            disabled={recalcIdx !== null || busy}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) =>
+                                              patchEquipamentoAlt(idx, { sku_inversor: e.target.value })
+                                            }
+                                            className="w-full min-h-[2.25rem] rounded border border-sky-300 bg-white px-2 py-2 text-xs leading-snug"
+                                          >
+                                            {!invsCatalogo.some((m) => m.sku_interno === a.sku_inversor) && (
+                                              <option value={a.sku_inversor}>
+                                                {a.nome_inversor || a.sku_inversor}
+                                              </option>
+                                            )}
+                                            {invsPrincipais.map((m) => (
+                                              <option key={m.sku_interno} value={m.sku_interno}>
+                                                {m.categoria === 'microinversor' ? 'Micro · ' : ''}
+                                                {m.nome}
+                                                {m.potencia_kw != null ? ` · ${m.potencia_kw} kW` : ''}
+                                              </option>
+                                            ))}
+                                            {invsHibridos.length > 0 && (
+                                              <optgroup label="Híbridos">
+                                                {invsHibridos.map((m) => (
+                                                  <option key={m.sku_interno} value={m.sku_interno}>
+                                                    {m.nome}
+                                                    {m.potencia_kw != null ? ` · ${m.potencia_kw} kW` : ''}
+                                                  </option>
+                                                ))}
+                                              </optgroup>
+                                            )}
+                                          </select>
+                                        ) : (
+                                          <>
+                                            {it.nome}
+                                            {fallback && (
+                                              <span className="ml-1 text-[10px] text-violet-700">
+                                                · {it.preco_origem_cd_nome}
+                                              </span>
+                                            )}
+                                          </>
                                         )}
                                       </td>
                                       <td className="px-2 py-1.5">{it.categoria}</td>
-                                      <td className="px-2 py-1.5 text-right">{it.quantidade}</td>
+                                      <td className="px-2 py-1.5 text-right">
+                                        {isMod || isInv ? (
+                                          <input
+                                            type="number"
+                                            min={1}
+                                            value={isMod ? a.qtd_modulos : a.qtd_inversores}
+                                            disabled={recalcIdx !== null || busy}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => {
+                                              const q = Math.max(1, Number(e.target.value) || 1);
+                                              patchEquipamentoAlt(
+                                                idx,
+                                                isMod ? { qtd_modulos: q } : { qtd_inversores: q }
+                                              );
+                                            }}
+                                            className="w-16 min-h-[2.25rem] rounded border border-sky-300 bg-white px-1 py-2 text-right text-xs"
+                                          />
+                                        ) : (
+                                          it.quantidade
+                                        )}
+                                      </td>
                                       <td className="px-2 py-1.5 text-right">
                                         {it.preco_unitario != null ? money(it.preco_unitario) : '—'}
                                       </td>

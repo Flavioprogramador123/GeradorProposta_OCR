@@ -154,7 +154,7 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
   'comercial-panificadora': {
     id: 'comercial-panificadora',
     nome: 'Panificadora',
-    descricao: 'Template para panificadoras com foco em redução de custo operacional',
+    descricao: 'Panificadora: accents em estudo (lab ?template=) — produção = clássico',
     tipo: 'comercial',
     subtipo: 'panificadora',
     
@@ -169,29 +169,30 @@ export const VARIANT_CONFIGS: Record<string, VariantConfig> = {
       graficoPaybackComparativo: true,
     },
     
+    // Marketing 70·20·10: trigo/bege + crosta + verde confiança (não promo vermelha)
     tema: {
-      corPrimaria: '#d35400',
-      corSecundaria: '#f39c12',
-      gradiente: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
-      icone: '🥖🍞🥛'
+      corPrimaria: '#8B6914',
+      corSecundaria: '#C4A574',
+      gradiente: 'linear-gradient(135deg, #E8DCC8 0%, #F5EDE0 45%, #EDE4D4 100%)',
+      icone: '🥖'
     },
     
     copy: {
-      tituloHero: 'Padaria Solar — Pão, Leite e Energia do Sol! 🥖🍞☀️',
-      subtituloHero: 'Fornos, batedeiras, freezers e iluminação com energia solar. Sua padaria mais leve na conta e no planeta!',
-      ctaTexto: 'Quero Economizar na Minha Padaria',
+      tituloHero: 'Padaria solar — forno ligado, conta mais leve',
+      subtituloHero: 'Fornos, batedeiras, freezers e iluminação com energia do sol. Mais margem em cada pão — sem pesar no caixa.',
+      ctaTexto: 'Quero economizar na minha padaria',
       beneficios: [
-        '🥖 Pão quentinho com energia do sol',
-        '🥛 Leite e frios em freezers solares',
-        '☕ Cafeteria e iluminação 100% solar',
-        '🔥 Fornos e equipamentos sem pesar na conta',
-        '💰 Margem maior em cada produto vendido',
-        '🌱 Selo "Padaria Sustentável" para atrair clientes'
+        'Fornos e equipamentos de alta potência com custo de energia previsível',
+        'Freezers e balcões refrigerados sem surpresa na conta',
+        'Iluminação e café/loja no mesmo sistema',
+        'Margem maior em cada produto vendido',
+        'Selo de padaria sustentável para atrair clientes',
+        'Payback rápido no ritmo do comércio diário'
       ]
     },
     
     templateFile: 'variants/comercial_panificadora.html',
-    cssFile: 'comercial-panificadora.css' // ✅ CSS específico para panificadora
+    cssFile: 'comercial-panificadora.css'
   },
   
   // ========== COMERCIAL - AÇOUGUE ==========

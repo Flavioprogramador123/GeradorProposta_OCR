@@ -171,12 +171,12 @@ export default function AdminV3Equipamentos() {
       <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold admin-title">Equipamentos</h1>
               <p className="text-sm admin-subtitle mt-1">Cadastro SQLite · módulos, inversores e auxiliares</p>
             </div>
-            <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-2 flex-wrap items-center flex-shrink-0">
               <Link
                 href="/admin"
                 className="admin-btn-ghost text-sm"

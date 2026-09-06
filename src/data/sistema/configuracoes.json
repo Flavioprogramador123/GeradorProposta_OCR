@@ -25,7 +25,7 @@
   "fatorParcelado": 1.2,
   "fator12x": 0.8944999879242502,
   "fator18x": 0.8479002597966396,
-  "pdespesaFixo": 3000,
+  "pdespesaFixo": 2000,
   "pdespesaVariavel": 30,
   "fretePadrao": 400,
   "textoEconomiaAnual": "A partir de agora, R$ {valorEconomia} por ano deixam de sair da sua conta",
@@ -57,7 +57,7 @@
   "empresaNome": "PIENG Soluções Energéticas",
   "empresaCNPJ": "XX.XXX.XXX/0001-XX",
   "metadata": {
-    "lastUpdate": "2026-09-05T19:00:33.034Z",
+    "lastUpdate": "2026-09-05T23:09:42.606Z",
     "version": "2.0"
   },
   "empresaTelefone": "(62) 99167-0536",

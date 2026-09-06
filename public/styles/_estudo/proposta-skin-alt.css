@@ -1,0 +1,352 @@
+/**
+ * PIENG — Skin editorial ALT (cobre / teal)
+ * Fonte visual: .temp/proposta_andreia-jorge-neto-05-09-2026-alt.html
+ *
+ * Aplica-se com body.skin-alt (HTML gerado + /proposta/[slug]).
+ * NÃO altera lógica de preços — só apresentação.
+ * Print: fundo quadriculado removido em proposta-print.css
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+body.skin-alt,
+html.skin-alt body,
+.skin-alt-root {
+  --paper: #e4ebed;
+  --sheet: #ffffff;
+  --ink: #0f1a1c;
+  --muted: #3d4f54;
+  --line: #b8c5c8;
+  --line-strong: #7a9096;
+  --copper: #c45a12;
+  --copper-deep: #8e3a0a;
+  --teal: #0a5c5c;
+  --teal-light: #d4edec;
+  --clay: #b83322;
+  --clay-light: #f8d9d3;
+  --skin-radius: 0;
+  --skin-max: 960px;
+}
+
+body.skin-alt,
+html.skin-alt body {
+  --paper: #e4ebed;
+  --sheet: #ffffff;
+  --ink: #0f1a1c;
+  --muted: #3d4f54;
+  --line: #b8c5c8;
+  --line-strong: #7a9096;
+  --copper: #c45a12;
+  --copper-deep: #8e3a0a;
+  --teal: #0a5c5c;
+  --teal-light: #d4edec;
+  --clay: #b83322;
+  --clay-light: #f8d9d3;
+  --skin-radius: 0;
+  --skin-max: 960px;
+
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.55;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(122, 144, 150, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(122, 144, 150, 0.35) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+  min-height: 100vh;
+}
+
+.skin-alt-root {
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(122, 144, 150, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(122, 144, 150, 0.35) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+  min-height: 100vh;
+}
+
+body.skin-alt .container,
+body.skin-alt .pieng-container,
+.skin-alt-root {
+  max-width: var(--skin-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 16px 14px 40px;
+}
+
+/* ===== Header / masthead ===== */
+body.skin-alt header,
+body.skin-alt .header,
+body.skin-alt .pieng-header {
+  background: var(--sheet) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: var(--skin-radius) !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  color: var(--ink) !important;
+  text-align: left !important;
+  padding: 18px 20px 14px !important;
+  margin-bottom: 12px !important;
+  border: 2px solid var(--ink) !important;
+}
+
+body.skin-alt header::before,
+body.skin-alt .header::before {
+  display: none !important;
+}
+
+body.skin-alt header h1,
+body.skin-alt .header h1,
+body.skin-alt .brand-eyebrow {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-weight: 700 !important;
+  color: var(--ink) !important;
+  letter-spacing: -0.02em !important;
+  text-transform: none !important;
+}
+
+body.skin-alt .header-cliente,
+body.skin-alt header .rounded-xl,
+body.skin-alt header .rounded-2xl {
+  background: var(--teal-light) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  max-width: 100% !important;
+}
+
+/* Urgência */
+body.skin-alt .urgency-banner,
+body.skin-alt .pieng-urgency-banner {
+  background: var(--clay-light) !important;
+  color: var(--clay) !important;
+  border: 1px dashed var(--clay) !important;
+  border-radius: 4px !important;
+  animation: none !important;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px !important;
+}
+
+/* ===== System cards → leitura tipo “system-row” ===== */
+body.skin-alt .systems-grid,
+body.skin-alt .pieng-system-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  max-width: var(--skin-max);
+  margin: 0 auto 28px;
+}
+
+body.skin-alt .system-card,
+body.skin-alt .pieng-system-card {
+  background: var(--sheet) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transform: none !important;
+  overflow: hidden;
+}
+
+body.skin-alt .system-card.recommended,
+body.skin-alt .pieng-system-recommended,
+body.skin-alt .pieng-system-card.recommended {
+  border-color: var(--teal) !important;
+  border-width: 2px !important;
+  box-shadow: inset 3px 0 0 var(--teal) !important;
+}
+
+body.skin-alt .card-header,
+body.skin-alt .pieng-card-header {
+  background: var(--ink) !important;
+  color: #fff !important;
+  border-bottom: none !important;
+  text-align: left !important;
+  padding: 12px 16px !important;
+}
+
+body.skin-alt .card-title,
+body.skin-alt .pieng-card-header > div:first-child {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+body.skin-alt .card-subtitle,
+body.skin-alt .card-power,
+body.skin-alt .pieng-card-header > div:last-child {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 12px !important;
+  color: #9fd5d2 !important;
+}
+
+body.skin-alt .card-badge,
+body.skin-alt .pieng-badge {
+  background: var(--teal) !important;
+  color: #fff !important;
+  border-radius: 2px !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 10px !important;
+  letter-spacing: 0.06em;
+  animation: none !important;
+}
+
+body.skin-alt .pix-price,
+body.skin-alt .pieng-pricing-section .font-bold {
+  color: #fff !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+}
+
+body.skin-alt .cta-button,
+body.skin-alt button[data-pieng-pay] {
+  background: var(--copper) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 12px !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700 !important;
+}
+
+body.skin-alt .cta-button:hover,
+body.skin-alt button[data-pieng-pay]:hover {
+  background: var(--copper-deep) !important;
+  transform: none !important;
+}
+
+body.skin-alt .performance-box,
+body.skin-alt .pieng-performance-box {
+  background: var(--teal-light) !important;
+  border-left: 3px solid var(--teal) !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+
+body.skin-alt .pricing-section,
+body.skin-alt .pieng-pricing-section {
+  background: var(--teal) !important;
+  border: none !important;
+  border-radius: 4px !important;
+  color: #fff !important;
+}
+
+/* Tabelas / seções */
+body.skin-alt .comparison-table,
+body.skin-alt .pieng-comparison-table,
+body.skin-alt .insights-section,
+body.skin-alt .pieng-card,
+body.skin-alt .pieng-chart-section {
+  background: var(--sheet) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+body.skin-alt th {
+  background: var(--ink) !important;
+  color: #fff !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body.skin-alt .table-scroll-hint,
+body.skin-alt .pieng-table-scroll-hint,
+body.skin-alt .annex-scroll-hint {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+/* Footer */
+body.skin-alt .footer,
+body.skin-alt .pieng-footer,
+body.skin-alt .footer-section {
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+  border-radius: 4px !important;
+}
+
+body.skin-alt h2,
+body.skin-alt h3 {
+  font-family: 'Space Grotesk', sans-serif !important;
+  color: var(--ink);
+}
+
+/* Charts KPI alinhados */
+body.skin-alt .pieng-chart-kpi {
+  background: var(--teal-light) !important;
+  border-color: var(--line) !important;
+}
+
+/* ===== Card único (proposta ao cliente com 1 sistema) =====
+ * Sem linguagem de “comparação / recomendado entre opções”.
+ * Oferta em destaque, tabela e gráfico de comparação ocultos.
+ */
+body.skin-alt.card-unico .pieng-comparison-table,
+body.skin-alt.card-unico .comparison-table,
+body.skin-alt.card-unico .pieng-performance-chart,
+body.skin-alt.card-unico .pieng-performance-charts,
+body.skin-alt.card-unico section.pieng-comparison-table,
+.skin-alt-root.card-unico .pieng-comparison-table,
+.skin-alt-root.card-unico .pieng-performance-chart,
+.skin-alt-root.card-unico .pieng-performance-charts {
+  display: none !important;
+}
+
+body.skin-alt.card-unico .pieng-badge,
+body.skin-alt.card-unico .card-badge,
+.skin-alt-root.card-unico .pieng-badge {
+  display: none !important;
+}
+
+body.skin-alt.card-unico .pieng-system-grid,
+body.skin-alt.card-unico .systems-grid,
+.skin-alt-root.card-unico .pieng-system-grid {
+  max-width: var(--skin-max);
+  margin: 0 auto 20px;
+}
+
+body.skin-alt.card-unico .pieng-system-card,
+body.skin-alt.card-unico .system-card,
+.skin-alt-root.card-unico .pieng-system-card {
+  border: 2px solid var(--ink) !important;
+  box-shadow: none !important;
+}
+
+body.skin-alt.card-unico .pieng-system-recommended,
+body.skin-alt.card-unico .system-card.recommended,
+.skin-alt-root.card-unico .pieng-system-recommended {
+  border-color: var(--copper) !important;
+  border-width: 2px !important;
+  box-shadow: inset 4px 0 0 var(--copper) !important;
+}
+
+body.skin-alt.card-unico .pieng-card-header,
+body.skin-alt.card-unico .card-header {
+  background: var(--copper) !important;
+}
+
+body.skin-alt.card-unico .pieng-card-header > div:last-child,
+body.skin-alt.card-unico .card-subtitle {
+  color: #ffe8d6 !important;
+}
+
+body.skin-alt.card-unico .pieng-pricing-section,
+body.skin-alt.card-unico .pricing-section {
+  background: var(--ink) !important;
+}
+
+/* Tabela financeira residual: esconde wrap se só houver 1 linha “comparação” */
+body.skin-alt.card-unico .comparison-section,
+body.skin-alt.card-unico .sistemas-comparacao {
+  display: none !important;
+}

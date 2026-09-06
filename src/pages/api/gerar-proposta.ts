@@ -8,36 +8,7 @@ import { formatBRL } from '@/lib/formatBRL';
 import { getBonusMicroAtivo } from '@/lib/calcularPerformance';
 import { resolverTextosMarketing } from '@/lib/textosMarketingVariaveis';
 import { calcularEconomiaCO2, calcularValorizacaoImovel } from '@/utils/configuracoes';
-
-// Função para mapear tipo de imóvel para template CSS
-function mapearTipoImovelParaTemplate(tipoImovel: string): string {
-  const tipoLower = tipoImovel.toLowerCase();
-  
-  if (tipoLower.includes('residencial')) {
-    return 'residencial';
-  }
-  if (tipoLower.includes('rural')) {
-    return 'rural';
-  }
-  if (tipoLower.includes('panificadora')) {
-    return 'comercial-panificadora';
-  }
-  if (tipoLower.includes('açougue') || tipoLower.includes('acougue')) {
-    return 'comercial-acougue';
-  }
-  if (tipoLower.includes('restaurante')) {
-    return 'comercial-restaurante';
-  }
-  if (tipoLower.includes('mercado')) {
-    return 'comercial-mercado';
-  }
-  if (tipoLower.includes('industrial')) {
-    return 'industrial';
-  }
-  
-  // Padrão
-  return 'padrao';
-}
+import { resolveTemplateParaSalvar } from '@/lib/propostaTemplatePolicy';
 
 // Interface para dados de extração de PDFs
 interface ExtractedData {
@@ -1042,7 +1013,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cliente_id: clienteSupabase.id,
         slug: slug, // ✅ Slug permanece o mesmo se for atualização
         titulo: `Proposta Solar - ${cliente.nome}`,
-        template_usado: cliente.template || mapearTipoImovelParaTemplate(cliente.tipo_imovel || 'Residencial'),
+        template_usado: resolveTemplateParaSalvar(cliente.template),
         sistema_kwp: sistemaPrincipal?.potTotal || 0,
         geracao_mensal: sistemaPrincipal?.geracaoMensal || 0,
         geracao_anual: (sistemaPrincipal?.geracaoMensal || 0) * 12,

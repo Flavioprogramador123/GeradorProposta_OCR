@@ -7,6 +7,16 @@ import {
   type CalcParams,
 } from './params';
 import { calcularOrcamentoBase } from '../orcamentos/kitEngine';
+import {
+  ajustarQtdModulosAoInversor,
+  DC_AC_SOBRECARGA_MAX,
+  DC_AC_SOBRECARGA_TETO,
+  DC_AC_SUBCARGA_MIN,
+  faixaKwInversorParaKwp,
+  inversorAdequadoParaKwp,
+  isInversorHibrido,
+  ratioDcAc,
+} from './dcAcRatio';
 import { createOrcamentoBase } from '../orcamentos/repository';
 import { precificarComercialV2, resolveComercialConfig, type PrecificacaoComercial } from '../bridge/comercial';
 import { buildGeradorBridgePayload, type GeradorBridgePayload } from '../bridge/toGerador';
@@ -335,14 +345,43 @@ function dimensionarMicro(
   return { qtdMod, nMicros, pot, ger };
 }
 
+/**
+ * Escolhe inversor string para um kWp alvo:
+ * DC/AC entre 0,50 e 1,40 (preferência) / 1,45 (teto), preferência SAJ→DEye, menor kW adequado.
+ * Híbridos já devem ter sido filtrados em `strings`.
+ */
+function escolherInversorParaKwp(potKwp: number, strings: InvRow[]): InvRow | null {
+  if (!strings.length) return null;
+  const ordenados = [...strings].sort(sortInversoresPreferencia);
+  const soft = ordenados.filter((i) => inversorAdequadoParaKwp(i.potencia_kw, potKwp, 'soft'));
+  if (soft.length) return soft[0];
+  const hard = ordenados.filter((i) => inversorAdequadoParaKwp(i.potencia_kw, potKwp, 'hard'));
+  if (hard.length) return hard[0];
+
+  const { minKw, maxKw } = faixaKwInversorParaKwp(potKwp);
+  const naFaixa = ordenados.filter((i) => i.potencia_kw >= minKw && i.potencia_kw <= maxKw);
+  if (naFaixa.length) return naFaixa[0];
+
+  // Sem match perfeito: menor inversor que ainda respeita o teto de sobrecarga
+  const cobreTeto = ordenados.filter((i) => i.potencia_kw >= potKwp / DC_AC_SOBRECARGA_TETO);
+  if (cobreTeto.length) return cobreTeto[0];
+
+  // Último recurso: maior disponível (kits grandes) — qtd será clampada depois
+  return [...ordenados].sort((a, b) => b.potencia_kw - a.potencia_kw)[0] || ordenados[0];
+}
+
 function dimensionarString(
   mod: ModRow,
   strings: InvRow[],
   params: CalcParams,
   alvoGeracao: number,
   geracaoMax: number
-): { qtdMod: number; inv: InvRow; pot: number; ger: number } | null {
-  if (!strings.length) return null;
+): { qtdMod: number; inv: InvRow; pot: number; ger: number; avisos?: string[] } | null {
+  const pool = strings.filter((s) => !isInversorHibrido(s));
+  const lista = pool.length ? pool : strings;
+  if (!lista.length) return null;
+
+  const avisosDim: string[] = [];
   const alvoKwp = kwpFromGeracao(alvoGeracao, params, false);
   const qtdBruta = (alvoKwp * 1000) / mod.potencia_w;
   let qtdMod = roundUpModulos(qtdBruta, 2);
@@ -359,15 +398,28 @@ function dimensionarString(
     ger = nextGer;
   }
 
-  const limiarInv = pot * 0.75;
-  // Preferência SAJ → DEye → demais; entre iguais, menor kW que cubra o limiar
-  const candidatos = [...strings].sort(sortInversoresPreferencia);
-  const inv =
-    candidatos.find((i) => i.potencia_kw >= limiarInv) ||
-    candidatos[candidatos.length - 1] ||
-    candidatos[0];
+  const inv = escolherInversorParaKwp(pot, lista);
   if (!inv) return null;
-  return { qtdMod, inv, pot, ger };
+
+  const adj = ajustarQtdModulosAoInversor(qtdMod, mod.potencia_w, inv.potencia_kw);
+  if (adj.ajustou) {
+    avisosDim.push(
+      `Qtd módulos ajustada ${qtdMod}→${adj.qtdMod} p/ DC/AC ${(adj.ratio * 100).toFixed(0)}% ` +
+        `(faixa ${DC_AC_SUBCARGA_MIN * 100}–${DC_AC_SOBRECARGA_MAX * 100}% +tol ${((DC_AC_SOBRECARGA_TETO - DC_AC_SOBRECARGA_MAX) * 100).toFixed(0)} p.p.)`
+    );
+  }
+  qtdMod = adj.qtdMod;
+  pot = adj.potKwp;
+  ger = geracaoFromKwp(pot, params, false);
+
+  const r = ratioDcAc(pot, inv.potencia_kw);
+  if (r > DC_AC_SOBRECARGA_TETO + 0.001 || r < DC_AC_SUBCARGA_MIN - 0.001) {
+    avisosDim.push(
+      `DC/AC ${r.toFixed(2)} fora da faixa ideal (${DC_AC_SUBCARGA_MIN}–${DC_AC_SOBRECARGA_TETO}) · ${pot.toFixed(2)} kWp / ${inv.potencia_kw} kW`
+    );
+  }
+
+  return { qtdMod, inv, pot, ger, avisos: avisosDim.length ? avisosDim : undefined };
 }
 
 export function montarPropostaAuto(input: PropostaAutoInput): {
@@ -491,7 +543,15 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
   if (!inversores.length) throw new Error('Nenhum inversor/micro com preço válido neste CD');
 
   const micros = inversores.filter((i) => i.categoria === 'microinversor');
-  const strings = inversores.filter((i) => i.categoria === 'inversor');
+  const stringsAll = inversores.filter((i) => i.categoria === 'inversor');
+  const stringsHibridos = stringsAll.filter((i) => isInversorHibrido(i));
+  /** Lista principal: sem híbridos (caros / fora do fluxo padrão on-grid) */
+  const strings = stringsAll.filter((i) => !isInversorHibrido(i));
+  if (stringsHibridos.length) {
+    avisos.push(
+      `${stringsHibridos.length} inversor(es) híbrido(s) fora da lista principal (só sob demanda / kit manual)`
+    );
+  }
   const nenhumFiltroTopo = !input.incluir_micro && !input.incluir_string;
   const wantMicro = nenhumFiltroTopo || Boolean(input.incluir_micro);
   const wantString = nenhumFiltroTopo || Boolean(input.incluir_string);
@@ -501,8 +561,8 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
     alvoGeracaoMin === alvoGeracaoMax ? ['mid'] : ['min', 'mid', 'max'];
 
   auditoria_alvo.push({
-    etapa: 'Filtro topologia',
-    formula: 'checkboxes micro/string · nenhum = ambos',
+    etapa: 'Filtro topologia + DC/AC',
+    formula: `checkboxes micro/string · híbridos excluídos · kWp/kW ∈ [${DC_AC_SUBCARGA_MIN}, ${DC_AC_SOBRECARGA_MAX}] (+tol → ${DC_AC_SOBRECARGA_TETO})`,
     valores: {
       incluir_micro: Boolean(input.incluir_micro),
       incluir_string: Boolean(input.incluir_string),
@@ -510,6 +570,10 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
       wantString,
       micros_cd: micros.length,
       strings_cd: strings.length,
+      strings_hibridos_excluidos: stringsHibridos.length,
+      dc_ac_max: DC_AC_SOBRECARGA_MAX,
+      dc_ac_teto: DC_AC_SOBRECARGA_TETO,
+      dc_ac_min: DC_AC_SUBCARGA_MIN,
     },
     resultado: wantMicro && wantString ? 'micro + string' : wantMicro ? 'somente micro' : 'somente string',
   });
@@ -546,11 +610,20 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
         qtdMod = d.qtdMod;
         qtdInv = d.nMicros;
       } else {
-        const d = dimensionarString(mod, [inv, ...strings.filter((s) => s.sku_interno !== inv.sku_interno)], params, alvoKit, alvoGeracaoMax);
+        // Força o inversor da 3a; só ajusta qtd à regra DC/AC desse equipamento
+        const d = dimensionarString(mod, [inv], params, alvoKit, alvoGeracaoMax);
         if (!d) continue;
-        // força o inversor escolhido na 3a
         qtdMod = d.qtdMod;
         qtdInv = 1;
+        if (d.avisos?.length) avisos.push(...d.avisos.map((a) => `Kit #${ki + 1}: ${a}`));
+      }
+    } else if (!isMicro && inv.potencia_kw > 0) {
+      const adj = ajustarQtdModulosAoInversor(qtdMod, mod.potencia_w, inv.potencia_kw);
+      if (adj.ajustou) {
+        avisos.push(
+          `Kit #${ki + 1}: qtd módulos ${qtdMod}→${adj.qtdMod} (DC/AC ${adj.ratio.toFixed(2)} vs teto ${DC_AC_SOBRECARGA_TETO})`
+        );
+        qtdMod = adj.qtdMod;
       }
     }
     if (!qtdInv || qtdInv <= 0) {
@@ -574,7 +647,7 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
         passosExtras: [
           {
             etapa: 'Origem 3a (Incluir)',
-            formula: 'kit forçado pelo usuário · dimensionado na faixa',
+            formula: 'kit forçado pelo usuário · dimensionado na faixa DC/AC',
             valores: {
               ponto_faixa: ponto,
               alvo_kwh: alvoKit,
@@ -642,7 +715,11 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
 
     if (wantString) {
       if (!strings.length) {
-        avisos.push('Filtro string ativo, mas não há inversor string com preço neste CD');
+        avisos.push(
+          stringsHibridos.length
+            ? 'Filtro string ativo, mas só há inversores híbridos neste CD (excluídos do auto) — use kit manual na 3a se precisar'
+            : 'Filtro string ativo, mas não há inversor string com preço neste CD'
+        );
       } else {
         for (const mod of modulos.slice(0, 4)) {
           if (alternativas.length >= maxAlt) break;
@@ -651,6 +728,7 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
             const alvoKit = resolveFaixaAlvo(ponto, alvoGeracaoMin, alvoGeracaoMax);
             const d = dimensionarString(mod, strings, params, alvoKit, alvoGeracaoMax);
             if (!d) continue;
+            if (d.avisos?.length) avisos.push(...d.avisos);
             if (
               alternativas.some(
                 (a) =>

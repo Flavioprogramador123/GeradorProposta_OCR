@@ -34,6 +34,8 @@ interface SystemCardProps {
   tarifaEnergia?: number | string;
   /** PR usado no cálculo da geração (ex.: 0,78) */
   performanceRate?: number;
+  /** Proposta com um único sistema — sem badge de “recomendado” */
+  modoUnico?: boolean;
 }
 
 export const SystemCard: React.FC<SystemCardProps> = ({
@@ -56,6 +58,7 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   badge,
   tarifaEnergia,
   performanceRate,
+  modoUnico = false,
 }) => {
   const [payOpen, setPayOpen] = useState(false);
 
@@ -74,12 +77,20 @@ export const SystemCard: React.FC<SystemCardProps> = ({
     performanceRateRef: performanceRate,
   });
 
+  const tituloExibicao = modoUnico
+    ? String(titulo || 'Seu sistema solar').replace(/\s*⭐.*$/i, '').trim() || 'Seu sistema solar'
+    : titulo;
+
   return (
-    <div className={`pieng-system-card ${isRecommended ? 'pieng-system-recommended' : ''}`}>
-      {badge && <div className="pieng-badge">{badge}</div>}
+    <div
+      className={`pieng-system-card ${!modoUnico && isRecommended ? 'pieng-system-recommended' : ''} ${
+        modoUnico ? 'pieng-system-card-unico' : ''
+      }`}
+    >
+      {!modoUnico && badge && <div className="pieng-badge">{badge}</div>}
 
       <div className="pieng-card-header">
-        <div className="text-xl font-bold mb-2">{titulo}</div>
+        <div className="text-xl font-bold mb-2">{tituloExibicao}</div>
         <div className="text-base opacity-90">Potência: {potencia}</div>
       </div>
 

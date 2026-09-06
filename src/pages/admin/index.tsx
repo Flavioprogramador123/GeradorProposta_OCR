@@ -3,7 +3,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import InstallPWA from '@/components/InstallPWA';
-import { AdminThemePicker } from '@/components/AdminThemePicker';
 
 interface ClienteInfo {
   nome: string;
@@ -404,7 +403,7 @@ export default function AdminIndex() {
                     🏢 Área Administrativa
                   </h1>
                   <span className="px-2 py-1 text-xs font-mono rounded border border-[var(--admin-border)] bg-[var(--admin-surface-muted)] text-[var(--admin-primary)]">
-                    v2.4.7
+                    v2.4.12
                   </span>
                 </div>
                 <p className="admin-subtitle">
@@ -413,7 +412,6 @@ export default function AdminIndex() {
               </div>
               
               <div className="flex flex-wrap items-center gap-3 justify-end">
-                <AdminThemePicker compact />
                 <Link href="/proposta/exemplo" legacyBehavior>
                   <a className="admin-btn-primary" target="_blank" rel="noreferrer">
                     ✨ Ver Exemplo

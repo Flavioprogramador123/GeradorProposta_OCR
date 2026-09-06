@@ -44,9 +44,9 @@ const Header = ({
           />
         </div>
 
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700 sm:text-xs">
+        <h1 className="text-xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-2xl md:text-3xl">
           PIENG Soluções Energéticas
-        </p>
+        </h1>
         <p className="mt-1 text-sm text-slate-500 sm:text-base">
           Proposta solar personalizada
         </p>
@@ -57,9 +57,9 @@ const Header = ({
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-[11px]">
               Preparada para
             </p>
-            <h1 className="mt-1 text-2xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-3xl md:text-4xl">
+            <p className="mt-1 text-lg font-bold leading-snug tracking-tight text-slate-800 sm:text-xl md:text-2xl">
               {clienteNome}
-            </h1>
+            </p>
             {meta ? (
               <p className="mt-2 text-sm text-slate-600 sm:text-base">{meta}</p>
             ) : null}

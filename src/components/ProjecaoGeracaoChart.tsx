@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { PiengChartKpi, PiengChartKpiGrid, PiengChartSection } from '@/components/PiengChartSection';
 import { PIENG_CHART } from '@/lib/piengChartTheme';
 import {
+  PR_FAIXA_MAX,
+  PR_FAIXA_MIN,
+  escalaGeracaoPorFaixaPr,
+} from '@/lib/performanceMensalCopy';
+import {
   DIAS_POR_MES_CRESESB,
   MESES_ABREV,
   getSolarDataByCidade,
@@ -14,16 +19,31 @@ interface ProjecaoGeracaoChartProps {
   performanceRate?: number;
 }
 
-/** Portrait mobile estreito: esconde valores; landscape/desktop mostra tudo. */
+/** Portrait mobile estreito: esconde valores; landscape/desktop/PDF mostra tudo. */
 function useMostrarValoresCompletos() {
   const [completo, setCompleto] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px), (orientation: landscape)');
-    const sync = () => setCompleto(mq.matches);
+    const mqPrint = window.matchMedia('print');
+    const sync = () => {
+      const pdfMode = document.body.classList.contains('proposta-pdf-mode');
+      setCompleto(mq.matches || mqPrint.matches || pdfMode);
+    };
     sync();
     mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
+    mqPrint.addEventListener('change', sync);
+    window.addEventListener('beforeprint', sync);
+    window.addEventListener('afterprint', sync);
+    const obs = new MutationObserver(sync);
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => {
+      mq.removeEventListener('change', sync);
+      mqPrint.removeEventListener('change', sync);
+      window.removeEventListener('beforeprint', sync);
+      window.removeEventListener('afterprint', sync);
+      obs.disconnect();
+    };
   }, []);
 
   return completo;
@@ -52,34 +72,34 @@ export function ProjecaoGeracaoChart({
     Math.round(hsp * potenciaKwp * performanceRate * DIAS_POR_MES_CRESESB[i])
   );
   const maxVal = Math.max(...geracao, 1);
-  const minVal = Math.min(...geracao);
-  const iMax = geracao.indexOf(maxVal);
-  const iMin = geracao.indexOf(minVal);
   const anual = geracao.reduce((a, b) => a + b, 0);
   const media = Math.round(anual / geracao.length);
+  const { pessimista, otimista } = escalaGeracaoPorFaixaPr(media, performanceRate);
   const mediaPct = Math.max(0, Math.min(100, (media / maxVal) * 100));
   const potTxt = potenciaKwp.toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+  const pctMin = Math.round(PR_FAIXA_MIN * 100);
+  const pctMax = Math.round(PR_FAIXA_MAX * 100);
 
   return (
     <PiengChartSection
       title="Projeção de geração ao longo do ano"
       subtitle={`Sistema ${potTxt} kWp · ${solar.cidade} · kWh/mês`}
       className="pieng-projecao-geracao"
-      disclaimer="Estimativa sazonal. A geração real varia com o clima, as condições do local, a orientação do telhado em relação ao sol, a limpeza dos módulos e outros fatores que podem interferir na geração."
+      disclaimer={`Estimativa sazonal com expectativa de desempenho entre ${pctMin}% e ${pctMax}%. A geração real varia com o clima, as condições do local, a orientação do telhado em relação ao sol, a limpeza dos módulos e outros fatores.`}
     >
       <PiengChartKpiGrid>
         <PiengChartKpi label="Anual estimada" value={`${anual.toLocaleString('pt-BR')} kWh`} />
-        <PiengChartKpi label="Média" value={`${media.toLocaleString('pt-BR')} kWh`} />
-        <PiengChartKpi
-          label="Otimista"
-          value={`${MESES_ABREV[iMax]} · ${maxVal.toLocaleString('pt-BR')} kWh`}
-        />
+        <PiengChartKpi label="Média" value={`${media.toLocaleString('pt-BR')} kWh/mês`} />
         <PiengChartKpi
           label="Pessimista"
-          value={`${MESES_ABREV[iMin]} · ${minVal.toLocaleString('pt-BR')} kWh`}
+          value={`${pessimista.toLocaleString('pt-BR')} kWh/mês`}
+        />
+        <PiengChartKpi
+          label="Otimista"
+          value={`${otimista.toLocaleString('pt-BR')} kWh/mês`}
         />
       </PiengChartKpiGrid>
 
@@ -102,7 +122,6 @@ export function ProjecaoGeracaoChart({
         )}
 
         <div className="w-full max-w-5xl mx-auto">
-          {/* Valores acima das barras: só desktop / landscape */}
           <div
             className={`gap-1.5 sm:gap-3 md:gap-4 mb-1 ${
               mostrarCompleto ? 'flex' : 'hidden'
@@ -209,8 +228,8 @@ export function ProjecaoGeracaoChart({
           </span>
           {mostrarCompleto && (
             <span className="text-slate-400">
-              Pessimista {minVal.toLocaleString('pt-BR')} kWh · Otimista{' '}
-              {maxVal.toLocaleString('pt-BR')} kWh
+              Pessimista {pessimista.toLocaleString('pt-BR')} · Otimista{' '}
+              {otimista.toLocaleString('pt-BR')} kWh/mês
             </span>
           )}
         </div>

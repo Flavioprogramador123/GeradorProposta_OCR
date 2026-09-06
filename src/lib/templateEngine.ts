@@ -893,11 +893,12 @@ export class TemplateEnginePadrao {
   private generateSystemCards(sistemas: Sistema[], data?: PropostaData): string {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
-    
+    const cardUnico = sistemas.length === 1;
+
     return sistemas.map((sistema, index) => {
       const paybackAtual = Number(sistema.paybackMeses) || 999;
-      const isRecommended = paybackAtual === melhorPayback;
-      const recommendedClass = isRecommended ? 'recommended' : '';
+      const isRecommended = !cardUnico && paybackAtual === melhorPayback;
+      const recommendedClass = isRecommended ? 'recommended' : cardUnico ? 'card-unico-featured' : '';
       const badge = isRecommended ? '<div class="card-badge">⭐ RECOMENDADO</div>' : '';
 
       // USAR DADOS REAIS DA TABELA
@@ -908,12 +909,15 @@ export class TemplateEnginePadrao {
       const potInversorReal = sistema.pot_inv || Math.ceil(sistema.potTotal || 0);
       const marcaInversorReal = sistema.marca_inversor || 'string';
       const tipoInstalacao = sistema.tipo_instalacao || 'Telhado Fibrocimento';
+      const tituloCard = cardUnico
+        ? (sistema.nome || 'Seu sistema solar')
+        : `SISTEMA ${index + 1}${isRecommended ? ' ⭐ RECOMENDADO' : ''}`;
 
       return `
         <div class="system-card ${recommendedClass}">
           ${badge}
           <div class="card-header">
-            <div class="card-title">SISTEMA ${index + 1} ${isRecommended ? '⭐ RECOMENDADO' : ''}</div>
+            <div class="card-title">${tituloCard}</div>
             <div class="card-subtitle">Potência: ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
           </div>
           <div class="card-body">
@@ -956,11 +960,12 @@ export class TemplateEnginePadrao {
   private generateSystemCardsResultados(sistemas: Sistema[], data?: PropostaData): string {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
-    
+    const cardUnico = sistemas.length === 1;
+
     return sistemas.map((sistema, index) => {
       const paybackAtual = Number(sistema.paybackMeses) || 999;
-      const isRecommended = paybackAtual === melhorPayback;
-      const recommendedClass = isRecommended ? 'recommended' : '';
+      const isRecommended = !cardUnico && paybackAtual === melhorPayback;
+      const recommendedClass = isRecommended ? 'recommended' : cardUnico ? 'card-unico-featured' : '';
       const badge = isRecommended ? '<div class="card-badge">🏆 MELHOR PAYBACK</div>' : '';
 
       // USAR DADOS REAIS DA TABELA (como no Gerador Rápido)
@@ -971,14 +976,15 @@ export class TemplateEnginePadrao {
       const potInversorReal = sistema.pot_inv || Math.ceil(sistema.potTotal || 0);
       const marcaInversorReal = sistema.marca_inversor || 'string';
       const tipoInstalacao = sistema.tipo_instalacao || 'Telhado Fibrocimento';
+      const tituloCard = cardUnico
+        ? (sistema.nome || 'Seu sistema solar')
+        : `${sistema.nome || `Sistema ${index + 1}`}${isRecommended ? ' ⭐ RECOMENDADO' : ''}`;
 
       return `
         <div class="system-card ${recommendedClass}">
           ${badge}
           <div class="card-header">
-            <div class="card-title">${sistema.nome || `Sistema ${index + 1}`}
-              ${isRecommended ? ' ⭐ RECOMENDADO' : ''}
-            </div>
+            <div class="card-title">${tituloCard}</div>
             <div class="card-subtitle">Potência: ${(sistema.potTotal || 0).toFixed(2)} kWp</div>
           </div>
           <div class="card-body">

@@ -1,0 +1,64 @@
+/**
+ * PIENG — Skin tecnologia / dark (opcional)
+ * Fonte: .temp/proposta_andreia-jorge-neto-tecnologia.html
+ * Ativar: body.skin-tecnologia (ainda não é default — PDF menos ideal)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+body.skin-tecnologia {
+  --bg: #0a0e14;
+  --panel: #121826;
+  --line: #232c3d;
+  --cyan: #38d9c9;
+  --amber: #ffb454;
+  --ink: #e7ecf3;
+  --muted: #8792a6;
+
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(56, 217, 201, 0.08), transparent 40%),
+    radial-gradient(circle at 100% 30%, rgba(255, 180, 84, 0.06), transparent 40%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+body.skin-tecnologia h1,
+body.skin-tecnologia h2,
+body.skin-tecnologia h3 {
+  font-family: 'Sora', sans-serif;
+  color: #fff;
+}
+
+body.skin-tecnologia header,
+body.skin-tecnologia .header,
+body.skin-tecnologia .system-card,
+body.skin-tecnologia .pieng-system-card,
+body.skin-tecnologia .pieng-chart-section,
+body.skin-tecnologia .pieng-card {
+  background: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+}
+
+body.skin-tecnologia .card-header,
+body.skin-tecnologia .pieng-card-header {
+  background: transparent !important;
+  color: var(--cyan) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+body.skin-tecnologia .cta-button,
+body.skin-tecnologia button[data-pieng-pay] {
+  background: transparent !important;
+  color: var(--cyan) !important;
+  border: 1px solid var(--cyan) !important;
+  border-radius: 8px !important;
+}
+
+body.skin-tecnologia .pix-price {
+  color: var(--cyan) !important;
+}

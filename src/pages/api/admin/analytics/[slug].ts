@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { locaisDiferentes } from '@/lib/geoFromRequest';
 
 function mascaraIp(ip?: string | null): string {
   if (!ip || ip === 'unknown') return '—';
@@ -37,9 +38,24 @@ function getMensagemAlerta(tipo: string | null, diasSemVisualizar: number | null
       return 'Cliente passou bastante tempo na proposta — alto interesse.';
     case 'sem_visualizacao':
       return 'Proposta ainda não foi visualizada pelo cliente.';
+    case 'local_divergente':
+      return 'Acesso de cidade diferente da do cliente — possível envio a outro integrador/concorrente.';
     default:
       return 'Ação recomendada: verificar status do cliente.';
   }
+}
+
+function rotuloLocal(a: {
+  geo_local?: string | null;
+  geo_cidade?: string | null;
+  geo_regiao?: string | null;
+  geo_pais?: string | null;
+  geo_isp?: string | null;
+}): string {
+  if (a.geo_local) return a.geo_local;
+  const base = [a.geo_cidade, a.geo_regiao].filter(Boolean).join(', ');
+  if (!base && !a.geo_pais) return '—';
+  return a.geo_pais ? `${base || '—'} · ${a.geo_pais}` : base;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -74,6 +90,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ message: 'Erro ao buscar analytics' });
     }
 
+    // Cidade do cliente (para cruzar com geo do visitante)
+    let cidadeCliente: string | null = null;
+    const { data: propostaRow } = await supabase
+      .from('propostas')
+      .select('cliente_id, dados_completos')
+      .eq('slug', slug)
+      .maybeSingle();
+    if (propostaRow?.cliente_id) {
+      const { data: clienteRow } = await supabase
+        .from('clientes')
+        .select('cidade')
+        .eq('id', propostaRow.cliente_id)
+        .maybeSingle();
+      cidadeCliente = (clienteRow?.cidade as string) || null;
+    }
+    if (!cidadeCliente && propostaRow?.dados_completos) {
+      const dc = propostaRow.dados_completos as Record<string, unknown>;
+      const cli = (dc.cliente || dc.Cliente || {}) as Record<string, unknown>;
+      cidadeCliente =
+        (cli.cidade as string) ||
+        (cli.cidadeCliente as string) ||
+        (dc.cidade as string) ||
+        null;
+    }
+
     if (!analytics || analytics.length === 0) {
       return res.status(200).json({
         analytics: [],
@@ -88,12 +129,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           diasSemVisualizar: null,
           ipsDistintos: 0,
           equipamentosDistintos: 0,
+          locaisDistintos: 0,
+          cidadeCliente,
+          localDivergente: false,
           diagnosticoCompartilhamento: {
             indício: false,
             confianca: 'nenhum',
             motivo: 'Ainda não houve acesso.',
             equipamentos: [] as string[],
             ipsMascarados: [] as string[],
+            locais: [] as string[],
           },
           alertas: [
             {
@@ -113,13 +158,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const ips = new Set<string>();
     const equipamentos = new Set<string>();
+    const locais = new Set<string>();
     for (const a of analytics) {
       if (a.ip_address) ips.add(a.ip_address);
       if (Array.isArray(a.ips_unicos)) a.ips_unicos.forEach((ip: string) => ips.add(ip));
       equipamentos.add(
         `${a.device_type || '?'}|${a.browser || '?'}|${a.os || '?'}`
       );
+      const loc = rotuloLocal(a);
+      if (loc && loc !== '—') locais.add(loc);
     }
+
+    const localDivergente = analytics.some((a) =>
+      locaisDiferentes(cidadeCliente, a.geo_cidade)
+    );
+    const multiLocal = locais.size > 1;
 
     const compartilhadoFlag = analytics.some(
       (a) => a.compartilhado || (a.ips_unicos?.length || 0) > 1
@@ -127,11 +180,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const multiIp = ips.size > 1;
     const multiEquip = equipamentos.size > 1;
     const multiVisitante = analytics.length > 1;
-    const compartilhado = compartilhadoFlag || multiIp || multiEquip || multiVisitante;
+    const compartilhado =
+      compartilhadoFlag || multiIp || multiEquip || multiVisitante || localDivergente;
 
     let confianca: 'alta' | 'media' | 'baixa' | 'nenhum' = 'nenhum';
     let motivo = 'Um único perfil de acesso até agora.';
-    if (multiEquip && multiIp) {
+    if (localDivergente && (multiEquip || multiIp)) {
+      confianca = 'alta';
+      motivo = cidadeCliente
+        ? `Acesso fora de ${cidadeCliente} + aparelho/IP diferente — forte indício de envio a outra pessoa (ex.: outro integrador).`
+        : 'Local aproximado diferente + aparelho/IP distinto — possível compartilhamento com concorrente.';
+    } else if (localDivergente) {
+      confianca = 'alta';
+      motivo = cidadeCliente
+        ? `Visitante em cidade diferente de ${cidadeCliente} (cidade do cliente). Vale checar se o link foi para outro integrador.`
+        : 'Visitante em local aproximado diferente do esperado.';
+    } else if (multiLocal) {
+      confianca = 'media';
+      motivo =
+        'Acessos de cidades/regiões diferentes — pode ser viagem do cliente ou compartilhamento.';
+    } else if (multiEquip && multiIp) {
       confianca = 'alta';
       motivo =
         'Aparelhos diferentes e IPs diferentes — forte indício de que o link foi encaminhado a outra pessoa.';
@@ -152,7 +220,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const precisaContato =
-      analytics.some((a) => a.precisa_contato) || compartilhado;
+      analytics.some((a) => a.precisa_contato) || compartilhado || localDivergente;
     const ultimaVisualizacao = analytics[0]?.ultima_visualizacao || null;
 
     let diasSemVisualizar: number | null = null;
@@ -170,6 +238,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data: a.ultima_visualizacao as string,
         })),
     ];
+    if (localDivergente && !alertas.some((a) => a.tipo === 'local_divergente')) {
+      alertas.unshift({
+        tipo: 'local_divergente',
+        mensagem: getMensagemAlerta('local_divergente', null),
+        data: ultimaVisualizacao,
+      });
+    }
     if (compartilhado && !alertas.some((a) => a.tipo === 'compartilhado')) {
       alertas.unshift({
         tipo: 'compartilhado',
@@ -182,6 +257,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ...a,
       ip_mascarado: mascaraIp(a.ip_address),
       equipamento_rotulo: rotuloEquipamento(a),
+      local_rotulo: rotuloLocal(a),
+      local_divergente: locaisDiferentes(cidadeCliente, a.geo_cidade),
     }));
 
     return res.status(200).json({
@@ -197,12 +274,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         diasSemVisualizar,
         ipsDistintos: ips.size,
         equipamentosDistintos: equipamentos.size,
+        locaisDistintos: locais.size,
+        cidadeCliente,
+        localDivergente,
         diagnosticoCompartilhamento: {
           indício: compartilhado,
           confianca,
           motivo,
           equipamentos: analytics.map(rotuloEquipamento),
           ipsMascarados: Array.from(ips).map(mascaraIp),
+          locais: Array.from(locais),
         },
         alertas,
       },

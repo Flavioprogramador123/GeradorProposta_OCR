@@ -149,6 +149,36 @@ export function saveConfigRapida(partial: Partial<ConfigRapidaShared>): ConfigRa
 }
 
 /**
+ * Apaga a sessão local e devolve defaults ← admin (sem overrides da 4a/gerador).
+ * Usado pelo botão Limpar na Proposta automática.
+ */
+export function clearConfigRapida(admin?: Record<string, unknown> | null): ConfigRapidaShared {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(CONFIG_RAPIDA_STORAGE_KEY);
+    } catch {
+      /* private mode */
+    }
+  }
+  const fromAdmin = configRapidaFromAdmin(admin);
+  const next: ConfigRapidaShared = {
+    ...CONFIG_RAPIDA_DEFAULTS,
+    ...fromAdmin,
+    geracaoMin: CONFIG_RAPIDA_DEFAULTS.geracaoMin,
+    geracaoMax: CONFIG_RAPIDA_DEFAULTS.geracaoMax,
+    updatedAt: new Date().toISOString(),
+  };
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(CONFIG_RAPIDA_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      /* quota / private mode */
+    }
+  }
+  return next;
+}
+
+/**
  * Merge: defaults ← admin (semente) ← sessão.
  * Edits da 4a / gerador / bridge V3 prevalecem sobre /admin/configuracoes.
  */

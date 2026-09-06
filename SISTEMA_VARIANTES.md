@@ -82,14 +82,16 @@ src/
   - 🏥 Sustentabilidade na saúde
 
 ### 5️⃣ **COMERCIAL - PANIFICADORA** 🍞
-- **Cores**: Laranja (#d97706), Amarelo (#facc15), Vermelho (#ef4444)
-- **Tema**: Caloroso, produtivo, energia
-- **Foco**: Economia em fornos, produção contínua
+- **Cores (v2.4.8)**: Trigo `#F5EDE0`, crosta `#C4A574` / `#8B6914`, CTA verde `#15803d`
+- **Tema**: Farinha, padaria aconchegante — **não** promo vermelha
+- **Fundo**: Bege + padrão SVG de pães (opacidade baixa)
+- **Foco**: Economia em fornos, margem por produto, leitura financeira clara
+- **Marketing**: regra 70·20·10 — ver `src/data/knowledge/VARIANTES_MARKETING_CORES.md`
 - **Benefícios Destacados**:
-  - 🔥 Economia em equipamentos de alta potência
-  - 💰 Redução de custos para aumentar margem
-  - ⚡ Energia estável para produção
-  - 🌱 Padaria sustentável
+  - Fornos/equipamentos com energia previsível
+  - Freezers e balcões sem surpresa na conta
+  - Margem maior por produto
+  - Selo padaria sustentável
 
 ### 6️⃣ **COMERCIAL - AÇOUGUE** 🥩
 - **Cores**: Vermelho (#dc2626), Roxo (#7c3aed), Âmbar (#f59e0b)

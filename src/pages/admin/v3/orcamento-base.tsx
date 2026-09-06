@@ -8,6 +8,7 @@ import {
 } from '@/lib/configRapidaShared';
 import { formatBRL } from '@/lib/formatBRL';
 import { V3_GERADOR_STORAGE_KEY } from '@/modules/v3/bridge/toGerador';
+import { isInversorHibrido } from '@/modules/v3/calc/dcAcRatio';
 
 interface CatalogItem {
   id: number;
@@ -137,6 +138,15 @@ export default function AdminV3OrcamentoBase() {
       ),
     [catalogo]
   );
+  /** Lista principal: on-grid / micro — híbridos só no optgroup secundário */
+  const invsPrincipais = useMemo(
+    () => invs.filter((i) => i.categoria === 'microinversor' || !isInversorHibrido(i)),
+    [invs]
+  );
+  const invsHibridos = useMemo(
+    () => invs.filter((i) => i.categoria === 'inversor' && isInversorHibrido(i)),
+    [invs]
+  );
 
   const cardAtivo = useMemo(
     () => cards.find((c) => c.id === cardAtivoId) || null,
@@ -167,9 +177,13 @@ export default function AdminV3OrcamentoBase() {
     setSkuMod((prev) =>
       prev && modsOk.some((c) => c.sku_interno === prev) ? prev : modsOk[0]?.sku_interno || ''
     );
-    setSkuInv((prev) =>
-      prev && invsOk.some((c) => c.sku_interno === prev) ? prev : invsOk[0]?.sku_interno || ''
-    );
+    setSkuInv((prev) => {
+      if (prev && invsOk.some((c) => c.sku_interno === prev)) return prev;
+      const principais = invsOk.filter(
+        (c) => c.categoria === 'microinversor' || !isInversorHibrido(c)
+      );
+      return principais[0]?.sku_interno || invsOk[0]?.sku_interno || '';
+    });
   }, [cdId]);
 
   const loadLista = useCallback(async () => {
@@ -659,8 +673,8 @@ export default function AdminV3OrcamentoBase() {
       <div className="admin-shell">
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold admin-title">Proposta por kits</h1>
               <p className="text-sm admin-subtitle">
                 Monta kits do catálogo (módulo/inversor + qtds) e envia à{' '}
@@ -674,7 +688,7 @@ export default function AdminV3OrcamentoBase() {
                 .
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-shrink-0">
               <Link
                 href="/admin"
                 className="admin-btn-ghost text-sm"
@@ -746,11 +760,23 @@ export default function AdminV3OrcamentoBase() {
                 className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
                 <option value="">—</option>
-                {invs.map((m) => (
-                  <option key={m.sku_interno} value={m.sku_interno}>
-                    [{m.categoria === 'microinversor' ? 'micro' : 'string'}] {m.nome} · {money(m.preco_custo)}
-                  </option>
-                ))}
+                <optgroup label="Lista principal (on-grid / micro)">
+                  {invsPrincipais.map((m) => (
+                    <option key={m.sku_interno} value={m.sku_interno}>
+                      [{m.categoria === 'microinversor' ? 'micro' : 'string'}] {m.nome} ·{' '}
+                      {money(m.preco_custo)}
+                    </option>
+                  ))}
+                </optgroup>
+                {invsHibridos.length > 0 && (
+                  <optgroup label="Híbridos (sob demanda — fora do auto)">
+                    {invsHibridos.map((m) => (
+                      <option key={m.sku_interno} value={m.sku_interno}>
+                        [híbrido] {m.nome} · {money(m.preco_custo)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </label>
             <label className="text-sm">

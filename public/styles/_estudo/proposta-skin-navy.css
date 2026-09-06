@@ -1,0 +1,60 @@
+/**
+ * PIENG — Skin navy/ouro (opcional)
+ * Fonte: .temp/proposta_andreia-jorge-neto-05-09-2026.html
+ * Ativar: body.skin-navy (ainda não é default — ver VARIANTES_MARKETING_CORES.md)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+body.skin-navy {
+  --ink: #16202b;
+  --navy: #0f2340;
+  --navy-2: #17335c;
+  --gold: #e8a93d;
+  --forest: #1f6f54;
+  --paper: #f5f4ef;
+  --card: #ffffff;
+  --line: #e3e0d6;
+  --muted: #6b7280;
+
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  min-height: 100vh;
+}
+
+body.skin-navy h1,
+body.skin-navy h2,
+body.skin-navy h3 {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+body.skin-navy header,
+body.skin-navy .header {
+  background: linear-gradient(160deg, var(--navy), var(--navy-2)) !important;
+  color: #fff !important;
+  border-radius: 18px !important;
+  border: none !important;
+}
+
+body.skin-navy .system-card,
+body.skin-navy .pieng-system-card {
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(15, 35, 64, 0.08) !important;
+}
+
+body.skin-navy .card-header,
+body.skin-navy .pieng-card-header {
+  background: linear-gradient(180deg, var(--navy), var(--navy-2)) !important;
+  color: #fff !important;
+}
+
+body.skin-navy .cta-button,
+body.skin-navy button[data-pieng-pay] {
+  background: var(--gold) !important;
+  color: var(--navy) !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { geoPayload, resolveGeoVisitante } from '@/lib/geoFromRequest';
 
 function detectDevice(userAgent: string): { device: string; browser: string; os: string } {
   const ua = userAgent.toLowerCase();
@@ -46,6 +47,13 @@ function visitorKey(ip: string, userAgent: string): string {
 
 function deviceSignature(device: string, browser: string, os: string): string {
   return `${device}|${browser}|${os}`;
+}
+
+/** Colunas geo ainda não migradas no Supabase (PGRST204) */
+function isMissingGeoColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === 'PGRST204' && /geo_/i.test(error.message || '')) return true;
+  return /Could not find the 'geo_/i.test(error.message || '');
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -144,6 +152,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const pareceCompartilhado = assinaturas.size > 1 || ipsTodos.size > 1 || outrosVisitantes.length > 0;
 
+    // Geo só em insert, IP novo ou se ainda não tiver cidade (evita lookup a cada heartbeat)
+    const precisaGeo =
+      !existingAnalytics ||
+      !existingAnalytics.geo_cidade ||
+      (ip && ip !== 'unknown' && existingAnalytics.ip_address !== ip);
+    const geo = precisaGeo ? await resolveGeoVisitante(req, ip) : null;
+    const geoFields = geo ? geoPayload(geo) : {};
+
     if (existingAnalytics) {
       const novosIPs: string[] = Array.isArray(existingAnalytics.ips_unicos)
         ? [...existingAnalytics.ips_unicos]
@@ -160,38 +176,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const compartilhadoAgora = pareceCompartilhado || novosIPs.length > 1;
 
-      const { data: updated, error: updateError } = await supabase
+      const updateBase = {
+        ultima_visualizacao: agora,
+        tempo_total_segundos: tempoTotalAtualizado,
+        tempo_na_pagina_segundos: tempoSessao,
+        visualizacoes_count: (existingAnalytics.visualizacoes_count || 0) + (isNovaSessao ? 1 : 0),
+        scroll_percentage: Math.max(
+          existingAnalytics.scroll_percentage || 0,
+          scrollPercentage || 0
+        ),
+        cliques_count: isNovaSessao
+          ? (existingAnalytics.cliques_count || 0) + (cliques || 0)
+          : Math.max(existingAnalytics.cliques_count || 0, cliques || 0),
+        ips_unicos: novosIPs,
+        compartilhado: compartilhadoAgora,
+        ip_address: ip,
+        user_agent: userAgent,
+        device_type: deviceInfo.device,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        referer: referer || existingAnalytics.referer,
+        status: compartilhadoAgora
+          ? 'compartilhada'
+          : tempoTotalAtualizado >= 180
+            ? 'interessada'
+            : 'visualizada',
+        updated_at: agora,
+      };
+
+      let { data: updated, error: updateError } = await supabase
         .from('proposta_analytics')
-        .update({
-          ultima_visualizacao: agora,
-          tempo_total_segundos: tempoTotalAtualizado,
-          tempo_na_pagina_segundos: tempoSessao,
-          visualizacoes_count: (existingAnalytics.visualizacoes_count || 0) + (isNovaSessao ? 1 : 0),
-          scroll_percentage: Math.max(
-            existingAnalytics.scroll_percentage || 0,
-            scrollPercentage || 0
-          ),
-          cliques_count: isNovaSessao
-            ? (existingAnalytics.cliques_count || 0) + (cliques || 0)
-            : Math.max(existingAnalytics.cliques_count || 0, cliques || 0),
-          ips_unicos: novosIPs,
-          compartilhado: compartilhadoAgora,
-          ip_address: ip,
-          user_agent: userAgent,
-          device_type: deviceInfo.device,
-          browser: deviceInfo.browser,
-          os: deviceInfo.os,
-          referer: referer || existingAnalytics.referer,
-          status: compartilhadoAgora
-            ? 'compartilhada'
-            : tempoTotalAtualizado >= 180
-              ? 'interessada'
-              : 'visualizada',
-          updated_at: agora,
-        })
+        .update({ ...updateBase, ...geoFields })
         .eq('id', existingAnalytics.id)
         .select()
         .single();
+
+      if (updateError && isMissingGeoColumn(updateError) && Object.keys(geoFields).length > 0) {
+        console.warn(
+          '⚠️ Colunas geo_* ausentes — rode sql/8_proposta_analytics_geo.sql. Salvando analytics sem local.'
+        );
+        ({ data: updated, error: updateError } = await supabase
+          .from('proposta_analytics')
+          .update(updateBase)
+          .eq('id', existingAnalytics.id)
+          .select()
+          .single());
+      }
 
       if (updateError) {
         console.error('Erro ao atualizar analytics:', updateError);
@@ -214,40 +244,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Novo visitante (outro IP e/ou outro aparelho)
-    const { data: newAnalytics, error: insertError } = await supabase
+    const geoNovo = geo || (await resolveGeoVisitante(req, ip));
+    const insertBase = {
+      proposta_slug: slug,
+      proposta_id: proposta.id,
+      cliente_id: proposta.cliente_id,
+      ip_address: ip,
+      user_agent: userAgent,
+      referer: referer,
+      device_type: deviceInfo.device,
+      browser: deviceInfo.browser,
+      os: deviceInfo.os,
+      primeira_visualizacao: primeiraVisualizacao || agora,
+      ultima_visualizacao: agora,
+      tempo_total_segundos: tempoSessao,
+      tempo_na_pagina_segundos: tempoSessao,
+      visualizacoes_count: 1,
+      scroll_percentage: scrollPercentage || 0,
+      cliques_count: cliques || 0,
+      ips_unicos: ip && ip !== 'unknown' ? [ip] : [],
+      compartilhado: pareceCompartilhado,
+      status: pareceCompartilhado ? 'compartilhada' : 'visualizada',
+      precisa_contato: pareceCompartilhado,
+      alerta_contato: pareceCompartilhado ? 'compartilhado' : null,
+    };
+
+    let { data: newAnalytics, error: insertError } = await supabase
       .from('proposta_analytics')
-      .insert({
-        proposta_slug: slug,
-        proposta_id: proposta.id,
-        cliente_id: proposta.cliente_id,
-        ip_address: ip,
-        user_agent: userAgent,
-        referer: referer,
-        device_type: deviceInfo.device,
-        browser: deviceInfo.browser,
-        os: deviceInfo.os,
-        primeira_visualizacao: primeiraVisualizacao || agora,
-        ultima_visualizacao: agora,
-        tempo_total_segundos: tempoSessao,
-        tempo_na_pagina_segundos: tempoSessao,
-        visualizacoes_count: 1,
-        scroll_percentage: scrollPercentage || 0,
-        cliques_count: cliques || 0,
-        ips_unicos: ip && ip !== 'unknown' ? [ip] : [],
-        compartilhado: pareceCompartilhado,
-        status: pareceCompartilhado ? 'compartilhada' : 'visualizada',
-        precisa_contato: pareceCompartilhado,
-        alerta_contato: pareceCompartilhado ? 'compartilhado' : null,
-      })
+      .insert({ ...insertBase, ...geoPayload(geoNovo) })
       .select()
       .single();
+
+    if (insertError && isMissingGeoColumn(insertError)) {
+      console.warn(
+        '⚠️ Colunas geo_* ausentes — rode sql/8_proposta_analytics_geo.sql. Salvando analytics sem local.'
+      );
+      ({ data: newAnalytics, error: insertError } = await supabase
+        .from('proposta_analytics')
+        .insert(insertBase)
+        .select()
+        .single());
+    }
 
     if (insertError) {
       console.error('Erro ao criar analytics:', insertError);
       const msg =
         insertError.code === '42501'
           ? 'RLS bloqueou insert em proposta_analytics. Execute sql/7_proposta_analytics_rls_track.sql no Supabase (ou configure SUPABASE_SERVICE_ROLE_KEY).'
-          : 'Erro ao criar analytics';
+          : insertError.code === 'PGRST204'
+            ? 'Schema analytics desatualizado. Execute sql/8_proposta_analytics_geo.sql no Supabase.'
+            : 'Erro ao criar analytics';
       return res.status(500).json({
         message: msg,
         code: insertError.code,

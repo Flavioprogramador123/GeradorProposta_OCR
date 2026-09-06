@@ -6,6 +6,11 @@
  */
 
 import { PIENG_CHART } from '@/lib/piengChartTheme';
+import {
+  PR_FAIXA_MAX,
+  PR_FAIXA_MIN,
+  escalaGeracaoPorFaixaPr,
+} from '@/lib/performanceMensalCopy';
 
 // ============================================================================
 // INTERFACES
@@ -150,13 +155,13 @@ export function generateProjecaoGeracaoClienteHtml(params: {
     Math.round(hsp * potenciaKwp * performanceRate * (diasPorMes[i] ?? 30))
   );
   const maxVal = Math.max(...geracao, 1);
-  const minVal = Math.min(...geracao);
-  const iMax = geracao.indexOf(maxVal);
-  const iMin = geracao.indexOf(minVal);
   const anual = geracao.reduce((a, b) => a + b, 0);
   const media = Math.round(anual / geracao.length);
+  const { pessimista, otimista } = escalaGeracaoPorFaixaPr(media, performanceRate);
   const mediaPct = Math.max(0, Math.min(100, (media / maxVal) * 100));
   const uid = `pg${Math.abs(Math.round(potenciaKwp * 1000 + media)).toString(36)}`;
+  const pctMin = Math.round(PR_FAIXA_MIN * 100);
+  const pctMax = Math.round(PR_FAIXA_MAX * 100);
 
   const valuesRow = geracao
     .map(
@@ -193,8 +198,8 @@ export function generateProjecaoGeracaoClienteHtml(params: {
   });
   const onde = cidadeLabel ? ` · ${cidadeLabel}` : '';
   const mediaTxt = media.toLocaleString('pt-BR');
-  const minTxt = minVal.toLocaleString('pt-BR');
-  const maxTxt = maxVal.toLocaleString('pt-BR');
+  const pesTxt = pessimista.toLocaleString('pt-BR');
+  const otiTxt = otimista.toLocaleString('pt-BR');
   const kpi = (label: string, value: string) =>
     `<div style="background:${PIENG_CHART.surface};border:1px solid ${PIENG_CHART.border};border-radius:10px;padding:10px 12px;">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:${PIENG_CHART.muted};font-weight:600;">${label}</div>
@@ -235,14 +240,27 @@ export function generateProjecaoGeracaoClienteHtml(params: {
       .pieng-projecao-geracao .pieng-geracao-bar { max-width:72px !important; width:90% !important; }
       .pieng-projecao-geracao .pieng-geracao-plot { height:200px; }
     }
+    /* Print + ?pdf=1: força 12 meses visíveis (papel não tem toque) */
+    @media print {
+      .pieng-projecao-geracao .pieng-geracao-vals { display:flex !important; }
+      .pieng-projecao-geracao .pieng-geracao-hint { display:none !important; }
+      .pieng-projecao-geracao .pieng-geracao-var { display:inline !important; }
+      .pieng-projecao-geracao .pieng-geracao-col .pieng-geracao-bar,
+      .pieng-projecao-geracao.is-compact .pieng-geracao-col .pieng-geracao-bar { opacity:1 !important; }
+    }
+    body.proposta-pdf-mode .pieng-projecao-geracao .pieng-geracao-vals { display:flex !important; }
+    body.proposta-pdf-mode .pieng-projecao-geracao .pieng-geracao-hint { display:none !important; }
+    body.proposta-pdf-mode .pieng-projecao-geracao .pieng-geracao-var { display:inline !important; }
+    body.proposta-pdf-mode .pieng-projecao-geracao .pieng-geracao-col .pieng-geracao-bar,
+    body.proposta-pdf-mode .pieng-projecao-geracao.is-compact .pieng-geracao-col .pieng-geracao-bar { opacity:1 !important; }
   </style>
   <h3 style="margin:0 0 4px;font-size:1.25rem;color:${PIENG_CHART.text};font-weight:700;">Projeção de geração ao longo do ano</h3>
   <p style="margin:0 0 14px;font-size:0.9rem;color:${PIENG_CHART.muted};">Sistema ${potTxt} kWp${onde} · kWh/mês</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
     ${kpi('Anual estimada', `${anual.toLocaleString('pt-BR')} kWh`)}
-    ${kpi('Média', `${mediaTxt} kWh`)}
-    ${kpi('Otimista', `${meses[iMax]} · ${maxTxt} kWh`)}
-    ${kpi('Pessimista', `${meses[iMin]} · ${minTxt} kWh`)}
+    ${kpi('Média', `${mediaTxt} kWh/mês`)}
+    ${kpi('Pessimista', `${pesTxt} kWh/mês`)}
+    ${kpi('Otimista', `${otiTxt} kWh/mês`)}
   </div>
   <div style="background:${PIENG_CHART.surface};border:1px solid ${PIENG_CHART.border};border-radius:12px;padding:14px 8px 10px;">
     <p class="pieng-geracao-hint" data-hint>Média ${mediaTxt} kWh · toque em um mês para ver o valor</p>
@@ -257,10 +275,10 @@ export function generateProjecaoGeracaoClienteHtml(params: {
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:${PIENG_CHART.muted};">
       <span><span style="display:inline-block;width:12px;height:12px;background:${PIENG_CHART.bar};border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Geração mensal</span>
       <span><span style="display:inline-block;width:18px;border-top:2px dashed ${PIENG_CHART.accent};vertical-align:middle;margin-right:4px;"></span>Média (${mediaTxt} kWh)</span>
-      <span class="pieng-geracao-var" style="color:${PIENG_CHART.hint};">Pessimista ${minTxt} kWh · Otimista ${maxTxt} kWh</span>
+      <span class="pieng-geracao-var" style="color:${PIENG_CHART.hint};">Pessimista ${pesTxt} · Otimista ${otiTxt} kWh/mês</span>
     </div>
   </div>
-  <p style="margin:12px 0 0;font-size:0.75rem;color:${PIENG_CHART.hint};line-height:1.4;">Estimativa sazonal. A geração real varia com o clima, as condições do local, a orientação do telhado em relação ao sol, a limpeza dos módulos e outros fatores que podem interferir na geração.</p>
+  <p style="margin:12px 0 0;font-size:0.75rem;color:${PIENG_CHART.hint};line-height:1.4;">Estimativa sazonal com expectativa de desempenho entre ${pctMin}% e ${pctMax}%. A geração real varia com o clima, as condições do local, a orientação do telhado em relação ao sol, a limpeza dos módulos e outros fatores.</p>
   <script>
   (function(){
     var root = document.getElementById('${uid}');
@@ -269,6 +287,10 @@ export function generateProjecaoGeracaoClienteHtml(params: {
     var ativo = null;
     var mediaTxt = ${JSON.stringify(mediaTxt)};
     function isCompleto(){
+      if (document.body.classList.contains('proposta-pdf-mode')) return true;
+      try {
+        if (window.matchMedia('print').matches) return true;
+      } catch (e) {}
       return window.matchMedia('(min-width: 768px), (orientation: landscape)').matches;
     }
     function syncMode(){
@@ -313,6 +335,12 @@ export function generateProjecaoGeracaoClienteHtml(params: {
     });
     syncMode();
     window.matchMedia('(min-width: 768px), (orientation: landscape)').addEventListener('change', syncMode);
+    window.addEventListener('beforeprint', syncMode);
+    window.addEventListener('afterprint', syncMode);
+    try {
+      var mo = new MutationObserver(syncMode);
+      mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) {}
   })();
   </script>
 </section>`;
