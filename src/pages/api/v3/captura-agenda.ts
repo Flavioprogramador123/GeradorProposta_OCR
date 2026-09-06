@@ -32,6 +32,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       dias: body.dias,
       fonte: body.fonte,
       headless: body.headless,
+      publicarAposOk: body.publicarAposOk,
     });
     const proxima = proximaExecucao(agenda);
     return res.status(200).json({ ok: true, agenda, proxima: proxima?.toISOString() || null });

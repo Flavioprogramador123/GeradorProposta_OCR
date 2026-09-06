@@ -14,6 +14,8 @@ export interface CapturaAgenda {
   fonte: CapturaFonte;
   headless: boolean;
   timezone: string;
+  /** Após captura OK, sobe snapshot para Supabase (Vercel). Default true. */
+  publicarAposOk: boolean;
   updatedAt?: string;
   lastRunAt?: string;
   lastRunOk?: boolean;
@@ -27,6 +29,7 @@ export const CAPTURA_AGENDA_DEFAULT: CapturaAgenda = {
   fonte: 'scrape',
   headless: true,
   timezone: 'America/Sao_Paulo',
+  publicarAposOk: true,
 };
 
 function agendaPath() {
@@ -57,6 +60,7 @@ export function loadCapturaAgenda(): CapturaAgenda {
       fonte,
       headless: raw.headless !== false,
       enabled: Boolean(raw.enabled),
+      publicarAposOk: raw.publicarAposOk !== false,
     };
   } catch {
     return { ...CAPTURA_AGENDA_DEFAULT };

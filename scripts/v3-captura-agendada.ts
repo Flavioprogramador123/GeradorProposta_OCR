@@ -1,6 +1,7 @@
 /**
  * Roda a captura V3 conforme data/v3/captura-agenda.json
  * (ou --force para ignorar dia/hora).
+ * Após OK, publica no Supabase se agenda.publicarAposOk (padrão: sim).
  *
  *   npm run v3:captura
  *   npx tsx scripts/v3-captura-agendada.ts --force
@@ -13,6 +14,8 @@ import {
   saveCapturaAgenda,
 } from '../src/modules/v3/precos/agendaCaptura';
 import { atualizarPrecosV3 } from '../src/modules/v3/precos/capturaJob';
+import { pushCatalogToSupabase } from '../src/modules/v3/db/sqlite';
+import { listDivergenciasPrecos, formatDivergenciasResumo } from '../src/modules/v3/precos/divergenciaPrecos';
 
 const force = process.argv.includes('--force');
 
@@ -31,6 +34,7 @@ async function main() {
     hora: agenda.hora,
     dias: agenda.dias,
     fonte: agenda.fonte,
+    publicarAposOk: agenda.publicarAposOk,
     agora: now.toISOString(),
     diaOk,
     horaOk,
@@ -61,12 +65,42 @@ async function main() {
       if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
       return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos`;
     });
-    const msg = lines.join(' | ') || 'ok';
+    let msg = lines.join(' | ') || 'ok';
+
+    const divs = listDivergenciasPrecos();
+    if (divs.length) {
+      console.warn(formatDivergenciasResumo(divs));
+      msg += ` | ⚠ ${divs.length} divergência(s) preço entre CDs`;
+    }
+
+    let publishPart = '';
+    if (agenda.publicarAposOk !== false) {
+      console.log('▶ Publicando catálogo no Supabase…');
+      try {
+        const pub = await pushCatalogToSupabase('captura-agendada');
+        publishPart = ` | publicado Supabase ${pub.stats?.equipamentos ?? '?'} eq / ${pub.stats?.precos ?? '?'} preços @ ${pub.updatedAt}`;
+        console.log('✅', publishPart.trim().replace(/^\|\s*/, ''));
+      } catch (pe) {
+        const pmsg = pe instanceof Error ? pe.message : String(pe);
+        publishPart = ` | FALHA publish: ${pmsg}`;
+        console.error('❌ Publish falhou:', pmsg);
+        saveCapturaAgenda({
+          lastRunAt: new Date().toISOString(),
+          lastRunOk: false,
+          lastRunMsg: (msg + publishPart).slice(0, 500),
+        });
+        process.exit(1);
+      }
+    } else {
+      console.log('Publish desligado (publicarAposOk=false) — só SQLite local.');
+    }
+
+    msg = (msg + publishPart).slice(0, 500);
     console.log(msg);
     saveCapturaAgenda({
       lastRunAt: new Date().toISOString(),
       lastRunOk: true,
-      lastRunMsg: msg.slice(0, 500),
+      lastRunMsg: msg,
     });
     console.log('STATS', result.stats?.porCd);
   } catch (e) {

@@ -84,7 +84,12 @@ export function listPrecos(opts?: {
        JOIN equipamentos e ON e.id = p.equipamento_id
        JOIN cds c ON c.id = p.cd_id
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-       ORDER BY c.codigo, e.categoria, e.nome`
+       ORDER BY
+         CASE WHEN p.preco_custo IS NULL THEN 1 ELSE 0 END,
+         p.preco_custo ASC,
+         e.categoria,
+         e.nome,
+         c.codigo`
     )
     .all(params) as PrecoCdRow[];
 }
@@ -104,9 +109,17 @@ export function upsertPrecoCd(input: {
   const min = getEstoqueMinimoPorCategoria(eq?.categoria);
   const estoque = input.estoque;
   const preco = input.precoCusto;
-  const valido = estoque != null && estoque > min && preco != null && preco > 0 ? 1 : 0;
   const capturadoEm = input.capturadoEm || new Date().toISOString();
   const fonte = input.fonte || 'manual';
+  // Entrada manual: preço basta para valer no kit. Scrape/import: exige estoque > mínimo.
+  const valido =
+    fonte === 'manual'
+      ? preco != null && preco > 0
+        ? 1
+        : 0
+      : estoque != null && estoque > min && preco != null && preco > 0
+        ? 1
+        : 0;
 
   db.prepare(
     `INSERT INTO precos_cd (equipamento_id, cd_id, preco_custo, estoque, capturado_em, fonte, valido_estoque)

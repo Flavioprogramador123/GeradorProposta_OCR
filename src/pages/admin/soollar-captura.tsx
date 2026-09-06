@@ -186,13 +186,12 @@ export default function SoolarCapturaPage() {
               >
                 🏠 Admin
               </Link>
-              <button
-                type="button"
-                onClick={() => typeof window !== 'undefined' && window.history.back()}
+              <Link
+                href="/admin/configuracoes"
                 className="admin-btn-ghost text-sm"
               >
                 ← Voltar
-              </button>
+              </Link>
             </div>
           </div>
 

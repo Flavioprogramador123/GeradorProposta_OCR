@@ -25,10 +25,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const headless = req.body?.headless !== false;
   const cds = Array.isArray(req.body?.cds) ? req.body.cds.map(String) : undefined;
   const singleSession = req.body?.singleSession !== false;
+  // Default: publicar após scrape OK (automação). false = só SQLite.
+  const publicar = req.body?.publicar !== false;
 
   try {
     const result = await atualizarPrecosV3({ fonte, headless, cds, singleSession });
-    return res.status(200).json({ ok: true, ...result });
+    const { listDivergenciasPrecos, formatDivergenciasResumo } = await import(
+      '@/modules/v3/precos/divergenciaPrecos'
+    );
+    const divergencias = listDivergenciasPrecos();
+
+    let publish: { ok: boolean; updatedAt?: string; stats?: unknown; error?: string } | null = null;
+    if (publicar && (fonte === 'scrape' || fonte === 'both')) {
+      try {
+        const { pushCatalogToSupabase } = await import('@/modules/v3/db/sqlite');
+        const pub = await pushCatalogToSupabase('captura-precos-ui');
+        publish = { ok: true, updatedAt: pub.updatedAt, stats: pub.stats };
+      } catch (pe) {
+        publish = {
+          ok: false,
+          error: pe instanceof Error ? pe.message : String(pe),
+        };
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      ...result,
+      divergencias,
+      divergenciasResumo: formatDivergenciasResumo(divergencias),
+      publish,
+      publishMsg: publish?.ok
+        ? `\n\n✅ Publicado no Supabase — ${
+            (publish.stats as { equipamentos?: number; precos?: number } | undefined)?.equipamentos ?? '?'
+          } equipamentos, ${
+            (publish.stats as { equipamentos?: number; precos?: number } | undefined)?.precos ?? '?'
+          } preços (${publish.updatedAt})`
+        : publish && !publish.ok
+          ? `\n\n❌ Captura OK, mas publish falhou: ${publish.error}`
+          : '',
+    });
   } catch (e) {
     return res.status(500).json({
       ok: false,

@@ -89,26 +89,37 @@ export function matchCatalogItem(item: CatalogItem): MatchResult {
       }
     }
 
-    // Marca + potência W
-    if (c.marca && c.potencia_w) {
-      const marca = norm(c.marca);
-      const pot = String(Math.round(c.potencia_w));
-      if (nItem.includes(marca) && nItem.includes(pot)) {
-        score = Math.max(score, 90);
-        reason = `marca+Wp:${c.marca}/${c.potencia_w}`;
-      }
+  // Marca + potência W (módulo): exige padrão Wp, não dígito solto
+  if (c.marca && c.potencia_w && (c.categoria === 'modulo' || /MODULO|PAINEL|FOTOV/.test(nItem))) {
+    const marca = norm(c.marca);
+    const pot = String(Math.round(c.potencia_w));
+    const hasPot = new RegExp(`(?:^|\\s)${pot}\\s*W(?:\\b|$)`).test(nItem) || nItem.includes(`${pot}W`);
+    if (nItem.includes(marca) && hasPot && 90 > score) {
+      score = 90;
+      reason = `marca+Wp:${c.marca}/${c.potencia_w}`;
     }
+  }
 
-    // Marca + kW (inversor)
-    if (c.marca && c.potencia_kw) {
-      const marca = norm(c.marca);
-      const pot = String(c.potencia_kw).replace('.', ' ');
-      const pot2 = String(c.potencia_kw).replace('.', '');
-      if (nItem.includes(marca) && (nItem.includes(norm(String(c.potencia_kw))) || nItem.includes(pot2) || nItem.includes(pot))) {
-        score = Math.max(score, 88);
-        reason = `marca+kW:${c.marca}/${c.potencia_kw}`;
-      }
+  // Marca + kW (inversor): exige 3K / 3KW / 3.0KW — NÃO dígito solto (B3-5.0KWH casava SAJ 3K)
+  if (
+    c.marca &&
+    c.potencia_kw &&
+    (c.categoria === 'inversor' || c.categoria === 'microinversor') &&
+    /INVERS|MICRO/.test(nItem) &&
+    !/BATERIA|BATTERY|\bKWH\b/.test(nItem)
+  ) {
+    const marca = norm(c.marca);
+    const kw = c.potencia_kw;
+    const kwInt = Math.round(kw);
+    const kwStr = String(kw).replace('.', '[,.]');
+    const hasKw =
+      new RegExp(`(?:^|\\s|[^A-Z0-9])${kwInt}\\s*K(?:W)?(?:\\b|[^A-Z0-9])`, 'i').test(nItem) ||
+      new RegExp(`(?:^|\\s|[^A-Z0-9])${kwStr}\\s*K(?:W)?(?:\\b|[^A-Z0-9])`, 'i').test(nItem);
+    if (nItem.includes(marca) && hasKw && 88 > score) {
+      score = 88;
+      reason = `marca+kW:${c.marca}/${c.potencia_kw}`;
     }
+  }
 
     // Token overlap
     const cTokens = new Set(tokens([c.nome, c.marca || '', ...aliasList].join(' ')));
@@ -171,6 +182,58 @@ export function matchCatalogItem(item: CatalogItem): MatchResult {
     }
 
     if (score > best.score) {
+      // Bloqueia cruzamento óbvio de categoria (ex.: bateria → inversor SAJ 3K)
+      const itemCat = (() => {
+        if (/BATERIA|BATTERY|\bKWH\b/.test(nItem) && !/INVERS/.test(nItem)) return 'bateria';
+        if (/CABO\s*SOLAR|CABO\s*CC/.test(nItem)) return 'cabo';
+        if (/MC4/.test(nItem) && !/INVERS/.test(nItem)) return 'conector';
+        if (/M[OÓ]DULO|PAINEL\s*FOTOV/.test(nItem)) return 'modulo';
+        if (/MICRO[\s-]?INVERS/.test(nItem)) return 'microinversor';
+        if (/INVERS/.test(nItem)) return 'inversor';
+        return null;
+      })();
+      if (itemCat && itemCat !== c.categoria) {
+        const okPair =
+          (itemCat === 'microinversor' && c.categoria === 'inversor') ||
+          (itemCat === 'inversor' && c.categoria === 'microinversor');
+        if (!okPair) continue;
+      }
+
+      // Inversor/micro: não cruzar marcas (DEYE 3KW não pode atualizar SAJ 3K)
+      if (c.categoria === 'inversor' || c.categoria === 'microinversor') {
+        const marcasConhecidas = [
+          'SAJ',
+          'DEYE',
+          'GROWATT',
+          'SOLIS',
+          'HUAWEI',
+          'CANADIAN',
+          'WEG',
+          'FRONIUS',
+          'SMA',
+          'ABB',
+          'HOYMILES',
+          'APSYSTEMS',
+          'ENPHASE',
+          'SOFAR',
+          'GOODWE',
+          'LUXPOWER',
+        ];
+        const marcaCand = norm(c.marca || '');
+        const marcaItem = marcasConhecidas.find((m) => nItem.includes(m));
+        if (marcaCand && marcaItem && marcaCand !== marcaItem) {
+          continue;
+        }
+        // Mesma marca, kW diferente (DEYE 3KW ≠ DEYE 7.3KW)
+        const potItem = nItem.match(/(\d+[.,]\d+|\d+)\s*K(?:W)?(?:\b|[^A-Z0-9])/i);
+        if (potItem && c.potencia_kw) {
+          const pw = Number(String(potItem[1]).replace(',', '.'));
+          if (Number.isFinite(pw) && Math.abs(pw - Number(c.potencia_kw)) > 0.2) {
+            continue;
+          }
+        }
+      }
+
       // Módulo: não casar potências diferentes (ex. 625W → MOD-…-630)
       if (c.categoria === 'modulo') {
         const potItem = nItem.match(/\b(\d{3,4})\s*W\b/) || nItem.match(/(\d{3,4})W/);

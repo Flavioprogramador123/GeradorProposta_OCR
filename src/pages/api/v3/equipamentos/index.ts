@@ -1,6 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createEquipamento, listEquipamentos, CATEGORIAS, ensureV3CatalogHydrated } from '@/modules/v3';
+import {
+  createEquipamento,
+  listEquipamentos,
+  listCdsAtivos,
+  CATEGORIAS,
+  ensureV3CatalogHydrated,
+} from '@/modules/v3';
 import type { EquipamentoCategoria } from '@/modules/v3';
+import { upsertPrecoCd } from '@/modules/v3/precos/repository';
+import { getPrecosDoEquipamento, getPrecosResumoEquipamentos } from '@/modules/v3/equipamentos/repository';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -16,7 +24,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             : undefined;
 
       const items = listEquipamentos({ categoria, q, ativo });
-      return res.status(200).json({ items, total: items.length, categorias: CATEGORIAS });
+      const cds = listCdsAtivos();
+      const precosPorId = getPrecosResumoEquipamentos(items.map((i) => i.id));
+      const itemsComPreco = items.map((it) => ({
+        ...it,
+        precos: precosPorId[it.id] || [],
+      }));
+      const { listDivergenciasPrecos } = await import('@/modules/v3/precos/divergenciaPrecos');
+      const divergencias = listDivergenciasPrecos();
+      const divById = new Map(divergencias.map((d) => [d.equipamento_id, d]));
+      return res.status(200).json({
+        items: itemsComPreco.map((it) => ({
+          ...it,
+          divergencia: divById.get(it.id) || null,
+        })),
+        total: itemsComPreco.length,
+        categorias: CATEGORIAS,
+        cds,
+        divergencias,
+      });
     }
 
     if (req.method === 'POST') {
@@ -28,7 +54,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: `categoria inválida. Use: ${CATEGORIAS.join(', ')}` });
       }
       const item = createEquipamento(body);
-      return res.status(201).json({ item });
+      if (Array.isArray(body.precos)) {
+        for (const p of body.precos) {
+          const cdId = Number(p.cdId ?? p.cd_id);
+          if (!Number.isFinite(cdId)) continue;
+          const precoRaw = p.preco_custo ?? p.precoCusto ?? p.preco;
+          const preco = precoRaw === '' || precoRaw == null ? null : Number(precoRaw);
+          const estRaw = p.estoque;
+          const estoque = estRaw === '' || estRaw == null ? null : Number(estRaw);
+          upsertPrecoCd({
+            equipamentoId: item.id,
+            cdId,
+            precoCusto: preco != null && Number.isFinite(preco) ? preco : null,
+            estoque: estoque != null && Number.isFinite(estoque) ? estoque : null,
+            fonte: 'manual',
+          });
+        }
+      }
+      return res.status(201).json({
+        item,
+        precos: getPrecosDoEquipamento(item.id),
+      });
     }
 
     return res.status(405).json({ message: 'Method not allowed' });

@@ -339,7 +339,11 @@ export function listCatalogoComPreco(cdId: number) {
        FROM equipamentos e
        LEFT JOIN precos_cd p ON p.equipamento_id = e.id AND p.cd_id = ?
        WHERE e.ativo = 1
-       ORDER BY e.categoria, e.prioridade_kit, e.nome`
+       ORDER BY
+         e.categoria,
+         CASE WHEN p.preco_custo IS NULL THEN 1 ELSE 0 END,
+         p.preco_custo ASC,
+         e.nome`
     )
     .all(cdId) as Array<{
     id: number;

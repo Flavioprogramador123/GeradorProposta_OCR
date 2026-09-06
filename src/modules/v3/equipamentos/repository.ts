@@ -191,6 +191,91 @@ export function upsertBySkuInterno(input: EquipamentoInput): { id: number; creat
   return { id: created.id, created: true };
 }
 
+export function listCdsAtivos(): Array<{
+  id: number;
+  codigo: number;
+  nome: string;
+  slug_portal: string;
+}> {
+  const db = getV3Db();
+  return db
+    .prepare('SELECT id, codigo, nome, slug_portal FROM cds WHERE ativo = 1 ORDER BY codigo')
+    .all() as Array<{ id: number; codigo: number; nome: string; slug_portal: string }>;
+}
+
+export function getPrecosDoEquipamento(equipamentoId: number): Array<{
+  cd_id: number;
+  cd_nome: string;
+  preco_custo: number | null;
+  estoque: number | null;
+  fonte: string | null;
+  valido_estoque: number;
+  capturado_em: string | null;
+}> {
+  const db = getV3Db();
+  return db
+    .prepare(
+      `SELECT c.id AS cd_id, c.nome AS cd_nome,
+              p.preco_custo, p.estoque, p.fonte, p.valido_estoque, p.capturado_em
+       FROM cds c
+       LEFT JOIN precos_cd p ON p.cd_id = c.id AND p.equipamento_id = ?
+       WHERE c.ativo = 1
+       ORDER BY c.codigo`
+    )
+    .all(equipamentoId) as Array<{
+    cd_id: number;
+    cd_nome: string;
+    preco_custo: number | null;
+    estoque: number | null;
+    fonte: string | null;
+    valido_estoque: number;
+    capturado_em: string | null;
+  }>;
+}
+
+export function getPrecosResumoEquipamentos(equipamentoIds: number[]): Record<
+  number,
+  Array<{
+    cd_id: number;
+    cd_nome: string;
+    preco_custo: number | null;
+    fonte: string | null;
+  }>
+> {
+  const out: Record<
+    number,
+    Array<{ cd_id: number; cd_nome: string; preco_custo: number | null; fonte: string | null }>
+  > = {};
+  if (!equipamentoIds.length) return out;
+  const db = getV3Db();
+  const placeholders = equipamentoIds.map(() => '?').join(',');
+  const rows = db
+    .prepare(
+      `SELECT p.equipamento_id, c.id AS cd_id, c.nome AS cd_nome, p.preco_custo, p.fonte
+       FROM precos_cd p
+       JOIN cds c ON c.id = p.cd_id
+       WHERE p.equipamento_id IN (${placeholders}) AND c.ativo = 1
+       ORDER BY c.codigo`
+    )
+    .all(...equipamentoIds) as Array<{
+    equipamento_id: number;
+    cd_id: number;
+    cd_nome: string;
+    preco_custo: number | null;
+    fonte: string | null;
+  }>;
+  for (const r of rows) {
+    if (!out[r.equipamento_id]) out[r.equipamento_id] = [];
+    out[r.equipamento_id].push({
+      cd_id: r.cd_id,
+      cd_nome: r.cd_nome,
+      preco_custo: r.preco_custo,
+      fonte: r.fonte,
+    });
+  }
+  return out;
+}
+
 export function getV3Stats() {
   const db = getV3Db();
   const equipamentos = db.prepare('SELECT COUNT(*) AS c FROM equipamentos WHERE ativo = 1').get() as {

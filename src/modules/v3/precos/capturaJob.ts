@@ -1,8 +1,9 @@
 /**
  * Job 2a — atualiza precos_cd.
  * Fontes:
- *  - dumps HTML/JSON em temp/ (offline, estável)
- *  - scraping Playwright: 1 sessão → 3 CDs → paginação → HTML catalog
+ *  - scraping Playwright (recomendado em operação)
+ *  - pasta escolhida pelo usuário (HTML) via /api/v3/importar-pasta-precos
+ *  - temp/_import_pasta (staging do upload; não varrer temp/ antigo)
  */
 import fs from 'fs';
 import path from 'path';
@@ -11,8 +12,6 @@ import { getV3TempDir } from '../db/paths';
 import {
   applyCatalogToCd,
   dedupeCatalogItems,
-  importFeiraJsonToCd,
-  importHtmlFileToCd,
   parseProductsFromHtml,
   type CatalogItem,
 } from './importCatalog';
@@ -26,129 +25,15 @@ import {
 
 export type CapturaFonte = 'temp' | 'scrape' | 'both';
 
-const TEMP_HTML_MAP: Array<{ cd: string; globs: string[] }> = [
-  {
-    cd: 'Feira de Santana',
-    globs: [
-      'temp/Soollar Distribuidora_feira.html',
-      'temp/_feira*.html',
-      'temp/soollar-*feira*.html',
-      'temp/soollar-*cdfeiradesantana*.html',
-    ],
-  },
-  {
-    cd: 'Matriz',
-    globs: [
-      'temp/_matrizcd_cdgoiania.html',
-      'temp/_matrizcd_cdgoiania_secao_*.html',
-      'temp/_matrizcd_cdmatriz.html',
-      'temp/soollar-*cdgoiania*.html',
-      'temp/soollar-*matriz*.html',
-    ],
-  },
-  {
-    cd: 'Aeroporto',
-    globs: [
-      'temp/_aeroporto*.html',
-      'temp/*aeroporto*.html',
-      'temp/soollar-*cdaeroportogo*.html',
-      'temp/soollar-*aeroporto*.html',
-    ],
-  },
-];
-
-function expandGlobs(patterns: string[]): string[] {
-  const root = process.cwd();
-  const out: string[] = [];
-  for (const pattern of patterns) {
-    const full = path.isAbsolute(pattern) ? pattern : path.join(root, pattern);
-    if (full.includes('*')) {
-      const dir = path.dirname(full);
-      const re = new RegExp('^' + path.basename(full).replace(/\./g, '\\.').replace(/\*/g, '.*') + '$', 'i');
-      if (!fs.existsSync(dir)) continue;
-      for (const f of fs.readdirSync(dir)) {
-        if (re.test(f)) out.push(path.join(dir, f));
-      }
-    } else if (fs.existsSync(full)) {
-      out.push(full);
-    }
-  }
-  return Array.from(new Set(out));
-}
-
-export async function atualizarPrecosFromTemp(): Promise<{
+/** @deprecated Preferir botão Importar pasta (upload). Scripts: passar baseDir. */
+export async function atualizarPrecosFromTemp(opts?: { baseDir?: string }): Promise<{
   results: unknown[];
   stats: ReturnType<typeof getPrecosStats>;
 }> {
-  await refreshEstoqueMinimosFromAdmin();
-  const results: unknown[] = [];
-
-  try {
-    const feiraJson = path.join(getV3TempDir(), '_feira_produtos.json');
-    const feiraLegacy = path.join(process.cwd(), 'temp', '_feira_produtos.json');
-    if (fs.existsSync(feiraJson) || fs.existsSync(feiraLegacy)) {
-      results.push({
-        fonte: 'feira-json',
-        ...importFeiraJsonToCd('Feira de Santana', fs.existsSync(feiraJson) ? feiraJson : feiraLegacy),
-      });
-    }
-  } catch (e) {
-    results.push({ fonte: 'feira-json', error: e instanceof Error ? e.message : String(e) });
-  }
-
-  for (const entry of TEMP_HTML_MAP) {
-    const files = expandGlobs(entry.globs);
-    // Preferir dumps com preço/estoque (tamanho não basta — Matriz antiga sem R$)
-    files.sort((a, b) => {
-      const ha = fs.readFileSync(a, 'utf8');
-      const hb = fs.readFileSync(b, 'utf8');
-      const score = (h: string) =>
-        (h.match(/Estoque dispon/gi) || []).length * 1000 +
-        (h.match(/R\$\s*[\d.,]+/g) || []).length +
-        h.length / 10000;
-      return score(hb) - score(ha);
-    });
-
-    let anyMatch = 0;
-    // Aplica TODOS os HTMLs úteis do CD (módulos + estruturas + cabos), não só o 1º
-    for (const file of files) {
-      try {
-        const html = fs.readFileSync(file, 'utf8');
-        const estoqueHits = (html.match(/Estoque dispon/gi) || []).length;
-        if (estoqueHits === 0) {
-          results.push({
-            fonte: 'html',
-            cd: entry.cd,
-            file: path.basename(file),
-            warning: 'HTML sem estoque/preço (sessão anônima?) — ignorado',
-          });
-          continue;
-        }
-        const r = importHtmlFileToCd(file, entry.cd);
-        results.push({ fonte: 'html', cd: entry.cd, file: path.basename(file), ...r });
-        anyMatch += r.matched || 0;
-      } catch (e) {
-        results.push({
-          fonte: 'html',
-          cd: entry.cd,
-          file,
-          error: e instanceof Error ? e.message : String(e),
-        });
-      }
-    }
-    if (!files.length) {
-      results.push({ fonte: 'html', cd: entry.cd, warning: 'nenhum dump HTML em temp/' });
-    } else if (anyMatch === 0) {
-      results.push({
-        fonte: 'html',
-        cd: entry.cd,
-        warning: 'dumps encontrados mas 0 match (parser/matcher)',
-      });
-    }
-  }
-
-  persistRejeitadosFromResults('temp', results);
-  return { results, stats: getPrecosStats() };
+  const { importarPrecosDaPasta } = await import('./importFromPasta');
+  const baseDir = opts?.baseDir || getV3TempDir();
+  const r = await importarPrecosDaPasta(baseDir);
+  return { results: r.results, stats: r.stats };
 }
 
 /** Prefer HTML parser (nomes bons); DOM só como fallback sem "Adicionar R$". */
@@ -416,7 +301,10 @@ export async function atualizarPrecosV3(opts?: {
   let stats = getPrecosStats();
 
   if (fonte === 'temp' || fonte === 'both') {
-    const r = await atualizarPrecosFromTemp();
+    // Legado: só importa de temp/_import_pasta (upload manual). Evita varrer HTML antigo em temp/.
+    const { importarPrecosDaPasta, getImportPastaDir } = await import('./importFromPasta');
+    const dir = getImportPastaDir();
+    const r = await importarPrecosDaPasta(dir);
     allResults.push(...r.results);
     stats = r.stats;
   }

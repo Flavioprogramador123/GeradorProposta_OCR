@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { formatBRL } from '@/lib/formatBRL';
+import { sortByPrecoAsc } from '@/lib/equipamentoLabel';
 
 interface Stats {
   precosTotal?: number;
@@ -31,6 +32,17 @@ interface PrecoRow {
   valido_estoque: number;
   capturado_em: string | null;
   fonte: string | null;
+  equipamento_id?: number;
+}
+
+interface DivergenciaSku {
+  equipamento_id: number;
+  sku_interno: string;
+  nome: string;
+  razao: number;
+  preco_min: number;
+  preco_max: number;
+  alerta: string;
 }
 
 interface Agenda {
@@ -39,6 +51,7 @@ interface Agenda {
   dias: number[];
   fonte: 'temp' | 'scrape' | 'both';
   headless: boolean;
+  publicarAposOk?: boolean;
   lastRunAt?: string;
   lastRunOk?: boolean;
   lastRunMsg?: string;
@@ -54,7 +67,21 @@ const DIAS = [
   { d: 0, label: 'Dom' },
 ];
 
-const HORARIOS = ['06:00', '07:00', '07:30', '08:00', '09:00', '12:00', '18:00', '20:00'];
+const HORARIOS = [
+  '06:00',
+  '07:00',
+  '07:30',
+  '08:00',
+  '09:00',
+  '12:00',
+  '18:00',
+  '20:00',
+  '22:00',
+  '23:00',
+  '23:30',
+  '23:45',
+  '23:57',
+];
 
 const SECOES_UI = [
   { id: 'todas', label: 'Todas' },
@@ -103,6 +130,13 @@ export default function AdminV3Precos() {
   const [filtroMotivo, setFiltroMotivo] = useState('');
   const [busyRej, setBusyRej] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [divergencias, setDivergencias] = useState<DivergenciaSku[]>([]);
+  const [catalogFonte, setCatalogFonte] = useState<{
+    fonte: string;
+    label: string;
+    hydratedAt?: string | null;
+    supabaseSnapshotAt?: string | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams();
@@ -113,8 +147,10 @@ export default function AdminV3Precos() {
     const res = await fetch(`/api/v3/precos?${params}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
-    setItems(data.items || []);
+    setItems(sortByPrecoAsc(data.items || []));
     setStats(data.stats || null);
+    setDivergencias(data.divergencias || []);
+    setCatalogFonte(data.catalog || null);
   }, [apenasValidos, secao, cdId]);
 
   const loadAgenda = useCallback(async () => {
@@ -130,7 +166,7 @@ export default function AdminV3Precos() {
     loadAgenda().catch(() => undefined);
   }, [load, loadAgenda]);
 
-  const run = async (fonte: 'temp' | 'scrape' | 'both') => {
+  const run = async (fonte: 'scrape') => {
     setBusy(true);
     setMsg(`Atualizando via ${fonte}…`);
     try {
@@ -146,14 +182,69 @@ export default function AdminV3Precos() {
         if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
         return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos · ${r.itemsFound ?? ''} itens`;
       });
-      setMsg(lines.join('\n') || 'Concluído');
+      setMsg(
+        (lines.join('\n') || 'Concluído') +
+          (data.publishMsg || '') +
+          (data.divergenciasResumo || '')
+      );
       setStats(data.stats || null);
+      if (data.publish?.ok) {
+        setSyncMsg(
+          `Publicado no Supabase — ${data.publish.stats?.equipamentos ?? '?'} equipamentos, ${data.publish.stats?.precos ?? '?'} preços (${data.publish.updatedAt})`
+        );
+      }
+      if (Array.isArray(data.divergencias)) setDivergencias(data.divergencias);
       await load();
       if (showRejeitados) await loadRejeitados(filtroMotivo);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const pastaInputRef = useRef<HTMLInputElement | null>(null);
+
+  const importarPasta = async (fileList: FileList | null) => {
+    if (!fileList?.length) return;
+    setBusy(true);
+    setMsg('Importando pasta selecionada…');
+    try {
+      const fd = new FormData();
+      let n = 0;
+      for (const f of Array.from(fileList)) {
+        if (!/\.(html?|json)$/i.test(f.name)) continue;
+        fd.append('files', f, f.name);
+        n += 1;
+      }
+      if (!n) {
+        setMsg(
+          'Nenhum HTML/JSON na pasta. Salve a página do SOOLLAR (HTML). Printscreen PNG = futuro (OCR).'
+        );
+        return;
+      }
+      const res = await fetch('/api/v3/importar-pasta-precos', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+      const lines = (data.results || []).map((r: Record<string, unknown>) => {
+        if (r.error) return `${r.fonte}/${r.cd || ''}: ERRO ${r.error}`;
+        if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
+        return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos · ${r.file || ''}`;
+      });
+      setMsg(
+        `Pasta: ${data.uploaded || n} arquivo(s) · ${data.arquivos || 0} HTML aplicados\n` +
+          (lines.join('\n') || 'Concluído') +
+          (data.divergenciasResumo || '')
+      );
+      setStats(data.stats || null);
+      if (Array.isArray(data.divergencias)) setDivergencias(data.divergencias);
+      await load();
+      if (showRejeitados) await loadRejeitados(filtroMotivo);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      if (pastaInputRef.current) pastaInputRef.current.value = '';
     }
   };
 
@@ -164,7 +255,11 @@ export default function AdminV3Precos() {
       const res = await fetch('/api/v3/captura-agenda', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(agenda),
+        body: JSON.stringify({
+          ...agenda,
+          fonte: 'scrape',
+          publicarAposOk: agenda.publicarAposOk !== false,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
@@ -172,7 +267,11 @@ export default function AdminV3Precos() {
       setProxima(data.proxima);
       setAgendaMsg(
         data.agenda.enabled
-          ? `Agenda salva. Próxima: ${data.proxima ? new Date(data.proxima).toLocaleString('pt-BR') : '—'}. Instale a tarefa Windows (botão abaixo).`
+          ? `Agenda salva. Próxima: ${data.proxima ? new Date(data.proxima).toLocaleString('pt-BR') : '—'}. ${
+              data.agenda.publicarAposOk !== false
+                ? 'Após scrape OK → publica no Supabase.'
+                : 'Publish desligado — só SQLite.'
+            } Instale a tarefa Windows se ainda não instalou.`
           : 'Agenda salva (desativada).'
       );
     } catch (e) {
@@ -212,7 +311,12 @@ export default function AdminV3Precos() {
       const res = await fetch(`/api/v3/precos/rejeitados?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
-      setRejeitados(data);
+      const itens = [...(data.itens || [])].sort((a, b) => {
+        const pa = a.preco != null && Number.isFinite(a.preco) ? a.preco : Number.POSITIVE_INFINITY;
+        const pb = b.preco != null && Number.isFinite(b.preco) ? b.preco : Number.POSITIVE_INFINITY;
+        return pa - pb;
+      });
+      setRejeitados({ ...data, itens });
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -260,20 +364,23 @@ export default function AdminV3Precos() {
                 🏠 Admin
               </Link>
               <Link
-                href="/admin"
+                href="/admin/configuracoes"
                 className="admin-btn-ghost text-sm"
               >
                 ← Voltar
               </Link>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={apenasValidos}
-                  onChange={(e) => setApenasValidos(e.target.checked)}
-                />
-                Só válidos
-              </label>
             </div>
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={apenasValidos}
+                onChange={(e) => setApenasValidos(e.target.checked)}
+              />
+              Só válidos
+            </label>
           </div>
 
           <div className="mb-6 admin-surface">
@@ -297,33 +404,48 @@ export default function AdminV3Precos() {
                   <div className="font-medium text-gray-800">O que cada botão faz</div>
                   <ul className="list-disc pl-5 space-y-1 text-gray-600">
                     <li>
-                      <span className="text-amber-700">Importar dumps temp/</span> — lê HTML/JSON em{' '}
-                      <code className="text-sky-700">temp/</code>, sem abrir o navegador.
+                      <span className="text-amber-700">Importar pasta (HTML)</span> — você escolhe a
+                      pasta com dumps SOOLLAR (Salvar página). Não varre{' '}
+                      <code className="text-sky-700">temp/</code> antigo. PNG/print = futuro (OCR).
+                      Outros fornecedores (prompt.yaml) = depois.
                     </li>
                     <li>
                       <span className="text-teal-700">Scraping live (3 CDs)</span> — captura no
-                      SOOLLAR (Aeroporto + Matriz + Feira). Precisa{' '}
-                      <code className="text-sky-700">.env</code>.
+                      SOOLLAR e, se OK, <strong>publica no Supabase</strong> automaticamente.
+                      Precisa <code className="text-sky-700">.env</code>.
                     </li>
                     <li>
-                      <span className="text-gray-700">Temp + scrape</span> — importa temp/ e depois
-                      scrape live.
+                      <span className="text-emerald-700">Captura SOOLLAR</span> — tela dedicada com
+                      probe, terminal ao vivo e opções de CD.
                     </li>
                     <li>
-                      <span className="text-emerald-700">Captura SOOLLAR</span> — abre a
-                      tela dedicada com probe, terminal ao vivo e opções de CD.
+                      <span className="text-sky-700">Publicar no Supabase</span> — sobe o catálogo
+                      local agora (útil após edição manual ou import HTML). Scrape já publica
+                      sozinho.
+                    </li>
+                    <li>
+                      <span className="text-violet-700">Agendamento</span> — Task Scheduler no PC:
+                      scrape no horário + publish (se a opção estiver ligada).
                     </li>
                   </ul>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
+                  <input
+                    ref={pastaInputRef}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    {...({ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
+                    onChange={(e) => importarPasta(e.target.files)}
+                  />
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => run('temp')}
+                    onClick={() => pastaInputRef.current?.click()}
                     className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50 text-sm font-medium"
                   >
-                    Importar dumps temp/
+                    Importar pasta (HTML)…
                   </button>
                   <button
                     type="button"
@@ -332,14 +454,6 @@ export default function AdminV3Precos() {
                     className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-50 text-sm font-medium"
                   >
                     Scraping live (3 CDs)
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => run('both')}
-                    className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white disabled:opacity-50 text-sm font-medium"
-                  >
-                    Temp + scrape
                   </button>
                   <Link
                     href="/admin/soollar-captura"
@@ -370,8 +484,42 @@ export default function AdminV3Precos() {
                   <p className="text-sm text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2">{syncMsg}</p>
                 )}
 
+                {divergencias.length > 0 && (
+                  <div
+                    role="alert"
+                    className="rounded-xl border-2 border-rose-500 bg-rose-50 p-4 space-y-2"
+                  >
+                    <p className="text-sm font-semibold text-rose-800">
+                      🚨 Divergência de preço entre CDs — {divergencias.length} SKU
+                      {divergencias.length > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-xs text-rose-700">
+                      Mesmo equipamento com valores muito diferentes (razão ≥ 1,4×). Possível
+                      mismatch no scrape — revise antes de publicar.
+                    </p>
+                    <ul className="text-xs text-rose-900 space-y-1 max-h-40 overflow-y-auto">
+                      {divergencias.slice(0, 12).map((d) => (
+                        <li key={d.equipamento_id}>
+                          <span className="font-mono font-medium">{d.sku_interno}</span>
+                          {': '}
+                          {formatBRL(d.preco_min)} → {formatBRL(d.preco_max)} ({d.razao}×)
+                        </li>
+                      ))}
+                      {divergencias.length > 12 && (
+                        <li className="text-rose-600">… +{divergencias.length - 12} SKU(s)</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
                 {msg && (
-                  <pre className="text-xs whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-900 p-3 text-slate-300">
+                  <pre
+                    className={`text-xs whitespace-pre-wrap rounded-lg border p-3 ${
+                      msg.includes('DIVERGÊNCIA')
+                        ? 'border-rose-600 bg-rose-950 text-rose-100'
+                        : 'border-gray-800 bg-gray-900 text-slate-300'
+                    }`}
+                  >
                     {msg}
                   </pre>
                 )}
@@ -447,7 +595,7 @@ export default function AdminV3Precos() {
                               <tr>
                                 <th className="px-2 py-1.5 text-left">CD</th>
                                 <th className="px-2 py-1.5 text-left">Nome</th>
-                                <th className="px-2 py-1.5 text-left">Preço</th>
+                                <th className="px-2 py-1.5 text-left">Preço ↑</th>
                                 <th className="px-2 py-1.5 text-left">Estoque</th>
                                 <th className="px-2 py-1.5 text-left">Motivo</th>
                                 <th className="px-2 py-1.5 text-left">Detalhe</th>
@@ -506,9 +654,20 @@ export default function AdminV3Precos() {
                       </label>
                     </div>
                     <p className="text-xs text-gray-600">
-                      O scrape precisa do PC ligado (navegador + .env). Salve a agenda e registre a tarefa
-                      no Windows.
+                      O scrape precisa do PC ligado (navegador + .env). Com a agenda ativa, o Task
+                      Scheduler roda captura e — se a opção abaixo estiver ligada — publica no
+                      Supabase sozinho.
                     </p>
+                    <label className="flex items-center gap-2 text-sm text-violet-900 bg-white/70 border border-violet-200 rounded-lg px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={agenda.publicarAposOk !== false}
+                        onChange={(e) =>
+                          setAgenda({ ...agenda, publicarAposOk: e.target.checked })
+                        }
+                      />
+                      Após captura OK → publicar no Supabase (automático)
+                    </label>
                     <div className="grid md:grid-cols-3 gap-3">
                       <label className="text-sm">
                         <span className="text-xs text-gray-500">Horário (Brasília)</span>
@@ -527,23 +686,12 @@ export default function AdminV3Precos() {
                           ))}
                         </select>
                       </label>
-                      <label className="text-sm">
+                      <div className="text-sm md:col-span-1">
                         <span className="text-xs text-gray-500">Modo</span>
-                        <select
-                          value={agenda.fonte}
-                          onChange={(e) =>
-                            setAgenda({
-                              ...agenda,
-                              fonte: e.target.value as Agenda['fonte'],
-                            })
-                          }
-                          className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
-                        >
-                          <option value="scrape">Scraping live (recomendado)</option>
-                          <option value="temp">Só temp/</option>
-                          <option value="both">Temp + scrape</option>
-                        </select>
-                      </label>
+                        <div className="mt-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700">
+                          Scraping live
+                        </div>
+                      </div>
                       <div className="text-sm">
                         <span className="text-xs text-gray-500">Próxima (estimada)</span>
                         <div className="mt-1 text-violet-800">
@@ -687,7 +835,44 @@ npm run v3:captura:force`}
               </div>
             </div>
             <p className="text-xs text-gray-500">
-              Exibindo {items.length} preço(s)
+              Exibindo {items.length} preço(s) · ordenado do menor ao maior
+              {catalogFonte ? (
+                <>
+                  {' · '}
+                  <span
+                    className={
+                      catalogFonte.fonte === 'sqlite'
+                        ? 'text-amber-700 font-medium'
+                        : catalogFonte.fonte === 'supabase'
+                          ? 'text-sky-700 font-medium'
+                          : 'text-gray-600 font-medium'
+                    }
+                    title={
+                      catalogFonte.fonte === 'sqlite'
+                        ? 'Lista lida do SQLite neste PC (data/v3). Publicar envia uma cópia ao Supabase.'
+                        : catalogFonte.fonte === 'supabase'
+                          ? 'Lista hidratada do snapshot no Supabase (ex.: Vercel).'
+                          : undefined
+                    }
+                  >
+                    fonte: {catalogFonte.label}
+                  </span>
+                  {catalogFonte.fonte === 'sqlite' && catalogFonte.supabaseSnapshotAt ? (
+                    <span className="text-gray-400">
+                      {' '}
+                      (Supabase publicado:{' '}
+                      {new Date(catalogFonte.supabaseSnapshotAt).toLocaleString('pt-BR')})
+                    </span>
+                  ) : null}
+                  {catalogFonte.fonte === 'supabase' && catalogFonte.hydratedAt ? (
+                    <span className="text-gray-400">
+                      {' '}
+                      (snapshot:{' '}
+                      {new Date(catalogFonte.hydratedAt).toLocaleString('pt-BR')})
+                    </span>
+                  ) : null}
+                </>
+              ) : null}
               {cdId
                 ? ` · CD: ${(stats?.porCd || []).find((c) => Number(c.id) === cdId)?.nome || cdId}`
                 : ''}
@@ -703,7 +888,7 @@ npm run v3:captura:force`}
                   <th className="px-3 py-2">Seção</th>
                   <th className="px-3 py-2">SKU</th>
                   <th className="px-3 py-2">Nome</th>
-                  <th className="px-3 py-2">Preço</th>
+                  <th className="px-3 py-2">Preço ↑</th>
                   <th className="px-3 py-2">Estoque</th>
                   <th className="px-3 py-2">OK</th>
                   <th className="px-3 py-2">Fonte</th>
@@ -717,20 +902,47 @@ npm run v3:captura:force`}
                     </td>
                   </tr>
                 )}
-                {items.map((it) => (
-                  <tr key={it.id} className="border-t border-gray-200">
-                    <td className="px-3 py-2 text-gray-600">{it.cd_nome}</td>
-                    <td className="px-3 py-2 text-xs text-amber-700">{it.categoria}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-sky-700">{it.sku_interno}</td>
-                    <td className="px-3 py-2">{it.nome}</td>
-                    <td className="px-3 py-2">
-                      {it.preco_custo != null ? formatBRL(it.preco_custo) : '—'}
-                    </td>
-                    <td className="px-3 py-2">{it.estoque ?? '—'}</td>
-                    <td className="px-3 py-2">{it.valido_estoque ? '✅' : '—'}</td>
-                    <td className="px-3 py-2 text-xs text-gray-500">{it.fonte}</td>
-                  </tr>
-                ))}
+                {items.map((it) => {
+                  const div =
+                    divergencias.find(
+                      (d) =>
+                        d.equipamento_id === it.equipamento_id ||
+                        d.sku_interno === it.sku_interno
+                    ) || null;
+                  return (
+                    <tr
+                      key={it.id}
+                      className={`border-t ${
+                        div
+                          ? 'border-rose-200 bg-rose-50 text-rose-900'
+                          : 'border-gray-200'
+                      }`}
+                      title={div ? div.alerta : undefined}
+                    >
+                      <td className="px-3 py-2 text-gray-600">{it.cd_nome}</td>
+                      <td className="px-3 py-2 text-xs text-amber-700">{it.categoria}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-sky-700">
+                        {it.sku_interno}
+                        {div ? (
+                          <span className="ml-1 text-rose-600 font-sans font-semibold" title={div.alerta}>
+                            ⚠
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2">{it.nome}</td>
+                      <td
+                        className={`px-3 py-2 tabular-nums ${
+                          div ? 'font-semibold text-rose-700' : ''
+                        }`}
+                      >
+                        {it.preco_custo != null ? formatBRL(it.preco_custo) : '—'}
+                      </td>
+                      <td className="px-3 py-2">{it.estoque ?? '—'}</td>
+                      <td className="px-3 py-2">{it.valido_estoque ? '✅' : '—'}</td>
+                      <td className="px-3 py-2 text-xs text-gray-500">{it.fonte}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

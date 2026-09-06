@@ -337,15 +337,17 @@ export default function Configuracoes() {
                   >
                     ← Voltar
                   </button>
-                  <button
-                    onClick={handleLimpezaTestes}
-                    disabled={limpandoTestes}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    title="Limpar clientes de teste do banco de dados"
-                  >
-                    {limpandoTestes ? '⏳ Limpando...' : '🧹 Limpar Testes'}
-                  </button>
                 </div>
+              </div>
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleLimpezaTestes}
+                  disabled={limpandoTestes}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  title="Limpar clientes de teste do banco de dados"
+                >
+                  {limpandoTestes ? '⏳ Limpando...' : '🧹 Limpar Testes'}
+                </button>
               </div>
             </div>
 
@@ -353,7 +355,8 @@ export default function Configuracoes() {
             <div className="admin-surface p-4 mb-6">
               <h2 className="text-sm font-semibold text-slate-700 mb-1">Manutenção · Catálogo SOOLLAR</h2>
               <p className="text-xs text-slate-500 mb-3">
-                Uso eventual: captura de preços, conferência por CD e cadastro de equipamentos.
+                Captura de preços, conferência por CD e CRUD manual de equipamentos (fonte{' '}
+                <code className="text-xs">manual</code>).
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link href="/admin/soollar-captura" legacyBehavior>
@@ -368,7 +371,7 @@ export default function Configuracoes() {
                 </Link>
                 <Link href="/admin/v3/equipamentos" legacyBehavior>
                   <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 border border-stone-200">
-                    🔧 Equipamentos
+                    🔧 Equipamentos (CRUD)
                   </a>
                 </Link>
               </div>
