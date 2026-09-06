@@ -16,6 +16,12 @@ interface ConfiguracaoSistema {
   estoqueMinimoSoolar: number;
   /** Estoque mínimo para demais categorias (inversor, cabo, etc.) */
   estoqueMinimoOutros: number;
+  /** DC/AC (kWp/kW) — subcarga mínima */
+  dcAcMin: number;
+  /** DC/AC (kWp/kW) — sobrecarga alvo (soft) */
+  dcAcMax: number;
+  /** Tolerância de ajuste em pontos (ex.: 0,05 → teto = max+0,05) */
+  dcAcTolPp: number;
 
   // Parâmetros Financeiros
   taxaSelic: number;
@@ -83,6 +89,9 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   placasPorMicro: 4,
   estoqueMinimoSoolar: 10,
   estoqueMinimoOutros: 5,
+  dcAcMin: 0.8,
+  dcAcMax: 1.5,
+  dcAcTolPp: 0.05,
 
   taxaSelic: 11.25,
   inflacaoAnual: 4.5,
@@ -170,6 +179,9 @@ export function mergeConfiguracoes(
     'placasPorMicro',
     'estoqueMinimoSoolar',
     'estoqueMinimoOutros',
+    'dcAcMin',
+    'dcAcMax',
+    'dcAcTolPp',
     'bonusMicroPercent',
     'hspPadrao',
     'performanceRate',
@@ -221,6 +233,9 @@ export function extrairDefaultsV3(config: ConfiguracaoSistema) {
     placasPorMicro: config.placasPorMicro,
     estoqueMinimoSoolar: config.estoqueMinimoSoolar,
     estoqueMinimoOutros: config.estoqueMinimoOutros,
+    dcAcMin: config.dcAcMin,
+    dcAcMax: config.dcAcMax,
+    dcAcTolPp: config.dcAcTolPp,
     pdespesaFixo: config.pdespesaFixo,
     pdespesaVariavel: config.pdespesaVariavel,
     fretePadrao: config.fretePadrao,

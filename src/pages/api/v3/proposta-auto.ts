@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCalcParams, setCalcParams } from '@/modules/v3/calc/params';
 import { montarPropostaAuto } from '@/modules/v3/calc/propostaAuto';
+import { refreshDcAcLimitsFromAdmin } from '@/modules/v3/calc/dcAcLimitsConfig';
+import { getDcAcLimits } from '@/modules/v3/calc/dcAcRatio';
 import { resolveCdId } from '@/modules/v3/precos/repository';
 import { loadSistemaConfigFlat } from '@/lib/sistemaConfig';
 import { extrairDefaultsV3, mergeConfiguracoes } from '@/utils/configuracoes';
@@ -18,9 +20,11 @@ async function loadAdminDefaultsV3() {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await ensureV3CatalogHydrated();
+    await refreshDcAcLimitsFromAdmin();
     if (req.method === 'GET') {
       const params = getCalcParams();
       const admin = await loadAdminDefaultsV3();
+      const dcAc = getDcAcLimits();
       // Admin tem prioridade sobre seed local do SQLite para campos comerciais/técnicos compartilhados
       const mergedParams = admin
         ? {
@@ -45,8 +49,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               fatorParcelado: admin.fatorParcelado,
               estoqueMinimoSoolar: admin.estoqueMinimoSoolar,
               estoqueMinimoOutros: admin.estoqueMinimoOutros,
+              dcAcMin: admin.dcAcMin,
+              dcAcMax: admin.dcAcMax,
+              dcAcTolPp: admin.dcAcTolPp,
             }
           : null,
+        dc_ac: dcAc,
         fonte_admin: Boolean(admin),
       });
     }

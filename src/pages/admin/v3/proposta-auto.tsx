@@ -1049,10 +1049,34 @@ export default function AdminV3PropostaAuto() {
                       </div>
                       <h2 className="font-semibold text-sky-700">{a.titulo}</h2>
                       <p className="text-sm text-gray-600 mt-1">
-                        {a.qtd_modulos} mód. · {a.qtd_inversores} inv. · {a.potencia_kwp} kWp · ~
+                        {a.qtd_modulos} mód. · {a.qtd_inversores} inv. · ~
                         {a.geracao_mensal_kwh} kWh
                         {a.cobertura_pct != null ? ` · ${a.cobertura_pct}% cobertura` : ''}
                       </p>
+                      {(() => {
+                        const potUsina = Number(a.potencia_kwp) || 0;
+                        const potInvUnit = Number(a.potencia_inversor_kw) || 0;
+                        const potInvTotal =
+                          potInvUnit > 0
+                            ? Math.round(potInvUnit * Math.max(1, a.qtd_inversores) * 1000) / 1000
+                            : 0;
+                        const fdi =
+                          potInvTotal > 0
+                            ? Math.round((potUsina / potInvTotal) * 100) / 100
+                            : null;
+                        const invTxt =
+                          potInvTotal > 0
+                            ? a.qtd_inversores > 1
+                              ? `${potInvTotal} kW (${a.qtd_inversores}×${potInvUnit} kW)`
+                              : `${potInvTotal} kW`
+                            : '—';
+                        return (
+                          <p className="text-xs text-gray-500 mt-1 font-mono">
+                            P_usina {potUsina} kWp · P_inv {invTxt} · FDI{' '}
+                            {fdi != null ? `${fdi.toFixed(2)} (kWp/kW)` : '—'}
+                          </p>
+                        );
+                      })()}
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-semibold text-emerald-600">

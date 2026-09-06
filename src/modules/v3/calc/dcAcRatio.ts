@@ -1,17 +1,61 @@
 /**
  * Regras comerciais de dimensionamento CC/CA (string).
+ * Módulo seguro para client + server (sem `fs`).
  *
- * - Sobrecarga alvo: kWp ≤ kW_inversor × 1,40 (+40%)
- * - Tolerância de ajuste: +5 p.p. → teto duro 1,45 (ex.: 6 kW → 8,4 kWp, folga até 8,7)
- * - Subcarga máxima: kWp ≥ kW_inversor × 0,50 (−50%) — evita inversor caro subutilizado
- * - Híbridos: fora da lista principal (seleção automática)
+ * Defaults: kWp/kW ∈ [0,80 ; 1,50] + tol 0,05 → teto 1,55.
+ * Na API, chame `refreshDcAcLimitsFromAdmin` (dcAcLimitsConfig) antes de dimensionar.
  */
 
-export const DC_AC_SOBRECARGA_MAX = 1.4;
+export interface DcAcLimits {
+  min: number;
+  max: number;
+  tolPp: number;
+  teto: number;
+}
+
+/** Defaults de código (= Restaurar padrão na UI) */
+export const DC_AC_SUBCARGA_MIN = 0.8;
+export const DC_AC_SOBRECARGA_MAX = 1.5;
 export const DC_AC_SOBRECARGA_TOL_PP = 0.05;
-/** Teto duro: 1,40 + 0,05 = 1,45 */
+/** Teto duro: max + tol (1,50 + 0,05 = 1,55) */
 export const DC_AC_SOBRECARGA_TETO = DC_AC_SOBRECARGA_MAX + DC_AC_SOBRECARGA_TOL_PP;
-export const DC_AC_SUBCARGA_MIN = 0.5;
+
+const DEFAULTS: DcAcLimits = {
+  min: DC_AC_SUBCARGA_MIN,
+  max: DC_AC_SOBRECARGA_MAX,
+  tolPp: DC_AC_SOBRECARGA_TOL_PP,
+  teto: DC_AC_SOBRECARGA_TETO,
+};
+
+let cache: DcAcLimits | null = null;
+
+export function sanitizeDcAcLimits(min: number, max: number, tolPp: number): DcAcLimits {
+  let mn = Number.isFinite(min) ? min : DEFAULTS.min;
+  let mx = Number.isFinite(max) ? max : DEFAULTS.max;
+  let tol = Number.isFinite(tolPp) ? tolPp : DEFAULTS.tolPp;
+  if (mn < 0.2) mn = 0.2;
+  if (mn > 1.2) mn = 1.2;
+  if (mx < 0.8) mx = 0.8;
+  if (mx > 2.5) mx = 2.5;
+  if (tol < 0) tol = 0;
+  if (tol > 0.3) tol = 0.3;
+  if (mn >= mx) mn = Math.min(mx - 0.05, DEFAULTS.min);
+  return { min: mn, max: mx, tolPp: tol, teto: mx + tol };
+}
+
+/** Valores atuais (cache da API ou defaults). */
+export function getDcAcLimits(): DcAcLimits {
+  return cache ? { ...cache } : { ...DEFAULTS };
+}
+
+export function setDcAcLimitsOverride(v: Partial<DcAcLimits> | DcAcLimits) {
+  const cur = getDcAcLimits();
+  cache = sanitizeDcAcLimits(
+    v.min ?? cur.min,
+    v.max ?? cur.max,
+    'tolPp' in v && v.tolPp != null ? v.tolPp : cur.tolPp
+  );
+}
 
 export function isInversorHibrido(inv: {
   nome?: string | null;
@@ -30,22 +74,24 @@ export function ratioDcAc(kwpModulos: number, potenciaInversorKw: number): numbe
   return kwpModulos / potenciaInversorKw;
 }
 
-/** Adequação DC/AC: soft = só até +40%; hard = até +45% (tolerância). */
+/** Adequação DC/AC: soft = até max; hard = até teto (max+tol). */
 export function inversorAdequadoParaKwp(
   potenciaInversorKw: number,
   kwpModulos: number,
   modo: 'soft' | 'hard' = 'hard'
 ): boolean {
+  const lim = getDcAcLimits();
   const r = ratioDcAc(kwpModulos, potenciaInversorKw);
-  const max = modo === 'soft' ? DC_AC_SOBRECARGA_MAX : DC_AC_SOBRECARGA_TETO;
-  return r >= DC_AC_SUBCARGA_MIN && r <= max;
+  const max = modo === 'soft' ? lim.max : lim.teto;
+  return r >= lim.min && r <= max;
 }
 
 /** Faixa de kW do inversor compatível com um kWp de módulos. */
 export function faixaKwInversorParaKwp(kwpModulos: number): { minKw: number; maxKw: number } {
+  const lim = getDcAcLimits();
   return {
-    minKw: kwpModulos / DC_AC_SOBRECARGA_TETO,
-    maxKw: kwpModulos / DC_AC_SUBCARGA_MIN,
+    minKw: kwpModulos / lim.teto,
+    maxKw: kwpModulos / lim.min,
   };
 }
 
@@ -55,10 +101,11 @@ export function faixaKwpParaInversor(potenciaInversorKw: number): {
   maxKwpSoft: number;
   maxKwp: number;
 } {
+  const lim = getDcAcLimits();
   return {
-    minKwp: potenciaInversorKw * DC_AC_SUBCARGA_MIN,
-    maxKwpSoft: potenciaInversorKw * DC_AC_SOBRECARGA_MAX,
-    maxKwp: potenciaInversorKw * DC_AC_SOBRECARGA_TETO,
+    minKwp: potenciaInversorKw * lim.min,
+    maxKwpSoft: potenciaInversorKw * lim.max,
+    maxKwp: potenciaInversorKw * lim.teto,
   };
 }
 

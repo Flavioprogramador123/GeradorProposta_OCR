@@ -9,10 +9,8 @@ import {
 import { calcularOrcamentoBase } from '../orcamentos/kitEngine';
 import {
   ajustarQtdModulosAoInversor,
-  DC_AC_SOBRECARGA_MAX,
-  DC_AC_SOBRECARGA_TETO,
-  DC_AC_SUBCARGA_MIN,
   faixaKwInversorParaKwp,
+  getDcAcLimits,
   inversorAdequadoParaKwp,
   isInversorHibrido,
   ratioDcAc,
@@ -352,11 +350,12 @@ function dimensionarMicro(
 
 /**
  * Escolhe inversor string para um kWp alvo:
- * DC/AC entre 0,50 e 1,40 (preferência) / 1,45 (teto), preferência SAJ→DEye, menor kW adequado.
+ * DC/AC na faixa admin (preferência soft / teto com tolerância), preferência SAJ→DEye, menor kW adequado.
  * Híbridos já devem ter sido filtrados em `strings`.
  */
 function escolherInversorParaKwp(potKwp: number, strings: InvRow[]): InvRow | null {
   if (!strings.length) return null;
+  const lim = getDcAcLimits();
   const ordenados = [...strings].sort(sortInversoresPreferencia);
   const soft = ordenados.filter((i) => inversorAdequadoParaKwp(i.potencia_kw, potKwp, 'soft'));
   if (soft.length) return soft[0];
@@ -368,7 +367,7 @@ function escolherInversorParaKwp(potKwp: number, strings: InvRow[]): InvRow | nu
   if (naFaixa.length) return naFaixa[0];
 
   // Sem match perfeito: menor inversor que ainda respeita o teto de sobrecarga
-  const cobreTeto = ordenados.filter((i) => i.potencia_kw >= potKwp / DC_AC_SOBRECARGA_TETO);
+  const cobreTeto = ordenados.filter((i) => i.potencia_kw >= potKwp / lim.teto);
   if (cobreTeto.length) return cobreTeto[0];
 
   // Último recurso: maior disponível (kits grandes) — qtd será clampada depois
@@ -386,6 +385,7 @@ function dimensionarString(
   const lista = pool.length ? pool : strings;
   if (!lista.length) return null;
 
+  const lim = getDcAcLimits();
   const avisosDim: string[] = [];
   const alvoKwp = kwpFromGeracao(alvoGeracao, params, false);
   const qtdBruta = (alvoKwp * 1000) / mod.potencia_w;
@@ -410,7 +410,7 @@ function dimensionarString(
   if (adj.ajustou) {
     avisosDim.push(
       `Qtd módulos ajustada ${qtdMod}→${adj.qtdMod} p/ DC/AC ${(adj.ratio * 100).toFixed(0)}% ` +
-        `(faixa ${DC_AC_SUBCARGA_MIN * 100}–${DC_AC_SOBRECARGA_MAX * 100}% +tol ${((DC_AC_SOBRECARGA_TETO - DC_AC_SOBRECARGA_MAX) * 100).toFixed(0)} p.p.)`
+        `(faixa ${lim.min}–${lim.max} +tol ${(lim.tolPp * 100).toFixed(0)} p.p. → teto ${lim.teto})`
     );
   }
   qtdMod = adj.qtdMod;
@@ -418,9 +418,9 @@ function dimensionarString(
   ger = geracaoFromKwp(pot, params, false);
 
   const r = ratioDcAc(pot, inv.potencia_kw);
-  if (r > DC_AC_SOBRECARGA_TETO + 0.001 || r < DC_AC_SUBCARGA_MIN - 0.001) {
+  if (r > lim.teto + 0.001 || r < lim.min - 0.001) {
     avisosDim.push(
-      `DC/AC ${r.toFixed(2)} fora da faixa ideal (${DC_AC_SUBCARGA_MIN}–${DC_AC_SOBRECARGA_TETO}) · ${pot.toFixed(2)} kWp / ${inv.potencia_kw} kW`
+      `DC/AC ${r.toFixed(2)} fora da faixa ideal (${lim.min}–${lim.teto}) · ${pot.toFixed(2)} kWp / ${inv.potencia_kw} kW`
     );
   }
 
@@ -565,9 +565,10 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
   const pontosFaixa: Array<'min' | 'mid' | 'max'> =
     alvoGeracaoMin === alvoGeracaoMax ? ['mid'] : ['min', 'mid', 'max'];
 
+  const limDcAc = getDcAcLimits();
   auditoria_alvo.push({
     etapa: 'Filtro topologia + DC/AC',
-    formula: `checkboxes micro/string · híbridos excluídos · kWp/kW ∈ [${DC_AC_SUBCARGA_MIN}, ${DC_AC_SOBRECARGA_MAX}] (+tol → ${DC_AC_SOBRECARGA_TETO})`,
+    formula: `checkboxes micro/string · híbridos excluídos · kWp/kW ∈ [${limDcAc.min}, ${limDcAc.max}] (+tol → ${limDcAc.teto})`,
     valores: {
       incluir_micro: Boolean(input.incluir_micro),
       incluir_string: Boolean(input.incluir_string),
@@ -576,9 +577,10 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
       micros_cd: micros.length,
       strings_cd: strings.length,
       strings_hibridos_excluidos: stringsHibridos.length,
-      dc_ac_max: DC_AC_SOBRECARGA_MAX,
-      dc_ac_teto: DC_AC_SOBRECARGA_TETO,
-      dc_ac_min: DC_AC_SUBCARGA_MIN,
+      dc_ac_max: limDcAc.max,
+      dc_ac_teto: limDcAc.teto,
+      dc_ac_min: limDcAc.min,
+      dc_ac_tol_pp: limDcAc.tolPp,
     },
     resultado: wantMicro && wantString ? 'micro + string' : wantMicro ? 'somente micro' : 'somente string',
   });
@@ -626,7 +628,7 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
       const adj = ajustarQtdModulosAoInversor(qtdMod, mod.potencia_w, inv.potencia_kw);
       if (adj.ajustou) {
         avisos.push(
-          `Kit #${ki + 1}: qtd módulos ${qtdMod}→${adj.qtdMod} (DC/AC ${adj.ratio.toFixed(2)} vs teto ${DC_AC_SOBRECARGA_TETO})`
+          `Kit #${ki + 1}: qtd módulos ${qtdMod}→${adj.qtdMod} (DC/AC ${adj.ratio.toFixed(2)} vs teto ${limDcAc.teto})`
         );
         qtdMod = adj.qtdMod;
       }

@@ -669,22 +669,41 @@ export default function AdminV3Precos() {
                       Após captura OK → publicar no Supabase (automático)
                     </label>
                     <div className="grid md:grid-cols-3 gap-3">
-                      <label className="text-sm">
+                      <label className="text-sm block">
                         <span className="text-xs text-gray-500">Horário (Brasília)</span>
-                        <select
-                          value={agenda.hora}
-                          onChange={(e) => setAgenda({ ...agenda, hora: e.target.value })}
-                          className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
-                        >
-                          {!HORARIOS.includes(agenda.hora) && (
-                            <option value={agenda.hora}>{agenda.hora}</option>
-                          )}
-                          {HORARIOS.map((h) => (
-                            <option key={h} value={h}>
-                              {h}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="mt-1 flex gap-2">
+                          <select
+                            value={HORARIOS.includes(agenda.hora) ? agenda.hora : ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v) setAgenda({ ...agenda, hora: v });
+                            }}
+                            className="w-[45%] rounded-lg bg-white border border-gray-300 px-2 py-2 text-sm"
+                            title="Atalhos"
+                          >
+                            <option value="">Lista…</option>
+                            {HORARIOS.map((h) => (
+                              <option key={h} value={h}>
+                                {h}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="time"
+                            value={/^\d{2}:\d{2}$/.test(agenda.hora) ? agenda.hora : '08:00'}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (/^\d{2}:\d{2}$/.test(v)) {
+                                setAgenda({ ...agenda, hora: v });
+                              }
+                            }}
+                            className="flex-1 rounded-lg bg-white border border-gray-300 px-3 py-2"
+                            title="Digite ou escolha qualquer horário HH:mm"
+                          />
+                        </div>
+                        <span className="text-[11px] text-gray-500 mt-1 block">
+                          Lista à esquerda ou digite/selecione à direita (qualquer HH:mm)
+                        </span>
                       </label>
                       <div className="text-sm md:col-span-1">
                         <span className="text-xs text-gray-500">Modo</span>

@@ -83,8 +83,9 @@ Ordem ao escolher inversor/micro: **SAJ → DEye → demais** (`INVERSOR_MARCAS_
 
 ### Dimensionamento DC/AC (gerador automático / 4a)
 Regras em `calc/dcAcRatio.ts` + `dimensionarString` em `propostaAuto.ts`:
-- **Sobrecarga:** kWp módulos ≤ kW inversor × **1,40** (ex.: 6 kW → 8,4 kWp); tolerância **+5 p.p.** → teto **1,45**
-- **Subcarga:** kWp ≥ kW × **0,50** (−50%) — evita inversor caro subutilizado
+- **Sobrecarga:** kWp módulos ≤ kW inversor × **1,50** (config `dcAcMax`); tolerância **+5 p.p.** (`dcAcTolPp`) → teto **1,55**
+- **Subcarga:** kWp ≥ kW × **0,80** (`dcAcMin`) — evita inversor caro subutilizado
+- Editável em `/admin/configuracoes` → Parâmetros Técnicos
 - **Híbridos:** fora da lista principal do auto (3a: optgroup “sob demanda”)
 
 ### Fluxos
@@ -93,7 +94,8 @@ Regras em `calc/dcAcRatio.ts` + `dimensionarString` em `propostaAuto.ts`:
 - Ajuste manual no card sempre prevalece (`editado_manual`).
 
 ## Changelog / aprendizados
-- **2026-09-05:** Gerador automático: DC/AC 0,50–1,40 (+tol 1,45); híbridos fora da lista principal.
+- **2026-09-06:** DC/AC padrão 0,80–1,50 (+tol → 1,55) em Configurações técnicas; motor lê `dcAcMin`/`dcAcMax`/`dcAcTolPp`.
+- **2026-09-05:** Gerador automático: DC/AC configurável; híbridos fora da lista principal.
 - **2026-09-05:** Cabo preto micro 25 m: 1→0 · 2–3→2 · 4–5→3 (`bolasCaboPretoMicro`).
 - **2026-09-05:** Strings por faixa de kW CA (+ atalho **6–8 kW → 2**) + cabo 25 m V/P = nº strings; preferência SAJ/DEye na 4a.
 - **2026-09-04:** Premissas MC4/cabos micro vs string documentadas e aplicadas em `sugerirComplementos`.

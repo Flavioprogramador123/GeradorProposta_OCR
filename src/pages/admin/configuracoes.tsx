@@ -405,214 +405,371 @@ export default function Configuracoes() {
                 {/* Tab Técnico */}
                 {activeTab === 'tecnico' && (
                   <div className="space-y-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Parâmetros Técnicos</h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Performance Rate (%)
-                        </label>
-                        <PercentRatioInput
-                          value01={config.performanceRate}
-                          onCommit={(ratio) => handleInputChange('performanceRate', ratio)}
-                          min={50}
-                          max={100}
-                          step="0.1"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Eficiência do sistema considerando perdas</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          HSP Padrão (GO)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.hspPadrao}
-                          onChange={(e) => handleInputChange('hspPadrao', parseFloat(e.target.value))}
-                          step="0.01"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Horas de Sol Pico para Goiás</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Margem de Segurança
-                        </label>
-                        <input
-                          type="number"
-                          value={config.margemSeguranca}
-                          onChange={(e) => handleInputChange('margemSeguranca', parseFloat(e.target.value))}
-                          step="0.01"
-                          min="1"
-                          max="2"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Multiplicador para dimensionamento</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Eficiência Inversor (%)
-                        </label>
-                        <PercentRatioInput
-                          value01={config.eficienciaInversor}
-                          onCommit={(ratio) => handleInputChange('eficienciaInversor', ratio)}
-                          min={80}
-                          max={99}
-                          step="0.1"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Eficiência média dos inversores string</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Eficiência adicional Micro-inversores
-                        </label>
-                        <input
-                          type="number"
-                          value={config.bonusMicroPercent}
-                          onChange={(e) => handleInputChange('bonusMicroPercent', parseFloat(e.target.value))}
-                          step="0.5"
-                          min="0"
-                          max="20"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">
-                          % a mais de geração vs string quando micro-inversor está ativo (padrão 5%)
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Dias / mês (geração)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.diasMes}
-                          onChange={(e) => handleInputChange('diasMes', parseFloat(e.target.value))}
-                          step="0.1"
-                          min="28"
-                          max="31"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Usado em kWp × HSP × dias × PR (padrão 30,4)</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Placas por micro
-                        </label>
-                        <input
-                          type="number"
-                          value={config.placasPorMicro}
-                          onChange={(e) => handleInputChange('placasPorMicro', parseInt(e.target.value, 10))}
-                          step="1"
-                          min="1"
-                          max="8"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">V3 kit micro (ex.: 4 módulos / micro)</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Estoque mínimo — módulos
-                        </label>
-                        <input
-                          type="number"
-                          value={config.estoqueMinimoSoolar}
-                          onChange={(e) => handleInputChange('estoqueMinimoSoolar', parseInt(e.target.value, 10))}
-                          step="1"
-                          min="0"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">
-                          V3 / SOOLLAR: preço válido só com estoque &gt; este valor (padrão 20)
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Estoque mínimo — demais itens
-                        </label>
-                        <input
-                          type="number"
-                          value={config.estoqueMinimoOutros ?? 5}
-                          onChange={(e) => handleInputChange('estoqueMinimoOutros', parseInt(e.target.value, 10))}
-                          step="1"
-                          min="0"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">
-                          Inversores, estruturas, cabos, MC4, DPS etc. (padrão 5)
-                        </p>
-                      </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-800">Parâmetros Técnicos</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Agrupados por uso: geração, inversores/micro, DC/AC e estoque do catálogo.
+                      </p>
                     </div>
+
+                    {/* Geração */}
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">Geração e irradiação</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          kWh ≈ kWp × HSP × dias/mês × Performance Rate
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Performance Rate (%)
+                          </label>
+                          <PercentRatioInput
+                            value01={config.performanceRate}
+                            onCommit={(ratio) => handleInputChange('performanceRate', ratio)}
+                            min={50}
+                            max={100}
+                            step="0.1"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Eficiência do sistema considerando perdas
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            HSP Padrão (GO)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.hspPadrao}
+                            onChange={(e) =>
+                              handleInputChange('hspPadrao', parseFloat(e.target.value))
+                            }
+                            step="0.01"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Horas de Sol Pico para Goiás</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Dias / mês (geração)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.diasMes}
+                            onChange={(e) =>
+                              handleInputChange('diasMes', parseFloat(e.target.value))
+                            }
+                            step="0.1"
+                            min="28"
+                            max="31"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Padrão 30,4</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Margem de Segurança
+                          </label>
+                          <input
+                            type="number"
+                            value={config.margemSeguranca}
+                            onChange={(e) =>
+                              handleInputChange('margemSeguranca', parseFloat(e.target.value))
+                            }
+                            step="0.01"
+                            min="1"
+                            max="2"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Multiplicador para dimensionamento
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Inversores / micro */}
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">Inversores e micro</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Eficiência string, bônus de geração do micro e placas por micro (V3)
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Eficiência Inversor (%)
+                          </label>
+                          <PercentRatioInput
+                            value01={config.eficienciaInversor}
+                            onCommit={(ratio) => handleInputChange('eficienciaInversor', ratio)}
+                            min={80}
+                            max={99}
+                            step="0.1"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Eficiência média dos inversores string
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Eficiência adicional Micro-inversores
+                          </label>
+                          <input
+                            type="number"
+                            value={config.bonusMicroPercent}
+                            onChange={(e) =>
+                              handleInputChange('bonusMicroPercent', parseFloat(e.target.value))
+                            }
+                            step="0.5"
+                            min="0"
+                            max="20"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            % a mais vs string quando micro está ativo (padrão 5%)
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Placas por micro
+                          </label>
+                          <input
+                            type="number"
+                            value={config.placasPorMicro}
+                            onChange={(e) =>
+                              handleInputChange('placasPorMicro', parseInt(e.target.value, 10))
+                            }
+                            step="1"
+                            min="1"
+                            max="8"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">V3 kit micro (ex.: 4 módulos / micro)</p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* DC/AC */}
+                    <section className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          DC/AC (kWp ÷ kW inversor)
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Faixa da Proposta automática (string). Teto = máx + tolerância (padrão 1,50
+                          + 0,05 → 1,55).
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Mínimo (subcarga)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.dcAcMin ?? 0.8}
+                            onChange={(e) =>
+                              handleInputChange('dcAcMin', parseFloat(e.target.value))
+                            }
+                            step="0.05"
+                            min="0.3"
+                            max="1.2"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Padrão 0,80</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Máximo (sobrecarga)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.dcAcMax ?? 1.5}
+                            onChange={(e) =>
+                              handleInputChange('dcAcMax', parseFloat(e.target.value))
+                            }
+                            step="0.05"
+                            min="1"
+                            max="2.2"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Padrão 1,50</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Tolerância ajuste (p.p.)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.dcAcTolPp ?? 0.05}
+                            onChange={(e) =>
+                              handleInputChange('dcAcTolPp', parseFloat(e.target.value))
+                            }
+                            step="0.01"
+                            min="0"
+                            max="0.2"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Padrão 0,05 → teto{' '}
+                            {(
+                              Number(config.dcAcMax ?? 1.5) + Number(config.dcAcTolPp ?? 0.05)
+                            ).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Estoque catálogo */}
+                    <section className="rounded-xl border border-amber-200 bg-amber-50/30 p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          Estoque mínimo (catálogo SOOLLAR / V3)
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Preço válido na captura só com estoque acima destes mínimos
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Estoque mínimo — módulos
+                          </label>
+                          <input
+                            type="number"
+                            value={config.estoqueMinimoSoolar}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'estoqueMinimoSoolar',
+                                parseInt(e.target.value, 10)
+                              )
+                            }
+                            step="1"
+                            min="0"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Válido só com estoque &gt; este valor
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Estoque mínimo — demais itens
+                          </label>
+                          <input
+                            type="number"
+                            value={config.estoqueMinimoOutros ?? 5}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'estoqueMinimoOutros',
+                                parseInt(e.target.value, 10)
+                              )
+                            }
+                            step="1"
+                            min="0"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Inversores, estruturas, cabos, MC4, DPS etc.
+                          </p>
+                        </div>
+                      </div>
+                    </section>
                   </div>
                 )}
 
                 {/* Tab Financeiro */}
                 {activeTab === 'financeiro' && (
                   <div className="space-y-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Parâmetros Financeiros</h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Tarifa padrão R$/kWh
-                        </label>
-                        <input
-                          type="number"
-                          value={config.tarifaPadrao}
-                          onChange={(e) => handleInputChange('tarifaPadrao', parseFloat(e.target.value))}
-                          step="0.01"
-                          min="0"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Default Gerador / V3 proposta automática</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Taxa SELIC (% a.a.)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.taxaSelic}
-                          onChange={(e) => handleInputChange('taxaSelic', parseFloat(e.target.value))}
-                          step="0.25"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Inflação Anual (%)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.inflacaoAnual}
-                          onChange={(e) => handleInputChange('inflacaoAnual', parseFloat(e.target.value))}
-                          step="0.1"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Reajuste Energia (% a.a.)
-                        </label>
-                        <input
-                          type="number"
-                          value={config.reajusteEnergia}
-                          onChange={(e) => handleInputChange('reajusteEnergia', parseFloat(e.target.value))}
-                          step="0.1"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        />
-                      </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-800">Parâmetros Financeiros</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Tarifa do cliente e premissas macro (payback / projeções).
+                      </p>
                     </div>
+
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">Tarifa de energia</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Default Gerador / V3 proposta automática
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-xl">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Tarifa padrão R$/kWh
+                          </label>
+                          <input
+                            type="number"
+                            value={config.tarifaPadrao}
+                            onChange={(e) =>
+                              handleInputChange('tarifaPadrao', parseFloat(e.target.value))
+                            }
+                            step="0.01"
+                            min="0"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">Macroeconomia</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Usados em cenários de payback e reajuste da conta
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Taxa SELIC (% a.a.)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.taxaSelic}
+                            onChange={(e) =>
+                              handleInputChange('taxaSelic', parseFloat(e.target.value))
+                            }
+                            step="0.25"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Inflação Anual (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.inflacaoAnual}
+                            onChange={(e) =>
+                              handleInputChange('inflacaoAnual', parseFloat(e.target.value))
+                            }
+                            step="0.1"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Reajuste Energia (% a.a.)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.reajusteEnergia}
+                            onChange={(e) =>
+                              handleInputChange('reajusteEnergia', parseFloat(e.target.value))
+                            }
+                            step="0.1"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </section>
                   </div>
                 )}
 
