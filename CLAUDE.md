@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PIENG-PROPOSTAS is a solar proposal generation system with AI-powered data extraction. Built with Next.js 13.5.11, it provides a complete admin interface for managing clients, processing quotes, and generating professional solar installation proposals.
+**PIENG Propostas** (`pieng-propostas`) is a solar proposal generation system with AI-powered data extraction. Built with Next.js 13.5.11, it provides a complete admin interface for managing clients, processing quotes, and generating professional solar installation proposals.
+
+**Display name**: PIENG Propostas  
+**npm / Vercel**: `pieng-propostas`  
+**Legacy folder/repo name**: `GeradorProposta_OCR` (rename checklist: `src/data/knowledge/IDENTITY_PIENG_PROPOSTAS.md`)  
+**Sister app (visual roof)**: Teto_sol / PlanoSol — optional bridge only
 
 **Production URL**: https://pieng-propostas.vercel.app
 **Main Branch**: `clean-main`

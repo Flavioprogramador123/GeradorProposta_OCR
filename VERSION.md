@@ -1,12 +1,25 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.15** (07/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.16** (07/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.15** - 07/09/2026 ✅ **ATUAL** → merge `clean-main` (produção)
+### **v2.4.16** - 07/09/2026 ✅ **ATUAL**
+**🏠 Ponte A · Teto Sol (PlanoSol) — produto irmão independente:**
+- ✅ Card **Teto Sol** no admin (abre app separado; simulação sem orçamento)
+- ✅ Botão **Teto Sol** no Gerador rápido e Proposta automática → JSON `ModuleSpec` + etiqueta
+- ✅ Lib `tetoSolBridge.ts` + catálogo espelho `tetoModuleCatalog.json` (ERP: 600–700 W + dims)
+- ✅ Identidade **PIENG Propostas** (`IDENTITY_PIENG_PROPOSTAS.md`); PWA short_name Propostas
+- 🔜 Depois: anexar PNG/PDF do Teto na proposta do cliente
+- Knowledge: `TETO_SOL_BRIDGE_A.md`
+
+**📦 Arquivos:** `admin/index.tsx`, `gerador-rapido.tsx`, `proposta-auto.tsx`, `tetoSolBridge.ts`, `tetoModuleCatalog.json`, README, CLAUDE, manifest, knowledge
+
+---
+
+### **v2.4.15** - 07/09/2026 → merge `clean-main` (produção)
 **⚙️ DC/AC em produção (motivo do bump):**
 - ✅ Defaults código/UI: kWp/kW ∈ **[0,80 ; 1,50]** + tol **0,05** → teto **1,55** (antes na nuvem: 0,50–1,40 / 1,45)
 - ✅ Campos em Configurações técnicas; API `proposta-auto` lê via `refreshDcAcLimitsFromAdmin`

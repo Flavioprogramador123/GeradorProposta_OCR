@@ -24,6 +24,7 @@ A branch de trabalho `v3-orcamento` pode ser arquivada ou usada só para hotfixe
 - Consultor V4 (paridade UX com V3) — ver `ROADMAP_CONSULTOR_V4.md`
 - Refactors grandes de pipeline, storage, UI admin
 - Experimentos de tema/layout que possam regressar o dia
+- Integração profunda Teto_sol (embutir app) — **hoje só ponte A** (`TETO_SOL_BRIDGE_A.md`)
 
 Fluxo sugerido: `git checkout -b v4-…` ← `clean-main` → desenvolver → smoke → merge em `clean-main` só quando estável.
 

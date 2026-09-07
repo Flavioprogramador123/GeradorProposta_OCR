@@ -22,6 +22,7 @@ import {
   TEMPLATE_APROVADO_PRODUCAO,
   resolveTemplateParaSalvar,
 } from '@/lib/propostaTemplatePolicy';
+import { buildPiengTetoBridge, openTetoSolWithBridge } from '@/lib/tetoSolBridge';
 
 interface Orcamento {
   nome: string;
@@ -1724,6 +1725,31 @@ consolidado_orcamentos_distribuidores:
                         {voltarV3Label}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ref =
+                          orcamentos.find((o) => o.modulos > 0 && o.pot_modulo > 0) || orcamentos[0];
+                        if (!ref) {
+                          alert('Adicione um orçamento com módulos e potência do módulo.');
+                          return;
+                        }
+                        const payload = buildPiengTetoBridge({
+                          marcaModulo: ref.marca_modulo,
+                          potModuloW: ref.pot_modulo,
+                          qtdModulos: ref.modulos,
+                          clienteNome: config.nomeCliente,
+                          cidade: config.cidadeCliente,
+                          ref: ref.nome,
+                        });
+                        openTetoSolWithBridge(payload);
+                      }}
+                      className="px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-50"
+                      title="Abre o Teto_sol (PlanoSol) e envia JSON com módulo/potência/qtd + etiqueta. Baixa o JSON para importar se o app estiver em outra máquina."
+                      disabled={orcamentos.length === 0}
+                    >
+                      🏠 Teto Sol
+                    </button>
                     <button
                       onClick={async () => {
                         try {

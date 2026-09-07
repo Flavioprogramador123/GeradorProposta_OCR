@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import InstallPWA from '@/components/InstallPWA';
+import { getTetoSolUrl } from '@/lib/tetoSolBridge';
 
 interface ClienteInfo {
   nome: string;
@@ -403,7 +404,7 @@ export default function AdminIndex() {
                     🏢 Área Administrativa
                   </h1>
                   <span className="px-2 py-1 text-xs font-mono rounded border border-[var(--admin-border)] bg-[var(--admin-surface-muted)] text-[var(--admin-primary)]">
-                    v2.4.15
+                    v2.4.16
                   </span>
                 </div>
                 <p className="admin-subtitle">
@@ -487,7 +488,7 @@ export default function AdminIndex() {
             <div className="space-y-6 mb-8">
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Propostas e orçamentos</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   <Link href="/gerador-rapido" legacyBehavior>
                     <a className="block p-5 bg-gradient-to-br from-blue-700 to-blue-900 text-white rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02] text-center border border-blue-500/30">
                       <div className="text-2xl mb-2">📝</div>
@@ -516,6 +517,17 @@ export default function AdminIndex() {
                       <p className="text-sm opacity-90">Gestão de orçamentos dos clientes</p>
                     </a>
                   </Link>
+                  <a
+                    href={getTetoSolUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-5 bg-gradient-to-br from-teal-600 to-teal-900 text-white rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02] text-center border border-teal-400/30"
+                    title="App separado (PlanoSol). Simulação visual do telhado — sem orçamento obrigatório."
+                  >
+                    <div className="text-2xl mb-2">🏠</div>
+                    <h3 className="font-semibold mb-0.5">Teto Sol</h3>
+                    <p className="text-sm opacity-90">Projeção no telhado · app separado</p>
+                  </a>
                 </div>
               </section>
             </div>

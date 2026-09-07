@@ -1,7 +1,7 @@
 {
-  "name": "PIENG Propostas Solares",
-  "short_name": "PIENG",
-  "description": "Sistema de geração de propostas solares com IA - PIENG Soluções Energéticas",
+  "name": "PIENG Propostas",
+  "short_name": "Propostas",
+  "description": "PIENG Propostas — geração de propostas solares com IA",
   "start_url": "/admin",
   "display": "standalone",
   "background_color": "#ffffff",

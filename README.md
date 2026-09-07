@@ -1,19 +1,21 @@
-# 🌞 PIENG - Sistema de Propostas Solares com IA
+# 🌞 PIENG Propostas
 
-[![Versão](https://img.shields.io/badge/versão-v2.4.15-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.16-blue.svg)](VERSION.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
 [![PWA](https://img.shields.io/badge/PWA-desenvolvimento-purple.svg)](PWA.md)
 
-Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
+**Nome do produto / npm / Vercel:** `pieng-propostas` · Identidade: [`IDENTITY_PIENG_PROPOSTAS.md`](src/data/knowledge/IDENTITY_PIENG_PROPOSTAS.md)
 
-**📌 Versão Atual**: `v2.4.15` (07/09/2026) ✅ — **V3 integrado** em `clean-main`; mudanças profundas → **V4**
-**📖** [Changelog](VERSION.md) | [Branch V3/V4](src/data/knowledge/BRANCH_POLICY_V3_V4.md) | [Restrições cliente](RESTRICOES_CLIENTE.md) | [PWA](PWA.md)
+Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada. App irmão (telhado): **Teto Sol / PlanoSol** — ponte opcional, núcleos independentes.
 
-## 🆕 Novidades v2.4.15 (07/09/2026)
-- DC/AC produção: **0,80–1,50** (+tol → teto **1,55**); V3 mergeado no sistema global.
-- Política: hotfixes em `clean-main`; profundidade em branch **V4**.
+**📌 Versão Atual**: `v2.4.16` (07/09/2026) ✅ — ponte **Teto Sol** + identidade PIENG Propostas  
+**📖** [Changelog](VERSION.md) | [Teto Sol bridge](src/data/knowledge/TETO_SOL_BRIDGE_A.md) | [Identidade](src/data/knowledge/IDENTITY_PIENG_PROPOSTAS.md) | [Branch V3/V4](src/data/knowledge/BRANCH_POLICY_V3_V4.md)
+
+## 🆕 Novidades v2.4.16 (07/09/2026)
+- Card **Teto Sol** no admin + botões no Gerador/Proposta automática (JSON para PlanoSol).
+- Catálogo espelho ERP (600–700 W); apps irmãos, deploys separados.
 
 ## 🆕 Novidades v2.4.12 (05/09/2026)
 - **V3 fechada (ciclo):** proposta automática com edição de módulo/inversor/qtd por card + Recalcular kit isolado.
