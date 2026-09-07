@@ -858,19 +858,13 @@ export default function AdminV3OrcamentoBase() {
                   </optgroup>
                 )}
               </select>
-              <label className="mt-2 flex items-start gap-2 text-sm">
+              <label className="mt-2 flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="mt-0.5"
                   checked={rede220380}
                   onChange={(e) => setRede220380(e.target.checked)}
                 />
-                <span className="text-gray-700">
-                  Rede 220/380 V
-                  <span className="block text-xs text-gray-500 font-normal">
-                    Ligado: trifásico 380. Desligado: trifásico 220 (127/220), sem 380.
-                  </span>
-                </span>
+                <span className="text-gray-700">Rede 220/380 V</span>
               </label>
             </label>
             <label className="text-sm">

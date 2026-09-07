@@ -12,7 +12,6 @@ import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
 import { isInversorHibrido, passaFiltroRede220380 } from '@/modules/v3/calc/dcAcRatio';
 import { precificarComercialV2 } from '@/modules/v3/bridge/comercial';
 import { marcaCurtaEquipamento, resolveMarcaCurtaCard, sortByPrecoAsc } from '@/lib/equipamentoLabel';
-import { buildPiengTetoBridge, openTetoSolWithBridge } from '@/lib/tetoSolBridge';
 
 interface Params {
   hsp: number;
@@ -743,29 +742,6 @@ export default function AdminV3PropostaAuto() {
             >
               Abrir na Proposta manual
             </button>
-            <button
-              type="button"
-              disabled={busy || alts.length === 0}
-              onClick={() => {
-                const a = alts[0];
-                if (!a) return;
-                const potW = Number(a.potencia_modulo_w) || 0;
-                const qtd = Number(a.qtd_modulos) || 0;
-                const payload = buildPiengTetoBridge({
-                  marcaModulo: a.marca_modulo || undefined,
-                  potModuloW: potW,
-                  qtdModulos: qtd,
-                  clienteNome: cliente,
-                  cidade,
-                  ref: a.sku_modulo || 'card-1',
-                });
-                openTetoSolWithBridge(payload);
-              }}
-              className="px-4 py-2 rounded-lg bg-teal-700 hover:bg-teal-600 text-white disabled:opacity-50 text-sm font-medium"
-              title="Abre o Teto_sol com ModuleSpec (potência, L×A do catálogo, qtd) + etiqueta"
-            >
-              🏠 Teto Sol
-            </button>
             {busy && (
               <span className="text-xs text-gray-500">Processando…</span>
             )}
@@ -970,14 +946,7 @@ export default function AdminV3PropostaAuto() {
                   checked={rede220380}
                   onChange={(e) => setRede220380(e.target.checked)}
                 />
-                <span className="text-gray-700">
-                  Rede 220/380 V
-                  <span className="block text-[11px] text-gray-500 leading-tight">
-                    {rede220380
-                      ? 'Trifásico 380 · exclui 220 (127/220)'
-                      : 'Trifásico 220 (127/220) · exclui 380'}
-                  </span>
-                </span>
+                <span className="text-gray-700">Rede 220/380 V</span>
               </label>
             </div>
 
