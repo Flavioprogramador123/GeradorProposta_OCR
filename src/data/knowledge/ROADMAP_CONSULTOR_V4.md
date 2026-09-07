@@ -30,6 +30,7 @@ Referência de UX: tabelas do **V3** (`proposta-auto`, `orcamento-base`) ficaram
 1. Uma fonte de fatores: HSP, tarifa, pdespesa, desconto PIX, 12×/18× — consultor lê as mesmas configs do admin (`/api/admin/config`).
 2. Bridge explícito: “Abrir no Consultor” a partir da proposta-auto já com `marca_*` e pcusto corretos.
 3. Persistência: preferir Supabase orçamentos; localStorage só rascunho.
+4. Opcional: sugestão de pdespesa via **R$/Wp** digitado (40% variável / 60% fixa) — ver `PRECIFICAO_RS_WP.md`.
 
 ### Fase D — Scraping / marcas novas
 1. Mesmo contrato da tag `marca` (`V3_MARCA_TAG_SCRAPING.md`).

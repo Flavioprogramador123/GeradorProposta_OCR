@@ -645,8 +645,18 @@ export default function AdminV3OrcamentoBase() {
       };
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-      localStorage.setItem(V3_GERADOR_STORAGE_KEY, JSON.stringify(payload));
-      window.open('/gerador-rapido?modo=v3', '_blank');
+      localStorage.setItem(
+        V3_GERADOR_STORAGE_KEY,
+        JSON.stringify({
+          ...payload,
+          returnTo: '/admin/v3/orcamento-base',
+          origemUi: 'orcamento-base',
+        })
+      );
+      window.open(
+        '/gerador-rapido?modo=v3&voltar=' + encodeURIComponent('/admin/v3/orcamento-base'),
+        '_blank'
+      );
       setMsg(
         `Proposta por kits → Proposta manual: ${cards.length} kit(s). Frete ${formatBRL(freteOk)} · HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
       );
@@ -710,6 +720,51 @@ export default function AdminV3OrcamentoBase() {
                 ← Voltar
               </Link>
             </div>
+          </div>
+
+          <div
+            className="sticky top-0 z-40 mb-6 -mx-1 px-3 py-3 rounded-xl border border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm flex flex-wrap items-center gap-3"
+            role="toolbar"
+            aria-label="Ações da proposta por kits"
+          >
+            <button
+              type="button"
+              disabled={busy || !skuMod}
+              onClick={() => preview()}
+              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              Calcular preview
+            </button>
+            <button
+              type="button"
+              disabled={busy || !skuMod || !skuInv}
+              onClick={incluirCard}
+              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              Incluir
+            </button>
+            <button
+              type="button"
+              disabled={busy || (!skuMod && !cardAtivo)}
+              onClick={salvar}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              {cardAtivo ? 'Salvar card ativo' : 'Salvar proposta por kits'}
+            </button>
+            <button
+              type="button"
+              disabled={!cards.length}
+              onClick={irParaGerador}
+              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              Abrir na Proposta manual ({cards.length})
+            </button>
+            {busy && <span className="text-xs text-gray-500">Processando…</span>}
+            {msg && !busy && (
+              <span className="text-xs text-amber-800 truncate max-w-[min(100%,28rem)]" title={msg}>
+                {msg}
+              </span>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6 admin-surface p-4">
@@ -831,41 +886,6 @@ export default function AdminV3OrcamentoBase() {
               <input type="checkbox" checked={autoComp} onChange={(e) => setAutoComp(e.target.checked)} />
               Sugerir estrutura fibro inox / perfil / cabos / MC4 (1 trilho por módulo · preço)
             </label>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mb-4">
-            <button
-              type="button"
-              disabled={busy || !skuMod}
-              onClick={() => preview()}
-              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              Calcular preview
-            </button>
-            <button
-              type="button"
-              disabled={busy || !skuMod || !skuInv}
-              onClick={incluirCard}
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              Incluir
-            </button>
-            <button
-              type="button"
-              disabled={busy || (!skuMod && !cardAtivo)}
-              onClick={salvar}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              {cardAtivo ? 'Salvar card ativo' : 'Salvar proposta por kits'}
-            </button>
-            <button
-              type="button"
-              disabled={!cards.length}
-              onClick={irParaGerador}
-              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              Abrir na Proposta manual ({cards.length})
-            </button>
           </div>
 
           {msg && <p className="mb-4 text-sm text-amber-800">{msg}</p>}

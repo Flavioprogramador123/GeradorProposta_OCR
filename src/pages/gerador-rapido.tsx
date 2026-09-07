@@ -78,6 +78,9 @@ export default function GeradorRapido() {
   const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
   const [configRapidaReady, setConfigRapidaReady] = useState(false);
   const lastTemplateTapRef = useRef<{ template: string; time: number }>({ template: '', time: 0 });
+  /** Voltar à Proposta automática / por kits (vindo do bridge V3) */
+  const [voltarV3Url, setVoltarV3Url] = useState<string | null>(null);
+  const [voltarV3Label, setVoltarV3Label] = useState('← Ajustar proposta');
 
   // Duplo clique / duplo toque no template = confirmar e salvar com esse template
   const confirmarComTemplate = (template: string) => {
@@ -537,6 +540,19 @@ export default function GeradorRapido() {
 
     // Bridge V3 → Gerador (5a) — só depois do resolve (evita gravar PR/bonus hardcoded)
     if (router.query.modo === 'v3') {
+      const voltarQuery =
+        typeof router.query.voltar === 'string' ? router.query.voltar : '';
+      if (voltarQuery.startsWith('/admin/v3/')) {
+        setVoltarV3Url(voltarQuery);
+        setVoltarV3Label(
+          voltarQuery.includes('orcamento-base')
+            ? '← Ajustar kits'
+            : voltarQuery.includes('proposta-auto')
+              ? '← Ajustar proposta automática'
+              : '← Ajustar proposta'
+        );
+      }
+
       const raw = localStorage.getItem('v3-gerador-bridge');
       if (raw) {
         try {
@@ -629,6 +645,18 @@ export default function GeradorRapido() {
           });
 
           setOrcamentos(lista);
+
+          if (typeof dados.returnTo === 'string' && dados.returnTo.startsWith('/admin/v3/')) {
+            setVoltarV3Url(dados.returnTo);
+            setVoltarV3Label(
+              dados.returnTo.includes('orcamento-base')
+                ? '← Ajustar kits'
+                : dados.returnTo.includes('proposta-auto')
+                  ? '← Ajustar proposta automática'
+                  : '← Ajustar proposta'
+            );
+          }
+
           localStorage.removeItem('v3-gerador-bridge');
           console.log(
             `✅ Bridge V3: ${lista.length} orçamento(s) · ${dados.origem || ''}`
@@ -718,7 +746,7 @@ export default function GeradorRapido() {
         }
       }
     }
-  }, [router.isReady, router.query.cliente, router.query.modo, configRapidaReady]);
+  }, [router.isReady, router.query.cliente, router.query.modo, router.query.voltar, configRapidaReady]);
 
   // PIX = base; à vista = total 12× cartão; parcelas pela taxa mensal configurada
   const calcularPrecos = (totalFinalTabela: number) => {
@@ -1674,7 +1702,28 @@ consolidado_orcamentos_distribuidores:
                   <h3 className="text-xl font-semibold text-gray-800">
                     🗂️ Tabela de Orçamentos ({orcamentos.length}) - Editável
                   </h3>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-wrap">
+                    {voltarV3Url && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            if (window.opener && !window.opener.closed) {
+                              window.opener.focus();
+                              window.close();
+                              return;
+                            }
+                          } catch {
+                            /* cross-origin / blocked */
+                          }
+                          router.push(voltarV3Url);
+                        }}
+                        className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Voltar à tela anterior para redimensionar / alterar o kit"
+                      >
+                        {voltarV3Label}
+                      </button>
+                    )}
                     <button
                       onClick={async () => {
                         try {

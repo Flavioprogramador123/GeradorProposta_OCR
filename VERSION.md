@@ -1,12 +1,28 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.13** (05/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.14** (06/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.13** - 05/09/2026 ✅ **ATUAL**
+### **v2.4.14** - 06/09/2026 ✅ **ATUAL** (branch `v3-orcamento`)
+**🎨 UX V3 + Gerador — barras sticky e voltar:**
+- ✅ **Proposta automática**: Dimensionar / Dimensionar e salvar / Abrir Proposta manual — barra sticky no topo
+- ✅ **Proposta por kits** (`orcamento-base`): Calcular preview / Incluir / Salvar / Abrir Proposta manual — mesma barra sticky (sem duplicata no meio da página)
+- ✅ **Gerador rápido**: botão ← Ajustar proposta automática / kits (query `voltar` + `returnTo` no bridge V3)
+
+**📐 Precificação R$/Wp (especificação — ainda não implementada):**
+- Usuário digita R$/Wp (experiência; sem tabela/curva automática)
+- `Pcusto` continua dos produtos; alvo = R$/Wp × potência
+- Ponte: `pdespesa_sugerido = max(0, alvo − Pcusto)` → **40% variável** + **60% fixa** (sugestão editável no Gerador/Consultor)
+- Knowledge: `src/data/knowledge/PRECIFICAO_RS_WP.md`
+
+**📦 Arquivos:** `proposta-auto.tsx`, `orcamento-base.tsx`, `gerador-rapido.tsx`, `VERSION.md`, knowledge
+
+---
+
+### **v2.4.13** - 05/09/2026
 **🏷️ Marca tag + cards admin + limpeza:**
 - ✅ Campo canônico `marca` (catálogo/scraping) → `marca_modulo` / `marca_inversor` no bridge e cards
 - ✅ Prioridade: tag `marca` > parse do nome > hint SKU (sem “MODULO”/“INVERSOR” como marca)

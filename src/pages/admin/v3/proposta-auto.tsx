@@ -464,10 +464,17 @@ export default function AdminV3PropostaAuto() {
         fretePadrao,
         orcamentos,
       };
-      localStorage.setItem('v3-gerador-bridge', JSON.stringify(payload));
+      localStorage.setItem('v3-gerador-bridge', JSON.stringify({
+        ...payload,
+        returnTo: '/admin/v3/proposta-auto',
+        origemUi: 'proposta-auto',
+      }));
       // Garante sessão antes do gerador aplicar /admin/config
       persistSharedNow();
-      window.open('/gerador-rapido?modo=v3', '_blank');
+      window.open(
+        '/gerador-rapido?modo=v3&voltar=' + encodeURIComponent('/admin/v3/proposta-auto'),
+        '_blank'
+      );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     }
@@ -697,6 +704,45 @@ export default function AdminV3PropostaAuto() {
                 ← Voltar
               </Link>
             </div>
+          </div>
+
+          <div
+            className="sticky top-0 z-40 mb-6 -mx-1 px-3 py-3 rounded-xl border border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm flex flex-wrap items-center gap-3"
+            role="toolbar"
+            aria-label="Ações de dimensionamento"
+          >
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => gerar(false)}
+              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              Dimensionar
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => gerar(true)}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              Dimensionar e salvar
+            </button>
+            <button
+              type="button"
+              disabled={busy || !geradorPayload}
+              onClick={abrirGerador}
+              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
+            >
+              Abrir na Proposta manual
+            </button>
+            {busy && (
+              <span className="text-xs text-gray-500">Processando…</span>
+            )}
+            {msg && !busy && (
+              <span className="text-xs text-amber-800 truncate max-w-[min(100%,28rem)]" title={msg}>
+                {msg}
+              </span>
+            )}
           </div>
 
           {/* Bloco espelhando Configurações Rápidas do Gerador */}
@@ -939,33 +985,6 @@ export default function AdminV3PropostaAuto() {
                 </label>
               </>
             )}
-          </div>
-
-          <div className="flex flex-wrap gap-3 mb-6">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => gerar(false)}
-              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              Dimensionar
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => gerar(true)}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              Dimensionar e salvar
-            </button>
-            <button
-              type="button"
-              disabled={busy || !geradorPayload}
-              onClick={abrirGerador}
-              className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
-            >
-              Abrir na Proposta manual
-            </button>
           </div>
 
           {msg && <p className="mb-4 text-sm text-amber-800">{msg}</p>}
