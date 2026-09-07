@@ -42,5 +42,6 @@ Referência de UX: tabelas do **V3** (`proposta-auto`, `orcamento-base`) ficaram
 - Merge em `clean-main` a cada WIP — trabalhar em **branch temp / V4**, merge consolidado.
 
 ## Branch
-- Trabalho: `v4-consultor` (ou temp) a partir de `clean-main` pós-v2.4.13.
-- Produção: só após A+B estáveis e smoke no fluxo cliente → consultor → gerar proposta.
+- **V3:** integrado em `clean-main` (v2.4.15) — ver `BRANCH_POLICY_V3_V4.md`
+- Trabalho profundo (Consultor / precificação / UX grande): `v4-consultor` (ou `v4-*`) a partir de `clean-main` atual
+- Produção: merge V4 só após A+B estáveis e smoke no fluxo cliente → consultor → gerar proposta

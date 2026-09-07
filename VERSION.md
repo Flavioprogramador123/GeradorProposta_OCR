@@ -12,6 +12,11 @@
 - ✅ Campos em Configurações técnicas; API `proposta-auto` lê via `refreshDcAcLimitsFromAdmin`
 - ✅ Card: R$/Wp informativo sob o PIX comercial (só leitura)
 
+**🌿 Política de branch (a partir daqui):**
+- ✅ **V3 integrado** ao sistema global — pode mergir em `clean-main` (ciclo fechado)
+- 🔜 Alterações **mais profundas** → linha **V4** (branch temp, merge consolidado)
+- Knowledge: `src/data/knowledge/BRANCH_POLICY_V3_V4.md`
+
 **📦 Inclui linha `v3-orcamento` até aqui:** sticky V3/kits, voltar Gerador, tema Sobrio, divergência preços, etc.
 
 **📦 Arquivos:** `dcAcRatio.ts`, `dcAcLimitsConfig.ts`, `configuracoes.tsx`, `proposta-auto`, `VERSION.md`, badge admin

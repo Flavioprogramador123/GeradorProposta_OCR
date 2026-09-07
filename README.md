@@ -1,6 +1,6 @@
 # 🌞 PIENG - Sistema de Propostas Solares com IA
 
-[![Versão](https://img.shields.io/badge/versão-v2.4.12-blue.svg)](VERSION.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.15-blue.svg)](VERSION.md)
 [![Status](https://img.shields.io/badge/status-produção-success.svg)](https://pieng-propostas.vercel.app)
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black.svg)](https://vercel.com)
 [![Branch](https://img.shields.io/badge/branch-clean--main-green.svg)](https://github.com/Flavioprogramador123/GeradorProposta_OCR)
@@ -8,12 +8,16 @@
 
 Sistema completo de geração de propostas solares com administração web, extração inteligente de dados e análise financeira automatizada.
 
-**📌 Versão Atual**: `v2.4.12` (05/09/2026) ✅
-**📖** [Ver Changelog Completo](VERSION.md) | [Restrições cliente](RESTRICOES_CLIENTE.md) | [Documentação PWA](PWA.md)
+**📌 Versão Atual**: `v2.4.15` (07/09/2026) ✅ — **V3 integrado** em `clean-main`; mudanças profundas → **V4**
+**📖** [Changelog](VERSION.md) | [Branch V3/V4](src/data/knowledge/BRANCH_POLICY_V3_V4.md) | [Restrições cliente](RESTRICOES_CLIENTE.md) | [PWA](PWA.md)
+
+## 🆕 Novidades v2.4.15 (07/09/2026)
+- DC/AC produção: **0,80–1,50** (+tol → teto **1,55**); V3 mergeado no sistema global.
+- Política: hotfixes em `clean-main`; profundidade em branch **V4**.
 
 ## 🆕 Novidades v2.4.12 (05/09/2026)
-- **V3 fechada:** proposta automática com edição de módulo/inversor/qtd por card + Recalcular kit isolado.
-- Layout clássico; skins em `_estudo/`. Próximas melhorias = **V4 em branch temp** antes do merge.
+- **V3 fechada (ciclo):** proposta automática com edição de módulo/inversor/qtd por card + Recalcular kit isolado.
+- Layout clássico; skins em `_estudo/`. (Linha profunda posterior = V4.)
 
 ## 🆕 Novidades v2.4.11 (05/09/2026)
 - **Layout clássico** de volta: skins editoriais fora do pipeline (arquivos em `public/styles/_estudo/`).

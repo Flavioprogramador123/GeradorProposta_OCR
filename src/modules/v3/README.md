@@ -15,10 +15,10 @@ Módulo isolado — **não altera** YAML / Gerador Rápido / produção.
 Ver `temp/PIPELINE_V3_ORCAMENTO.md`
 
 ## Branch
-`v3-orcamento` (ciclo V3 — fechamento v2.4.12)
+**V3 fechado e integrado** em `clean-main` (v2.4.15). Hotfixes finos podem ir direto em produção.
 
-**Próximo:** melhorias **V4** em branch temp → merge em `clean-main` só quando consolidado.
-Ver knowledge: `src/data/knowledge/V3_PROPOSTA_AUTO_EDICAO_KIT.md`.
+**Próximo:** mudanças **profundas** → linha **V4** (`v4-*` a partir de `clean-main`, merge consolidado).  
+Política: `src/data/knowledge/BRANCH_POLICY_V3_V4.md` · edição kit: `V3_PROPOSTA_AUTO_EDICAO_KIT.md`.
 
 ## Premissas — inventário completo
 

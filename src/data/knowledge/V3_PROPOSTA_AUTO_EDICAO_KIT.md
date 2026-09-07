@@ -32,7 +32,7 @@ Após **Dimensionar** em `/admin/v3/proposta-auto`:
 
 ## Próxima linha (V4)
 
-Melhorias futuras: branch **temp / V4** (não `clean-main`), merge só quando consolidado — evita regressão do que está funcionando (lição 05/09/2026).
+**V3 já está em `clean-main` (v2.4.15).** Melhorias profundas: branch **`v4-*`**, merge só consolidado — ver `BRANCH_POLICY_V3_V4.md`.
 
 ## Arquivos-chave
 

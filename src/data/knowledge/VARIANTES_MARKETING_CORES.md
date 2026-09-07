@@ -6,7 +6,8 @@ Documento de conhecimento para propostas por segmento (comercial, rural, etc.).
 
 - Edição de kit na proposta automática: ver `V3_PROPOSTA_AUTO_EDICAO_KIT.md`
 - Produção continua **layout clássico**; skins em `_estudo/`
-- **V4** (próximas melhorias de layout/tema): branch temp, merge só consolidado
+- **V3** (fechado / integrado): `clean-main` desde v2.4.15
+- **V4** (próximas melhorias profundas de layout/tema/consultor): branch temp, merge só consolidado — `BRANCH_POLICY_V3_V4.md`
 
 ## v2.4.11 — Produção = layout clássico
 
