@@ -276,6 +276,30 @@
     }
   }
 
+  /* Paisagem no celular: tabela e gráficos usam a largura toda */
+  @media screen and (orientation: landscape) {
+    .pieng-table-scroll-hint {
+      @apply block text-xs py-2 mb-2;
+      background: linear-gradient(90deg, #0f766e, #3366CC);
+    }
+    .pieng-table-wrapper {
+      max-width: 100%;
+    }
+    .pieng-charts-grid,
+    .pieng-performance-charts .grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px !important;
+    }
+    .pieng-chart-box {
+      min-height: 200px;
+      height: 220px;
+    }
+    .pieng-projecao-geracao .pieng-geracao-plot {
+      height: 180px !important;
+    }
+  }
+
   .pieng-footer {
     @apply bg-pieng-dark text-white rounded-2xl p-8 mt-8 text-center;
   }

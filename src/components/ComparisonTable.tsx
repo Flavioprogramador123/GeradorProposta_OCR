@@ -23,7 +23,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({ systems }) => 
         📊 Comparação Detalhada dos Sistemas
       </h3>
       <p className="pieng-table-scroll-hint">
-        👆 Deslize na tabela ou use a barra abaixo para ver todas as colunas
+        📱 Gire o celular para paisagem ou deslize → para ver todas as colunas
       </p>
       <div className="pieng-table-scroll-shell">
         <div className="overflow-x-auto pieng-table-wrapper">

@@ -8,28 +8,81 @@
 /* ── Toolbar (só tela) ── */
 .pieng-pdf-toolbar {
   position: fixed;
-  bottom: 1.25rem;
-  right: 1.25rem;
+  bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
   z-index: 9999;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.5rem;
-  max-width: min(320px, calc(100vw - 2rem));
+  gap: 0.4rem;
+  max-width: min(300px, calc(100vw - 1.5rem));
+  pointer-events: none;
+}
+
+.pieng-pdf-toolbar > * {
+  pointer-events: auto;
+}
+
+.pieng-pdf-toolbar--collapsed {
+  max-width: none;
+}
+
+.pieng-pdf-toolbar__close {
+  align-self: flex-end;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pieng-pdf-toolbar__close:hover {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.pieng-pdf-toolbar__fab {
+  width: 2.65rem;
+  height: 2.65rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #3366cc, #1a4d8f);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.92;
+}
+
+.pieng-pdf-toolbar__fab:hover {
+  opacity: 1;
+  transform: scale(1.04);
 }
 
 .pieng-pdf-toolbar__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
   justify-content: flex-end;
 }
 
 .pieng-pdf-toolbar__btn {
   border: none;
   border-radius: 0.75rem;
-  padding: 0.65rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
@@ -55,12 +108,42 @@
 .pieng-pdf-toolbar__hint {
   background: rgba(255, 255, 255, 0.96);
   color: #475569;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  padding: 0.4rem 0.65rem;
   border-radius: 0.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   text-align: right;
+}
+
+/* Mobile: barra mais discreta; paisagem = FAB ainda menor se recolhida */
+@media (max-width: 640px) {
+  .pieng-pdf-toolbar {
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .pieng-pdf-toolbar__hint {
+    display: none;
+  }
+
+  .pieng-pdf-toolbar__fab {
+    width: 2.35rem;
+    height: 2.35rem;
+    font-size: 1rem;
+    opacity: 0.85;
+  }
+}
+
+@media screen and (orientation: landscape) and (max-height: 520px) {
+  .pieng-pdf-toolbar__hint {
+    display: none;
+  }
+
+  .pieng-pdf-toolbar__btn {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
+  }
 }
 
 @page {

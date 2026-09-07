@@ -57,7 +57,7 @@ export const TechnicalTable: React.FC<TechnicalTableProps> = ({
 
       {/* Tabela Detalhada */}
       <p className="pieng-table-scroll-hint">
-        👆 Deslize na tabela ou use a barra abaixo para ver todas as colunas
+        📱 Gire o celular para paisagem ou deslize → para ver todas as colunas
       </p>
       <div className="pieng-table-scroll-shell">
         <div className="overflow-x-auto pieng-table-wrapper">

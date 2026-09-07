@@ -7,6 +7,8 @@ Regras portadas do mock `.temp/proposta_andreia-jorge-neto-05-09-2026-alt.html` 
 | Situação | Comportamento |
 |----------|----------------|
 | Tela (mobile) | Fundo temático ok; gráfico compacto (toque no mês) |
+| Tela (paisagem) | PWA permite girar (`manifest` orientation: `any`); gráficos/tabela em visão larga |
+| Toolbar PDF | Botão **×** recolhe; FAB 📄 no canto inferior direito (não atrapalha print da tela) |
 | `@media print` | Sem fundo quadriculado/padrão; gráfico 12 meses completo; CTA/WhatsApp/pay ocultos |
 | `body.proposta-pdf-mode` (`?pdf=1`) | Mesmas regras — cobre headless que ignora `print` |
 | Quebras | `page-break-inside: avoid` em cards, linhas de sistema, notas, gráficos, tr de tabela |
