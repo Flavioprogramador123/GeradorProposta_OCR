@@ -1,22 +1,32 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.14** (06/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.15** (07/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.14** - 06/09/2026 ✅ **ATUAL** (branch `v3-orcamento`)
+### **v2.4.15** - 07/09/2026 ✅ **ATUAL** → merge `clean-main` (produção)
+**⚙️ DC/AC em produção (motivo do bump):**
+- ✅ Defaults código/UI: kWp/kW ∈ **[0,80 ; 1,50]** + tol **0,05** → teto **1,55** (antes na nuvem: 0,50–1,40 / 1,45)
+- ✅ Campos em Configurações técnicas; API `proposta-auto` lê via `refreshDcAcLimitsFromAdmin`
+- ✅ Card: R$/Wp informativo sob o PIX comercial (só leitura)
+
+**📦 Inclui linha `v3-orcamento` até aqui:** sticky V3/kits, voltar Gerador, tema Sobrio, divergência preços, etc.
+
+**📦 Arquivos:** `dcAcRatio.ts`, `dcAcLimitsConfig.ts`, `configuracoes.tsx`, `proposta-auto`, `VERSION.md`, badge admin
+
+---
+
+### **v2.4.14** - 06/09/2026 (branch `v3-orcamento`)
 **🎨 UX V3 + Gerador — barras sticky e voltar:**
 - ✅ **Proposta automática**: Dimensionar / Dimensionar e salvar / Abrir Proposta manual — barra sticky no topo
 - ✅ **Proposta por kits** (`orcamento-base`): Calcular preview / Incluir / Salvar / Abrir Proposta manual — mesma barra sticky (sem duplicata no meio da página)
 - ✅ **Gerador rápido**: botão ← Ajustar proposta automática / kits (query `voltar` + `returnTo` no bridge V3)
 
-**📐 Precificação R$/Wp (especificação — ainda não implementada):**
-- Usuário digita R$/Wp (experiência; sem tabela/curva automática)
-- `Pcusto` continua dos produtos; alvo = R$/Wp × potência
-- Ponte: `pdespesa_sugerido = max(0, alvo − Pcusto)` → **40% variável** + **60% fixa** (sugestão editável no Gerador/Consultor)
-- Knowledge: `src/data/knowledge/PRECIFICAO_RS_WP.md`
+**📐 Precificação R$/Wp:**
+- Spec em `PRECIFICAO_RS_WP.md` — **piloto UI removido** (lógica 40/60 não fechou); nova regra depois
+- Sticky V3/kits + voltar no Gerador permanecem
 
 **📦 Arquivos:** `proposta-auto.tsx`, `orcamento-base.tsx`, `gerador-rapido.tsx`, `VERSION.md`, knowledge
 

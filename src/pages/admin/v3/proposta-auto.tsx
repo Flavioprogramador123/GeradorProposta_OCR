@@ -1109,6 +1109,24 @@ export default function AdminV3PropostaAuto() {
                           (legado {money(a.precos.pix)})
                         </div>
                       )}
+                      {(() => {
+                        const pix = a.comercial?.ppix ?? a.precos?.pix ?? 0;
+                        const kwp = Number(a.potencia_kwp) || 0;
+                        const wp = kwp * 1000;
+                        if (!(pix > 0 && wp > 0)) return null;
+                        const rsWp = pix / wp;
+                        return (
+                          <div className="text-[10px] text-gray-400 mt-0.5 tabular-nums">
+                            {rsWp.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                            /Wp
+                          </div>
+                        );
+                      })()}
                     </div>
                   </button>
 
