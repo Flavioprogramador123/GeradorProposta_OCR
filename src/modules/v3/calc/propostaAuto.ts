@@ -13,6 +13,7 @@ import {
   getDcAcLimits,
   inversorAdequadoParaKwp,
   isInversorHibrido,
+  passaFiltroRede220380,
   ratioDcAc,
 } from './dcAcRatio';
 import { createOrcamentoBase } from '../orcamentos/repository';
@@ -64,6 +65,13 @@ export interface PropostaAutoInput {
    */
   incluir_micro?: boolean;
   incluir_string?: boolean;
+  /**
+   * Rede trifásica (mutuamente exclusiva):
+   * - true (default): 220/380 V → exclui trifásico 220 (127/220)
+   * - false: 127/220 V → exclui trifásico 380
+   * Mono e micro passam nos dois modos.
+   */
+  rede_220_380?: boolean;
 }
 
 export interface PassoAuditoria {
@@ -551,10 +559,21 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
   const stringsAll = inversores.filter((i) => i.categoria === 'inversor');
   const stringsHibridos = stringsAll.filter((i) => isInversorHibrido(i));
   /** Lista principal: sem híbridos (caros / fora do fluxo padrão on-grid) */
-  const strings = stringsAll.filter((i) => !isInversorHibrido(i));
+  const stringsSemHibrido = stringsAll.filter((i) => !isInversorHibrido(i));
+  /** Default true: rede 220/380 — não busca trifásico 220 V */
+  const rede220380 = input.rede_220_380 !== false;
+  const stringsExcluidosRede = stringsSemHibrido.filter((i) => !passaFiltroRede220380(i, rede220380));
+  const strings = stringsSemHibrido.filter((i) => passaFiltroRede220380(i, rede220380));
   if (stringsHibridos.length) {
     avisos.push(
       `${stringsHibridos.length} inversor(es) híbrido(s) fora da lista principal (só sob demanda / kit manual)`
+    );
+  }
+  if (stringsExcluidosRede.length) {
+    avisos.push(
+      rede220380
+        ? `${stringsExcluidosRede.length} trifásico(s) 220 V (127/220) excluído(s) — rede 220/380 ativa`
+        : `${stringsExcluidosRede.length} trifásico(s) 380 V excluído(s) — rede 127/220 ativa`
     );
   }
   const nenhumFiltroTopo = !input.incluir_micro && !input.incluir_string;
@@ -568,21 +587,25 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
   const limDcAc = getDcAcLimits();
   auditoria_alvo.push({
     etapa: 'Filtro topologia + DC/AC',
-    formula: `checkboxes micro/string · híbridos excluídos · kWp/kW ∈ [${limDcAc.min}, ${limDcAc.max}] (+tol → ${limDcAc.teto})`,
+    formula: `checkboxes micro/string/rede · híbridos excluídos · kWp/kW ∈ [${limDcAc.min}, ${limDcAc.max}] (+tol → ${limDcAc.teto})`,
     valores: {
       incluir_micro: Boolean(input.incluir_micro),
       incluir_string: Boolean(input.incluir_string),
+      rede_220_380: rede220380,
       wantMicro,
       wantString,
       micros_cd: micros.length,
       strings_cd: strings.length,
       strings_hibridos_excluidos: stringsHibridos.length,
+      strings_excluidos_rede: stringsExcluidosRede.length,
       dc_ac_max: limDcAc.max,
       dc_ac_teto: limDcAc.teto,
       dc_ac_min: limDcAc.min,
       dc_ac_tol_pp: limDcAc.tolPp,
     },
-    resultado: wantMicro && wantString ? 'micro + string' : wantMicro ? 'somente micro' : 'somente string',
+    resultado:
+      (wantMicro && wantString ? 'micro + string' : wantMicro ? 'somente micro' : 'somente string') +
+      (rede220380 ? ' · rede 220/380 (exclui tri 220)' : ' · rede 127/220 (exclui tri 380)'),
   });
 
   // --- Kits manuais da 3a ---

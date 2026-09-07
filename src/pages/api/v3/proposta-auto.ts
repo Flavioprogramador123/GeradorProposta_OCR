@@ -94,6 +94,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         incluir_auto: body.incluir_auto !== false,
         incluir_micro: body.incluir_micro === true || body.incluir_micro === 'true',
         incluir_string: body.incluir_string === true || body.incluir_string === 'true',
+        /** Default true se omitido — rede 220/380 exclui trifásico 220 */
+        rede_220_380:
+          body.rede_220_380 === undefined || body.rede_220_380 === null
+            ? true
+            : body.rede_220_380 === true || body.rede_220_380 === 'true',
         comercial: {
           pdespesaFixo:
             body.pdespesaFixo != null ? Number(body.pdespesaFixo) : admin?.pdespesaFixo,

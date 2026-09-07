@@ -1,12 +1,23 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.16** (07/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.17** (07/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.16** - 07/09/2026 ✅ **ATUAL**
+### **v2.4.17** - 07/09/2026 ✅ **ATUAL**
+**⚡ Filtro rede trifásica na Proposta automática / Orçamento base:**
+- ✅ Checkbox **Rede 220/380 V** (default ligado)
+- ✅ Ligado: mono + micro + trifásico **380** — exclui trifásico 220 (127/220)
+- ✅ Desligado: mono + micro + trifásico **220** — exclui trifásico 380
+- ✅ Heurística pelo nome do catálogo (`classificarRedeInversor` / `passaFiltroRede220380`)
+
+**📦 Arquivos:** `dcAcRatio.ts`, `propostaAuto.ts`, `api/v3/proposta-auto.ts`, `proposta-auto.tsx`, `orcamento-base.tsx`
+
+---
+
+### **v2.4.16** - 07/09/2026
 **🏠 Ponte A · Teto Sol (PlanoSol) — produto irmão independente:**
 - ✅ Card **Teto Sol** no admin (abre app separado; simulação sem orçamento)
 - ✅ Botão **Teto Sol** no Gerador rápido e Proposta automática → JSON `ModuleSpec` + etiqueta

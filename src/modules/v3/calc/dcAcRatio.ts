@@ -57,16 +57,70 @@ export function setDcAcLimitsOverride(v: Partial<DcAcLimits> | DcAcLimits) {
   );
 }
 
+function blobInversor(inv: {
+  nome?: string | null;
+  marca?: string | null;
+  sku_interno?: string | null;
+  categoria?: string | null;
+}): string {
+  return `${inv.nome || ''} ${inv.marca || ''} ${inv.sku_interno || ''} ${inv.categoria || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 export function isInversorHibrido(inv: {
   nome?: string | null;
   marca?: string | null;
   sku_interno?: string | null;
 }): boolean {
-  const blob = `${inv.nome || ''} ${inv.marca || ''} ${inv.sku_interno || ''}`
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  return /\bhibrid|\bhybrid/.test(blob);
+  return /\bhibrid|\bhybrid/.test(blobInversor(inv));
+}
+
+/**
+ * Rede CA do inversor (heurística pelo nome do catálogo).
+ * - trifásico 220 V → VN 127 / VV 220
+ * - trifásico 380 V → VN 220 / VV 380 (rede 220/380)
+ * Micro e mono não entram no filtro de rede trifásica.
+ */
+export type RedeInversor = 'micro' | 'mono' | 'trifasico_220' | 'trifasico_380' | 'desconhecido';
+
+export function classificarRedeInversor(inv: {
+  nome?: string | null;
+  marca?: string | null;
+  sku_interno?: string | null;
+  categoria?: string | null;
+}): RedeInversor {
+  const blob = blobInversor(inv);
+  if (inv.categoria === 'microinversor' || /\bmicro[\s-]?invers/.test(blob)) return 'micro';
+  // 380 V primeiro (pode aparecer junto de "220" em fichas VN/VV)
+  if (/\b380\s*v?\b|\b\/\s*380|\b380\s*\/|\bon[\s-]?grid\s*380/.test(blob)) {
+    return 'trifasico_380';
+  }
+  if (/\bmono\b|\bmonofas/.test(blob)) return 'mono';
+  if (/\btrif|\b3[\s-]?fas|\bthree[\s-]?phase/.test(blob)) return 'trifasico_220';
+  // String sem MONO, com 220 V → tipicamente trifásico 127/220
+  if (/\b220\s*v?\b|\bon[\s-]?grid\s*220/.test(blob)) return 'trifasico_220';
+  return 'desconhecido';
+}
+
+/**
+ * Filtro mutuamente exclusivo para trifásicos:
+ * - ativo (default, rede 220/380): mono + micro + trifásico 380 — exclui trifásico 220
+ * - inativo (rede 127/220): mono + micro + trifásico 220 — exclui trifásico 380
+ */
+export function passaFiltroRede220380(
+  inv: {
+    nome?: string | null;
+    marca?: string | null;
+    sku_interno?: string | null;
+    categoria?: string | null;
+  },
+  rede220380Ativo: boolean
+): boolean {
+  const rede = classificarRedeInversor(inv);
+  if (rede220380Ativo) return rede !== 'trifasico_220';
+  return rede !== 'trifasico_380';
 }
 
 export function ratioDcAc(kwpModulos: number, potenciaInversorKw: number): number {

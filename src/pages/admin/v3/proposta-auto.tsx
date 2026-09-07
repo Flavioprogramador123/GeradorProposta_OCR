@@ -9,7 +9,7 @@ import {
   type ConfigRapidaShared,
 } from '@/lib/configRapidaShared';
 import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
-import { isInversorHibrido } from '@/modules/v3/calc/dcAcRatio';
+import { isInversorHibrido, passaFiltroRede220380 } from '@/modules/v3/calc/dcAcRatio';
 import { precificarComercialV2 } from '@/modules/v3/bridge/comercial';
 import { marcaCurtaEquipamento, resolveMarcaCurtaCard, sortByPrecoAsc } from '@/lib/equipamentoLabel';
 import { buildPiengTetoBridge, openTetoSolWithBridge } from '@/lib/tetoSolBridge';
@@ -146,6 +146,8 @@ export default function AdminV3PropostaAuto() {
   const [usarFaixa, setUsarFaixa] = useState(true);
   const [incluirMicro, setIncluirMicro] = useState(true);
   const [incluirString, setIncluirString] = useState(true);
+  /** Default ON: rede 220/380 (exclui tri 220). OFF: rede 127/220 (exclui tri 380). */
+  const [rede220380, setRede220380] = useState(true);
   const [hsp, setHsp] = useState(5.45);
   const [hspTexto, setHspTexto] = useState('5.45');
   const [tarifa, setTarifa] = useState(1.17);
@@ -189,9 +191,13 @@ export default function AdminV3PropostaAuto() {
   const invsPrincipais = useMemo(
     () =>
       sortByPrecoAsc(
-        invsCatalogo.filter((c) => c.categoria === 'microinversor' || !isInversorHibrido(c))
+        invsCatalogo.filter(
+          (c) =>
+            (c.categoria === 'microinversor' || !isInversorHibrido(c)) &&
+            passaFiltroRede220380(c, rede220380)
+        )
       ),
-    [invsCatalogo]
+    [invsCatalogo, rede220380]
   );
   const invsHibridos = useMemo(
     () =>
@@ -354,6 +360,7 @@ export default function AdminV3PropostaAuto() {
         salvar,
         incluir_micro: incluirMicro,
         incluir_string: incluirString,
+        rede_220_380: rede220380,
       };
 
       if (modo === 'potencia_kwp') {
@@ -956,6 +963,21 @@ export default function AdminV3PropostaAuto() {
                   onChange={(e) => setIncluirString(e.target.checked)}
                 />
                 <span className="text-gray-700">Somente inversores string</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={rede220380}
+                  onChange={(e) => setRede220380(e.target.checked)}
+                />
+                <span className="text-gray-700">
+                  Rede 220/380 V
+                  <span className="block text-[11px] text-gray-500 leading-tight">
+                    {rede220380
+                      ? 'Trifásico 380 · exclui 220 (127/220)'
+                      : 'Trifásico 220 (127/220) · exclui 380'}
+                  </span>
+                </span>
               </label>
             </div>
 

@@ -8,7 +8,7 @@ import {
 } from '@/lib/configRapidaShared';
 import { formatBRL } from '@/lib/formatBRL';
 import { V3_GERADOR_STORAGE_KEY } from '@/modules/v3/bridge/toGerador';
-import { isInversorHibrido } from '@/modules/v3/calc/dcAcRatio';
+import { isInversorHibrido, passaFiltroRede220380 } from '@/modules/v3/calc/dcAcRatio';
 import { sortByPrecoAsc } from '@/lib/equipamentoLabel';
 
 interface CatalogItem {
@@ -118,6 +118,8 @@ export default function AdminV3OrcamentoBase() {
   const [skuInv, setSkuInv] = useState('');
   const [qtdInv, setQtdInv] = useState(1);
   const [autoComp, setAutoComp] = useState(true);
+  /** Default ON: 220/380. OFF: só trifásico 220 (sem 380). */
+  const [rede220380, setRede220380] = useState(true);
   const [frete, setFrete] = useState(0);
   const [calc, setCalc] = useState<Calc | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
@@ -146,9 +148,13 @@ export default function AdminV3OrcamentoBase() {
   const invsPrincipais = useMemo(
     () =>
       sortByPrecoAsc(
-        invs.filter((i) => i.categoria === 'microinversor' || !isInversorHibrido(i))
+        invs.filter(
+          (i) =>
+            (i.categoria === 'microinversor' || !isInversorHibrido(i)) &&
+            passaFiltroRede220380(i, rede220380)
+        )
       ),
-    [invs]
+    [invs, rede220380]
   );
   const invsHibridos = useMemo(
     () =>
@@ -188,7 +194,9 @@ export default function AdminV3OrcamentoBase() {
     setSkuInv((prev) => {
       if (prev && invsOk.some((c) => c.sku_interno === prev)) return prev;
       const principais = invsOk.filter(
-        (c) => c.categoria === 'microinversor' || !isInversorHibrido(c)
+        (c) =>
+          (c.categoria === 'microinversor' || !isInversorHibrido(c)) &&
+          passaFiltroRede220380(c, true)
       );
       return principais[0]?.sku_interno || invsOk[0]?.sku_interno || '';
     });
@@ -199,6 +207,15 @@ export default function AdminV3OrcamentoBase() {
     const data = await res.json();
     if (res.ok) setLista(data.items || []);
   }, []);
+
+  useEffect(() => {
+    if (!skuInv) return;
+    const stillOk = invsPrincipais.some((i) => i.sku_interno === skuInv);
+    const hibridoOk = invsHibridos.some((i) => i.sku_interno === skuInv);
+    if (!stillOk && !hibridoOk) {
+      setSkuInv(invsPrincipais[0]?.sku_interno || '');
+    }
+  }, [rede220380, invsPrincipais, invsHibridos, skuInv]);
 
   useEffect(() => {
     loadCatalogo().catch((e) => setMsg(e.message));
@@ -815,7 +832,7 @@ export default function AdminV3OrcamentoBase() {
                 className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               />
             </label>
-            <label className="text-sm">
+            <label className="text-sm md:col-span-2">
               <span className="text-gray-500 text-xs">Inversor / micro</span>
               <select
                 value={skuInv}
@@ -841,6 +858,20 @@ export default function AdminV3OrcamentoBase() {
                   </optgroup>
                 )}
               </select>
+              <label className="mt-2 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={rede220380}
+                  onChange={(e) => setRede220380(e.target.checked)}
+                />
+                <span className="text-gray-700">
+                  Rede 220/380 V
+                  <span className="block text-xs text-gray-500 font-normal">
+                    Ligado: trifásico 380. Desligado: trifásico 220 (127/220), sem 380.
+                  </span>
+                </span>
+              </label>
             </label>
             <label className="text-sm">
               <span className="text-gray-500 text-xs">Qtd inversores</span>
