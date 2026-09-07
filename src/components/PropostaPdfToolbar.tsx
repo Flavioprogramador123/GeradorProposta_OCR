@@ -9,11 +9,13 @@ interface PropostaPdfToolbarProps {
 const STORAGE_KEY = 'pieng-pdf-toolbar-collapsed';
 
 export default function PropostaPdfToolbar({ clienteNome, slug }: PropostaPdfToolbarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     try {
-      if (sessionStorage.getItem(STORAGE_KEY) === '1') setCollapsed(true);
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved === '0') setCollapsed(false);
+      else if (saved === '1') setCollapsed(true);
     } catch {
       /* ignore */
     }
