@@ -12,6 +12,8 @@ import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
 import { isInversorHibrido, passaFiltroRede220380 } from '@/modules/v3/calc/dcAcRatio';
 import { precificarComercialV2 } from '@/modules/v3/bridge/comercial';
 import { marcaCurtaEquipamento, resolveMarcaCurtaCard, sortByPrecoAsc } from '@/lib/equipamentoLabel';
+import { peekSlugForV3, rememberSlugForV3 } from '@/lib/v3Navegacao';
+import { useRouter } from 'next/router';
 
 interface Params {
   hsp: number;
@@ -131,6 +133,7 @@ function fmtVal(v: number | string | boolean | null): string {
 }
 
 export default function AdminV3PropostaAuto() {
+  const router = useRouter();
   const [modo, setModo] = useState<'geracao_mensal' | 'potencia_kwp' | 'consumo_mensal'>('geracao_mensal');
   const [cdId, setCdId] = useState(3);
   const [cliente, setCliente] = useState('Cliente Padrão');
@@ -171,7 +174,7 @@ export default function AdminV3PropostaAuto() {
   const [aberto, setAberto] = useState<Record<number, boolean>>({});
   const [sharedReady, setSharedReady] = useState(false);
   const [catalogo, setCatalogo] = useState<CatalogItem[]>([]);
-
+  const [slugProposta, setSlugProposta] = useState<string | null>(null);
   const modsCatalogo = useMemo(
     () =>
       sortByPrecoAsc(
@@ -252,6 +255,18 @@ export default function AdminV3PropostaAuto() {
   useEffect(() => {
     loadParams().catch(() => undefined);
   }, [loadParams]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const fromQuery =
+      typeof router.query.slug === 'string' ? router.query.slug.trim() : '';
+    const fromSession = peekSlugForV3();
+    const slug = fromQuery || fromSession;
+    if (slug) {
+      setSlugProposta(slug);
+      rememberSlugForV3(slug);
+    }
+  }, [router.isReady, router.query.slug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -475,6 +490,7 @@ export default function AdminV3PropostaAuto() {
         ...payload,
         returnTo: '/admin/v3/proposta-auto',
         origemUi: 'proposta-auto',
+        slugProposta: slugProposta || peekSlugForV3() || undefined,
       }));
       // Garante sessão antes do gerador aplicar /admin/config
       persistSharedNow();
@@ -695,6 +711,12 @@ export default function AdminV3PropostaAuto() {
                   Proposta manual
                 </Link>
                 {' '}· configs compartilhadas
+                {slugProposta && (
+                  <span className="block mt-1 text-amber-700">
+                    Editando proposta: <code className="text-xs">{slugProposta}</code> (mesmo link ao
+                    salvar no gerador)
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex gap-3 flex-shrink-0">

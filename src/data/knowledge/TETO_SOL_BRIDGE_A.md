@@ -14,10 +14,9 @@ Dimensões L×A: se o orçamento não tem mm, usa catálogo por potência (`src/
 
 ## Como usar
 
-1. **Admin** → card **Teto Sol** (abre o app sozinho, sem orçamento).
-2. Ou no **Gerador / Proposta automática**: botão **🏠 Teto Sol** (envia JSON módulo + etiqueta).
-3. Abre o PlanoSol pelo card **Teto Sol** no admin (`NEXT_PUBLIC_TETO_SOL_URL`; prod: `https://planosol.vercel.app`) e, no fluxo com dados, importa JSON baixado ou `postMessage`.
-4. No Teto: recebe via `postMessage` **ou** menu **PIENG JSON**.
+1. **Admin** → card **Teto Sol** (abre o PlanoSol sozinho, sem orçamento).
+2. No Teto: importar via **PIENG JSON** (arquivo baixado) ou `postMessage` se a ponte for reativada em outro fluxo.
+3. URL: `NEXT_PUBLIC_TETO_SOL_URL` (prod: `https://planosol.vercel.app`).
 
 ## Deploys separados
 
@@ -26,7 +25,7 @@ Dimensões L×A: se o orçamento não tem mm, usa catálogo por potência (`src/
 | PIENG Propostas | `Flavioprogramador123/GeradorProposta_OCR` | https://pieng-propostas-pieng.vercel.app |
 | PlanoSol (Teto Sol) | `Flavioprogramador123/Teto_sol` | https://planosol.vercel.app |
 
-Card **Teto Sol** fica só no `/admin` (abre o app sem orçamento). Ponte com JSON permanece disponível via lib; botões no gerador/proposta-auto foram removidos da UI.
+Card **Teto Sol** só no `/admin`. A lib `tetoSolBridge.ts` permanece para uso futuro; botões no gerador/proposta-auto saíram da UI.
 
 ## Roadmap (sem acoplar núcleos)
 

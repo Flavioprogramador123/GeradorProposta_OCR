@@ -119,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { cliente, orcamentos, config, slugExistente } = req.body;
+    const { cliente, orcamentos, config, slugExistente, v3Navegacao } = req.body;
 
     // Debug: mostrar dados recebidos
     console.log('📥 Dados recebidos na API:', {
@@ -811,6 +811,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       dataGeracao: dataAtual,
       dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
       slug: slug,
+      /** Origem V3 (kit/auto) — só para botão Voltar no Editar; não afeta HTML cliente */
+      v3Navegacao:
+        v3Navegacao &&
+        (v3Navegacao.origemUi === 'orcamento-base' || v3Navegacao.origemUi === 'proposta-auto') &&
+        typeof v3Navegacao.returnTo === 'string' &&
+        String(v3Navegacao.returnTo).startsWith('/admin/v3/')
+          ? {
+              origemUi: v3Navegacao.origemUi,
+              returnTo: String(v3Navegacao.returnTo),
+            }
+          : undefined,
       bannerUrgencia: "Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.",
       // ✅ SALVAR CONFIGURAÇÕES DA PROPOSTA (para edição/consultor)
       // À vista / fatores 12×–18× vêm da tabela de cartão (PIX = base)
@@ -912,67 +923,87 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const estadoCliente = cliente.cidade?.includes('GO') ? 'GO' : (cliente.cidade?.includes('SP') ? 'SP' : cliente.estado || 'GO');
       
       console.log('💾 Salvando cliente no Supabase...');
-      
-      // Tentar buscar cliente existente
-      const { data: clienteExistente } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('nome', cliente.nome)
-        .eq('cidade', cliente.cidade)
-        .maybeSingle();
 
-      let clienteSupabase;
-      
-      if (clienteExistente) {
-        // Atualizar dados se necessário
-        const { data: updated, error: updateError } = await supabase
-          .from('clientes')
-          .update({
-            nome: cliente.nome,
-            cidade: cliente.cidade,
-            estado: estadoCliente,
-            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
-            consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
-            email: cliente.email,
-            telefone: cliente.telefone,
-            pdespesa: cliente.pdespesa,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', clienteExistente.id)
-          .select()
-          .single();
+      let clienteSupabase: any = null;
 
-        if (updateError) {
-          console.warn('⚠️ Erro ao atualizar cliente, usando existente:', updateError);
-          clienteSupabase = clienteExistente;
-        } else {
-          clienteSupabase = updated;
+      // Atualização: mantém o cliente já ligado à proposta (mesmo link)
+      if (modoAtualizacao && slugExistente) {
+        const { data: propExistente } = await supabase
+          .from('propostas')
+          .select('cliente_id')
+          .eq('slug', slugExistente)
+          .maybeSingle();
+        if (propExistente?.cliente_id) {
+          const { data: cli } = await supabase
+            .from('clientes')
+            .select('*')
+            .eq('id', propExistente.cliente_id)
+            .maybeSingle();
+          if (cli) {
+            const { data: updated, error: updateError } = await supabase
+              .from('clientes')
+              .update({
+                nome: cliente.nome,
+                cidade: cliente.cidade,
+                estado: estadoCliente,
+                tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+                consumo_mensal: cliente.consumo_mensal || 0,
+                hsp_local:
+                  config.hsp ||
+                  parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
+                email: cliente.email,
+                telefone: cliente.telefone,
+                pdespesa: cliente.pdespesa,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', cli.id)
+              .select()
+              .single();
+            clienteSupabase = updateError ? cli : updated;
+          }
         }
-      } else {
-        // Criar novo cliente
-        const { data: novoCliente, error: createError } = await supabase
-          .from('clientes')
-          .insert({
-            nome: cliente.nome,
-            cidade: cliente.cidade,
-            estado: estadoCliente,
-            tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
-            consumo_mensal: cliente.consumo_mensal || 0,
-            hsp_local: config.hsp || parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
-            email: cliente.email,
-            telefone: cliente.telefone,
-            pdespesa: cliente.pdespesa,
-          })
-          .select()
-          .single();
+      }
 
-        if (createError) {
-          console.error('❌ Erro ao criar cliente:', createError);
-          throw new Error(`Erro ao criar cliente no Supabase: ${createError.message}`);
+      // Proposta NOVA: sempre cria cliente novo (evita sumir da lista quando o nome é "Cliente Padrão")
+      // Atualização sem cliente_id: fallback busca por nome+cidade ou cria
+      if (!clienteSupabase) {
+        if (modoAtualizacao) {
+          const { data: clienteExistente } = await supabase
+            .from('clientes')
+            .select('*')
+            .eq('nome', cliente.nome)
+            .eq('cidade', cliente.cidade)
+            .maybeSingle();
+          if (clienteExistente) {
+            clienteSupabase = clienteExistente;
+          }
         }
 
-        clienteSupabase = novoCliente;
+        if (!clienteSupabase) {
+          const { data: novoCliente, error: createError } = await supabase
+            .from('clientes')
+            .insert({
+              nome: cliente.nome,
+              cidade: cliente.cidade,
+              estado: estadoCliente,
+              tipo_imovel: cliente.tipo_imovel?.toLowerCase() || 'residencial',
+              consumo_mensal: cliente.consumo_mensal || 0,
+              hsp_local:
+                config.hsp ||
+                parseFloat(cliente.hspLocal?.toString() || configSistema.hspPadrao?.toString() || '5.21'),
+              email: cliente.email,
+              telefone: cliente.telefone,
+              pdespesa: cliente.pdespesa,
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('❌ Erro ao criar cliente:', createError);
+            throw new Error(`Erro ao criar cliente no Supabase: ${createError.message}`);
+          }
+          clienteSupabase = novoCliente;
+        }
       }
 
       if (!clienteSupabase || !clienteSupabase.id) {

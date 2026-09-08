@@ -22,6 +22,14 @@ import {
   TEMPLATE_APROVADO_PRODUCAO,
   resolveTemplateParaSalvar,
 } from '@/lib/propostaTemplatePolicy';
+import {
+  buildV3Navegacao,
+  labelVoltarV3,
+  rememberSlugForV3,
+  returnToFromOrigem,
+  sanitizeOrigemUi,
+  type OrigemUiV3,
+} from '@/lib/v3Navegacao';
 
 interface Orcamento {
   nome: string;
@@ -73,6 +81,8 @@ export default function GeradorRapido() {
   const [showYamlInput, setShowYamlInput] = useState(false);
   const [configSistema, setConfigSistema] = useState<any>(null);
   const [slugAtual, setSlugAtual] = useState<string | null>(null); // ✅ Slug da proposta carregada
+  /** kit | auto — habilita Voltar no Editar e reabre gerador com mesmo link */
+  const [origemUi, setOrigemUi] = useState<OrigemUiV3 | null>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState<string>(TEMPLATE_APROVADO_PRODUCAO);
   const [salvarComoPendente, setSalvarComoPendente] = useState<boolean>(false);
@@ -82,6 +92,17 @@ export default function GeradorRapido() {
   const [voltarV3Url, setVoltarV3Url] = useState<string | null>(null);
   const [voltarV3Label, setVoltarV3Label] = useState('← Ajustar proposta');
 
+  const aplicarVoltarV3 = (origem: OrigemUiV3 | null, returnTo?: string | null) => {
+    const url =
+      (returnTo && returnTo.startsWith('/admin/v3/') ? returnTo : null) ||
+      returnToFromOrigem(origem);
+    if (!url || !origem || origem === 'manual') {
+      return;
+    }
+    setOrigemUi(origem);
+    setVoltarV3Url(url);
+    setVoltarV3Label(labelVoltarV3(origem));
+  };
   // Duplo clique / duplo toque no template = confirmar e salvar com esse template
   const confirmarComTemplate = (template: string) => {
     setShowTemplateModal(false);
@@ -457,6 +478,13 @@ export default function GeradorRapido() {
       const slugProposta = propostaData.slug || clienteSlug;
       setSlugAtual(slugProposta);
       console.log('📌 Slug da proposta carregada:', slugProposta);
+
+      // MVP: botão Voltar se a proposta veio de kit/auto
+      const nav = propostaData.v3Navegacao;
+      const origemSalva = sanitizeOrigemUi(nav?.origemUi);
+      if (origemSalva) {
+        aplicarVoltarV3(origemSalva, typeof nav?.returnTo === 'string' ? nav.returnTo : null);
+      }
       
       setLoading(false);
 
@@ -544,13 +572,17 @@ export default function GeradorRapido() {
         typeof router.query.voltar === 'string' ? router.query.voltar : '';
       if (voltarQuery.startsWith('/admin/v3/')) {
         setVoltarV3Url(voltarQuery);
-        setVoltarV3Label(
-          voltarQuery.includes('orcamento-base')
-            ? '← Ajustar kits'
-            : voltarQuery.includes('proposta-auto')
-              ? '← Ajustar proposta automática'
-              : '← Ajustar proposta'
-        );
+        const origemGuess = voltarQuery.includes('orcamento-base')
+          ? 'orcamento-base'
+          : voltarQuery.includes('proposta-auto')
+            ? 'proposta-auto'
+            : null;
+        if (origemGuess) {
+          setOrigemUi(origemGuess);
+          setVoltarV3Label(labelVoltarV3(origemGuess));
+        } else {
+          setVoltarV3Label('← Ajustar proposta');
+        }
       }
 
       const raw = localStorage.getItem('v3-gerador-bridge');
@@ -646,15 +678,29 @@ export default function GeradorRapido() {
 
           setOrcamentos(lista);
 
-          if (typeof dados.returnTo === 'string' && dados.returnTo.startsWith('/admin/v3/')) {
-            setVoltarV3Url(dados.returnTo);
-            setVoltarV3Label(
-              dados.returnTo.includes('orcamento-base')
-                ? '← Ajustar kits'
-                : dados.returnTo.includes('proposta-auto')
-                  ? '← Ajustar proposta automática'
-                  : '← Ajustar proposta'
+          const origemBridge = sanitizeOrigemUi(dados.origemUi);
+          if (origemBridge) {
+            aplicarVoltarV3(
+              origemBridge,
+              typeof dados.returnTo === 'string' ? dados.returnTo : null
             );
+          } else if (typeof dados.returnTo === 'string' && dados.returnTo.startsWith('/admin/v3/')) {
+            const guess = dados.returnTo.includes('orcamento-base')
+              ? ('orcamento-base' as const)
+              : dados.returnTo.includes('proposta-auto')
+                ? ('proposta-auto' as const)
+                : null;
+            if (guess) aplicarVoltarV3(guess, dados.returnTo);
+            else {
+              setVoltarV3Url(dados.returnTo);
+              setVoltarV3Label('← Ajustar proposta');
+            }
+          }
+
+          // Mesmo link: bridge pode trazer slug de proposta já enviada
+          if (typeof dados.slugProposta === 'string' && dados.slugProposta.trim()) {
+            setSlugAtual(dados.slugProposta.trim());
+            console.log('📌 Bridge V3: atualizar proposta existente', dados.slugProposta.trim());
           }
 
           localStorage.removeItem('v3-gerador-bridge');
@@ -1296,6 +1342,8 @@ consolidado_orcamentos_distribuidores:
         body: JSON.stringify({
           // ✅ Enviar slug existente se for atualização (não "Salvar Como")
           slugExistente: slugParaUsar,
+          // MVP: origem kit/auto para Voltar no próximo Editar
+          v3Navegacao: buildV3Navegacao(origemUi || 'manual'),
           cliente: {
             nome: config.nomeCliente,
             cidade: config.cidadeCliente,
@@ -1707,6 +1755,7 @@ consolidado_orcamentos_distribuidores:
                       <button
                         type="button"
                         onClick={() => {
+                          rememberSlugForV3(slugAtual);
                           try {
                             if (window.opener && !window.opener.closed) {
                               window.opener.focus();
@@ -1716,10 +1765,13 @@ consolidado_orcamentos_distribuidores:
                           } catch {
                             /* cross-origin / blocked */
                           }
-                          router.push(voltarV3Url);
+                          const q = slugAtual
+                            ? `?slug=${encodeURIComponent(slugAtual)}`
+                            : '';
+                          router.push(`${voltarV3Url}${q}`);
                         }}
                         className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Voltar à tela anterior para redimensionar / alterar o kit"
+                        title="Voltar para ajustar kits / proposta automática (mesmo link ao reabrir)"
                       >
                         {voltarV3Label}
                       </button>
@@ -1826,7 +1878,9 @@ consolidado_orcamentos_distribuidores:
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700" title="Bônus de eficiência micro-inversor">
                           ⚡ Micro
                         </th>
-                        <th className="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Nome/Origem</th>
+                        <th className="border border-gray-300 px-1 py-2 text-xs font-bold text-gray-700 w-20 max-w-[5.5rem]">
+                          Origem
+                        </th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Distribuidora</th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">P.Custo (R$)</th>
                         <th className="border border-gray-300 px-2 py-2 text-xs font-bold text-gray-700">Qtd Módulos</th>
@@ -1852,7 +1906,10 @@ consolidado_orcamentos_distribuidores:
                         const pdespesaTotalCalculado =
                           config.pdespesaFixo + (pcustoEfetivo * config.pdespesaVariavel) / 100;
                         const totalFinal = pcustoEfetivo + pdespesaTotalCalculado;
-                        const precoPorWp = pcustoEfetivo / (orc.modulos * orc.pot_modulo || 1);
+                        // R$/Wp = PIX final ÷ (potência módulo W × qtd)
+                        const wpTotal = orc.modulos * orc.pot_modulo || 1;
+                        const pixFinal = calcularPrecos(totalFinal).ppix;
+                        const precoPorWp = pixFinal / wpTotal;
 
                         return (
                           <tr key={index} className="hover:bg-gray-50">
@@ -1869,8 +1926,8 @@ consolidado_orcamentos_distribuidores:
                               />
                             </td>
 
-                            {/* Nome/Origem */}
-                            <td className="border border-gray-300 px-1 py-1">
+                            {/* Origem */}
+                            <td className="border border-gray-300 px-1 py-1 w-20 max-w-[5.5rem]">
                               <input
                                 type="text"
                                 value={orc.nome}
@@ -1879,8 +1936,9 @@ consolidado_orcamentos_distribuidores:
                                   novosOrc[index].nome = e.target.value;
                                   setOrcamentos(novosOrc);
                                 }}
-                                className="w-full px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent"
-                                placeholder="Nome do orçamento"
+                                className="w-full max-w-[5.5rem] px-1 py-1 text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent truncate"
+                                placeholder="Origem"
+                                title={orc.nome}
                               />
                             </td>
 

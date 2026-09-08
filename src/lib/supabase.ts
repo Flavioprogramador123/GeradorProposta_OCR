@@ -394,7 +394,8 @@ export async function getClientesWithPropostas() {
         id,
         slug,
         status,
-        created_at
+        created_at,
+        updated_at
       )
     `)
     .order('created_at', { ascending: false });

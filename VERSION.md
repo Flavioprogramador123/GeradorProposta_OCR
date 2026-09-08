@@ -1,12 +1,24 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.17** (07/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.18** (07/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.17** - 07/09/2026 ✅ **ATUAL**
+### **v2.4.18** - 07/09/2026 ✅ **ATUAL**
+**🔧 Gerador + lista admin + navegação V3:**
+- ✅ R$/Wp = PIX final ÷ (W módulo × qtd)
+- ✅ Coluna tabela: label **Origem** (mais estreita)
+- ✅ MVP Voltar kit/auto no Editar (`v3Navegacao` + slug na sessão)
+- ✅ Proposta **nova** cria cliente novo (não some da lista com “Cliente Padrão”)
+- ✅ Lista admin usa proposta **mais recente** do cliente
+
+**📦 Arquivos:** `gerador-rapido.tsx`, `v3Navegacao.ts`, `gerar-proposta.ts`, `api/admin/clientes.ts`, `orcamento-base.tsx`, `proposta-auto.tsx`, `supabase.ts`
+
+---
+
+### **v2.4.17** - 07/09/2026
 **⚡ Filtro rede trifásica na Proposta automática / Orçamento base:**
 - ✅ Checkbox **Rede 220/380 V** (default ligado)
 - ✅ Ligado: mono + micro + trifásico **380** — exclui trifásico 220 (127/220)

@@ -10,6 +10,8 @@ import { formatBRL } from '@/lib/formatBRL';
 import { V3_GERADOR_STORAGE_KEY } from '@/modules/v3/bridge/toGerador';
 import { isInversorHibrido, passaFiltroRede220380 } from '@/modules/v3/calc/dcAcRatio';
 import { sortByPrecoAsc } from '@/lib/equipamentoLabel';
+import { peekSlugForV3, rememberSlugForV3 } from '@/lib/v3Navegacao';
+import { useRouter } from 'next/router';
 
 interface CatalogItem {
   id: number;
@@ -110,6 +112,7 @@ function recalcCalcLocal(itens: CalcItem[]): Calc {
 }
 
 export default function AdminV3OrcamentoBase() {
+  const router = useRouter();
   const [cdId, setCdId] = useState(3);
   const [catalogo, setCatalogo] = useState<CatalogItem[]>([]);
   const [titulo, setTitulo] = useState('Cliente Premium');
@@ -128,6 +131,20 @@ export default function AdminV3OrcamentoBase() {
   const [cardAtivoId, setCardAtivoId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Slug da proposta já publicada (Editar → Voltar kits) — reabre gerador sem mudar o link */
+  const [slugProposta, setSlugProposta] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const fromQuery =
+      typeof router.query.slug === 'string' ? router.query.slug.trim() : '';
+    const fromSession = peekSlugForV3();
+    const slug = fromQuery || fromSession;
+    if (slug) {
+      setSlugProposta(slug);
+      rememberSlugForV3(slug);
+    }
+  }, [router.isReady, router.query.slug]);
 
   const mods = useMemo(
     () =>
@@ -668,6 +685,7 @@ export default function AdminV3OrcamentoBase() {
           ...payload,
           returnTo: '/admin/v3/orcamento-base',
           origemUi: 'orcamento-base',
+          slugProposta: slugProposta || peekSlugForV3() || undefined,
         })
       );
       window.open(
@@ -675,7 +693,9 @@ export default function AdminV3OrcamentoBase() {
         '_blank'
       );
       setMsg(
-        `Proposta por kits → Proposta manual: ${cards.length} kit(s). Frete ${formatBRL(freteOk)} · HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
+        slugProposta
+          ? `Kits → Proposta manual (atualizar ${slugProposta}): ${cards.length} kit(s). Frete ${formatBRL(freteOk)}`
+          : `Proposta por kits → Proposta manual: ${cards.length} kit(s). Frete ${formatBRL(freteOk)} · HSP ${shared.hsp} · tarifa ${shared.tarifa} · pdespesa ${shared.pdespesaFixo}+${shared.pdespesaVariavel}%`
       );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
@@ -721,6 +741,12 @@ export default function AdminV3OrcamentoBase() {
                   Proposta automática
                 </Link>
                 .
+                {slugProposta && (
+                  <span className="block mt-1 text-amber-700">
+                    Editando proposta existente: <code className="text-xs">{slugProposta}</code> (Salvar
+                    no gerador mantém o mesmo link)
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex gap-3 flex-shrink-0">

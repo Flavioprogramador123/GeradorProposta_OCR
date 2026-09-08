@@ -75,18 +75,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .toString()
                 .trim();
 
-              // Slug da proposta > slug do cliente > id UUID (nunca colapsar vários em "cliente")
+              const props = Array.isArray(cliente.propostas)
+                ? [...cliente.propostas].sort((a: any, b: any) => {
+                    const ta = new Date(a.updated_at || a.created_at || 0).getTime();
+                    const tb = new Date(b.updated_at || b.created_at || 0).getTime();
+                    return tb - ta;
+                  })
+                : [];
+              const propRecente = props[0];
+
+              // Slug da proposta mais recente > slug do cliente > id
               let pasta =
-                (cliente.temProposta && cliente.propostas?.[0]?.slug) ||
+                propRecente?.slug ||
                 cliente.slug ||
                 cliente.id ||
                 'cliente';
 
-              const temProposta = cliente.temProposta || (cliente.propostas?.length > 0) || false;
+              const temProposta = cliente.temProposta || props.length > 0 || false;
               // Status de engajamento é preenchido abaixo com analytics
               let status = temProposta ? 'nao_aberta' : 'aguardando_orcamentos';
 
-              const ultimaData = cliente.updated_at || cliente.created_at || new Date().toISOString();
+              const ultimaData =
+                propRecente?.updated_at ||
+                propRecente?.created_at ||
+                cliente.updated_at ||
+                cliente.created_at ||
+                new Date().toISOString();
 
               return {
                 nome: nomeSeguro,
