@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { getV3TempDir } from '../db/paths';
 import { matchMany, type CatalogItem } from './matcher';
-import { resolveCdId, upsertPrecoCd } from './repository';
+import { resolveCdId, upsertPrecoCd, pausarPrecosNaoVistosNoCd } from './repository';
 import { upsertBySkuInterno, updateEquipamento, softDeleteEquipamento } from '../equipamentos/repository';
 import type { EquipamentoCategoria } from '../equipamentos/types';
 import {
@@ -397,6 +397,7 @@ export function applyCatalogToCd(
   matched: number;
   validos: number;
   autoCriados: number;
+  pausados: number;
   unmatched: Array<{ nome: string; score: number; reason: string }>;
   rejeitados: ItemRejeitado[];
   itemsLidos: number;
@@ -424,9 +425,11 @@ export function applyCatalogToCd(
   }> = [];
   const aceitosNomes = new Set<string>();
   const rejeitadosConsulta: ItemRejeitado[] = [];
+  const vistosIds = new Set<number>();
   let matched = 0;
   let validos = 0;
   let autoCriados = 0;
+  let pausados = 0;
 
   const bySku = new Map<number, (typeof matches)[0]>();
   for (const m of matches) {
@@ -507,6 +510,7 @@ export function applyCatalogToCd(
         aliases: [row.nome.slice(0, 120), row.codigo || ''].filter(Boolean),
       });
       if (created) autoCriados++;
+      vistosIds.add(id);
       const r = upsertPrecoCd({
         equipamentoId: id,
         cdId,
@@ -514,6 +518,7 @@ export function applyCatalogToCd(
         estoque: row.estoque,
         fonte,
       });
+      if (r.pausado) pausados++;
       if (row.principal) {
         matched++;
         if (r.valido) validos++;
@@ -521,7 +526,7 @@ export function applyCatalogToCd(
         applied.push({
           sku,
           preco: row.preco,
-          estoque: row.estoque,
+          estoque: r.pausado ? 0 : row.estoque,
           valido: r.valido,
           rs_por_kwp: custoRsPorKwp(row.preco, row.potencia_w),
         });
@@ -575,6 +580,8 @@ export function applyCatalogToCd(
       estoque: m.item.estoque,
       fonte,
     });
+    vistosIds.add(m.equipamentoId!);
+    if (r.pausado) pausados++;
     if (principal) {
       matched++;
       if (r.valido) validos++;
@@ -586,12 +593,15 @@ export function applyCatalogToCd(
       applied.push({
         sku: m.skuInterno!,
         preco: m.item.preco,
-        estoque: m.item.estoque,
+        estoque: r.pausado ? 0 : m.item.estoque,
         valido: r.valido,
         rs_por_kwp: custoRsPorKwp(m.item.preco, pot),
       });
     }
   }
+
+  // Equipamentos deste CD não vistos na captura → qtd 0 + pausado (preço/nome ficam)
+  pausados += pausarPrecosNaoVistosNoCd(cdId, vistosIds, fonte);
 
   const rejeitados: ItemRejeitado[] = [...rejeitadosConsulta];
   for (const u of unmatched) {
@@ -616,6 +626,7 @@ export function applyCatalogToCd(
     matched,
     validos,
     autoCriados,
+    pausados,
     unmatched: unmatched.slice(0, 40),
     rejeitados,
     itemsLidos: limpos.length,

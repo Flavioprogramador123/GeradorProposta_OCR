@@ -101,31 +101,42 @@ export function upsertPrecoCd(input: {
   estoque: number | null;
   fonte?: string;
   capturadoEm?: string;
-}): { valido: boolean } {
+}): { valido: boolean; pausado: boolean } {
   const db = getV3Db();
   const eq = db.prepare('SELECT categoria FROM equipamentos WHERE id = ?').get(input.equipamentoId) as
     | { categoria: string }
     | undefined;
   const min = getEstoqueMinimoPorCategoria(eq?.categoria);
-  const estoque = input.estoque;
-  const preco = input.precoCusto;
+  const estoqueIn = input.estoque;
+  const precoIn = input.precoCusto;
   const capturadoEm = input.capturadoEm || new Date().toISOString();
   const fonte = input.fonte || 'manual';
-  // Entrada manual: preço basta para valer no kit. Scrape/import: exige estoque > mínimo.
-  const valido =
-    fonte === 'manual'
-      ? preco != null && preco > 0
-        ? 1
-        : 0
-      : estoque != null && estoque > min && preco != null && preco > 0
-        ? 1
-        : 0;
+  const isManual = fonte === 'manual' || fonte.startsWith('manual');
+
+  // Manual: preço basta. Scrape/import: exige estoque > mínimo.
+  const valido = isManual
+    ? precoIn != null && precoIn > 0
+      ? 1
+      : 0
+    : estoqueIn != null && estoqueIn > min && precoIn != null && precoIn > 0
+      ? 1
+      : 0;
+
+  // Sem estoque válido: mantém preço (nome/equipamento), zera quantidade, pausa
+  const pausado = valido === 0 && !isManual;
+  const preco = precoIn;
+  const estoque = pausado ? 0 : estoqueIn;
+  const fonteFinal = pausado
+    ? /pausado/i.test(fonte)
+      ? fonte
+      : `${fonte}|pausado:sem-estoque`
+    : fonte;
 
   db.prepare(
     `INSERT INTO precos_cd (equipamento_id, cd_id, preco_custo, estoque, capturado_em, fonte, valido_estoque)
      VALUES (@equipamentoId, @cdId, @preco, @estoque, @capturadoEm, @fonte, @valido)
      ON CONFLICT(equipamento_id, cd_id) DO UPDATE SET
-       preco_custo = excluded.preco_custo,
+       preco_custo = COALESCE(excluded.preco_custo, precos_cd.preco_custo),
        estoque = excluded.estoque,
        capturado_em = excluded.capturado_em,
        fonte = excluded.fonte,
@@ -136,16 +147,68 @@ export function upsertPrecoCd(input: {
     preco,
     estoque,
     capturadoEm,
-    fonte,
+    fonte: fonteFinal,
     valido,
   });
 
   db.prepare(
     `INSERT INTO precos_cd_historico (equipamento_id, cd_id, preco_custo, estoque, capturado_em, fonte)
      VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(input.equipamentoId, input.cdId, preco, estoque, capturadoEm, fonte);
+  ).run(input.equipamentoId, input.cdId, preco, estoque, capturadoEm, fonteFinal);
 
-  return { valido: valido === 1 };
+  return { valido: valido === 1, pausado };
+}
+
+/**
+ * Após captura do CD: equipamentos NÃO vistos (não manuais) ficam pausados —
+ * quantidade=0, preço e cadastro do equipamento permanecem.
+ */
+export function pausarPrecosNaoVistosNoCd(
+  cdId: number,
+  equipamentoIdsVistos: Iterable<number>,
+  fonte = 'captura'
+): number {
+  const db = getV3Db();
+  const vistos = new Set(equipamentoIdsVistos);
+  const rows = db
+    .prepare(
+      `SELECT equipamento_id, fonte, preco_custo, estoque, valido_estoque
+       FROM precos_cd
+       WHERE cd_id = ?`
+    )
+    .all(cdId) as Array<{
+    equipamento_id: number;
+    fonte: string | null;
+    preco_custo: number | null;
+    estoque: number | null;
+    valido_estoque: number;
+  }>;
+
+  const capturadoEm = new Date().toISOString();
+  let n = 0;
+  for (const r of rows) {
+    if (vistos.has(r.equipamento_id)) continue;
+    const f = String(r.fonte || '');
+    if (f === 'manual' || f.startsWith('manual')) continue;
+    if (r.estoque === 0 && r.valido_estoque === 0 && /pausado/i.test(f)) continue;
+
+    const fonteFinal = `${fonte}|pausado:ausente-captura`;
+    db.prepare(
+      `UPDATE precos_cd SET
+         estoque = 0,
+         valido_estoque = 0,
+         capturado_em = ?,
+         fonte = ?
+       WHERE equipamento_id = ? AND cd_id = ?`
+    ).run(capturadoEm, fonteFinal, r.equipamento_id, cdId);
+
+    db.prepare(
+      `INSERT INTO precos_cd_historico (equipamento_id, cd_id, preco_custo, estoque, capturado_em, fonte)
+       VALUES (?, ?, ?, 0, ?, ?)`
+    ).run(r.equipamento_id, cdId, r.preco_custo, capturadoEm, fonteFinal);
+    n++;
+  }
+  return n;
 }
 
 export function getPrecosStats() {

@@ -1,6 +1,9 @@
 /**
  * Detecta preços do mesmo SKU com divergência grande entre CDs
  * (ex.: mismatch scrape — bateria colada em inversor).
+ *
+ * Ignora linhas pausadas / sem estoque válido: na SOOLLAR o preço pode
+ * ficar desatualizado quando não há estoque — isso é interno deles, não mismatch.
  */
 import { getV3Db } from '../db/sqlite';
 
@@ -29,10 +32,13 @@ export interface DivergenciaPrecoSku {
 export function listDivergenciasPrecos(opts?: {
   razaoMin?: number;
   apenasAtivos?: boolean;
+  /** Default true: só compara preços com estoque válido (ignora pausados). */
+  apenasValidos?: boolean;
 }): DivergenciaPrecoSku[] {
   const db = getV3Db();
   const razaoMin = opts?.razaoMin ?? DIVERGENCIA_RAZAO_MIN;
   const apenasAtivos = opts?.apenasAtivos !== false;
+  const apenasValidos = opts?.apenasValidos !== false;
 
   const rows = db
     .prepare(
@@ -42,6 +48,7 @@ export function listDivergenciasPrecos(opts?: {
        JOIN precos_cd p ON p.equipamento_id = e.id
        JOIN cds c ON c.id = p.cd_id AND c.ativo = 1
        WHERE p.preco_custo IS NOT NULL AND p.preco_custo > 0
+         ${apenasValidos ? 'AND p.valido_estoque = 1' : ''}
          ${apenasAtivos ? 'AND e.ativo = 1' : ''}
        ORDER BY e.id, c.codigo`
     )

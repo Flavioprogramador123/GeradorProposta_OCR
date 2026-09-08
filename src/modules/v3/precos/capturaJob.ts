@@ -126,14 +126,36 @@ function persistRejeitadosFromResults(fonte: string, results: unknown[]) {
   return mergeAndSaveRejeitados({ fonte, totalLidos, totalAceitos, itens });
 }
 
-/** Grava HTMLs da captura em temp/ para reimport offline e debug */
+/** Remove dumps `soollar-*.html` antigos em temp/ (mantém só o stamp atual, se informado). */
+export function pruneScrapeHtmlDumps(opts?: { keepStamp?: string; dir?: string }): number {
+  const dir = opts?.dir || getV3TempDir();
+  if (!fs.existsSync(dir)) return 0;
+  let removed = 0;
+  for (const name of fs.readdirSync(dir)) {
+    if (!/^soollar-.*\.html$/i.test(name)) continue;
+    if (opts?.keepStamp && name.includes(opts.keepStamp)) continue;
+    try {
+      fs.unlinkSync(path.join(dir, name));
+      removed++;
+    } catch {
+      /* ignore */
+    }
+  }
+  return removed;
+}
+
+/**
+ * Grava HTMLs da captura em temp/ para reimport offline e debug.
+ * Antes de gravar, apaga dumps `soollar-*.html` anteriores — só fica o rastreio da última captura.
+ */
 export function persistScrapeHtmlDumps(
   blocos: Array<{ cd: string; slug: string; items: Array<Record<string, unknown>> }>
 ): string[] {
   const dir = getV3TempDir();
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const saved: string[] = [];
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  pruneScrapeHtmlDumps({ dir }); // limpa lixo antigo antes de gravar
+  const saved: string[] = [];
   for (const bloco of blocos) {
     for (const it of bloco.items || []) {
       const html = typeof it.html === 'string' ? it.html : '';

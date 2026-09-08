@@ -232,8 +232,21 @@ export default function AdminV3PropostaAuto() {
     ]);
     const data = await resV3.json();
     const admin = resAdmin.ok ? await resAdmin.json() : {};
-    // Sessão (edits locais) prevalece; admin só semeia se não houver sessão
-    const shared = resolveConfigRapida(admin);
+    const comercial =
+      resV3.ok && data.comercial_defaults && typeof data.comercial_defaults === 'object'
+        ? (data.comercial_defaults as Record<string, unknown>)
+        : {};
+    // comercial_defaults já vem de Configurações (merge seguro) — reforça frete/pdespesa
+    const adminMerged: Record<string, unknown> = {
+      ...admin,
+      ...(comercial.pdespesaFixo != null ? { pdespesaFixo: comercial.pdespesaFixo } : {}),
+      ...(comercial.pdespesaVariavel != null
+        ? { pdespesaVariavel: comercial.pdespesaVariavel }
+        : {}),
+      ...(comercial.fretePadrao != null ? { fretePadrao: comercial.fretePadrao } : {}),
+    };
+    // Sessão (edits locais) prevalece; admin só semeia se não houver sessão (frete: ver resolve)
+    const shared = resolveConfigRapida(adminMerged);
 
     if (resV3.ok && data.params) {
       setParams(data.params);

@@ -1,12 +1,23 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.18** (07/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.19** (08/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.18** - 07/09/2026 ✅ **ATUAL**
+### **v2.4.19** - 08/09/2026 ✅ **ATUAL**
+**🔧 V3 captura, estoque e Configurações Rápidas:**
+- ✅ Match kW no nome cru (`7.3KW` ≠ `3KW`)
+- ✅ Sem estoque: pausa preço por CD (qtd 0, mantém preço); divergência ignora pausados
+- ✅ Equipamentos: pausar (cinza) vs excluir hard; dumps `soollar-*.html` só da última captura
+- ✅ `pieng-config-rapida`: default/frete 0 na sessão não cobre frete/pdespesa/PR do admin
+
+**📦 Arquivos:** `matcher.ts`, `precos/repository.ts`, `divergenciaPrecos.ts`, `capturaJob.ts`, `equipamentos.*`, `configRapidaShared.ts`, `proposta-auto.tsx`
+
+---
+
+### **v2.4.18** - 07/09/2026
 **🔧 Gerador + lista admin + navegação V3:**
 - ✅ R$/Wp = PIX final ÷ (W módulo × qtd)
 - ✅ Coluna tabela: label **Origem** (mais estreita)

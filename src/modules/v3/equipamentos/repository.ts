@@ -177,6 +177,17 @@ export function softDeleteEquipamento(id: number): boolean {
   return r.changes > 0;
 }
 
+/** Remove definitivamente do banco (aliases/preços via CASCADE). */
+export function hardDeleteEquipamento(id: number): boolean {
+  const db = getV3Db();
+  // Limpa preços/histórico órfãos se FK não cascatear em builds antigos
+  db.prepare('DELETE FROM precos_cd WHERE equipamento_id = ?').run(id);
+  db.prepare('DELETE FROM precos_cd_historico WHERE equipamento_id = ?').run(id);
+  db.prepare('DELETE FROM equipamento_aliases WHERE equipamento_id = ?').run(id);
+  const r = db.prepare('DELETE FROM equipamentos WHERE id = ?').run(id);
+  return r.changes > 0;
+}
+
 export function upsertBySkuInterno(input: EquipamentoInput): { id: number; created: boolean } {
   const db = getV3Db();
   const existing = db

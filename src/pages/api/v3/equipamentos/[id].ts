@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   getEquipamento,
   softDeleteEquipamento,
+  hardDeleteEquipamento,
   updateEquipamento,
   getPrecosDoEquipamento,
 } from '@/modules/v3';
@@ -59,9 +60,20 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     if (req.method === 'DELETE') {
+      const hard =
+        req.query.hard === '1' ||
+        req.query.hard === 'true' ||
+        req.body?.hard === true;
+
+      if (hard) {
+        const ok = hardDeleteEquipamento(id);
+        if (!ok) return res.status(404).json({ message: 'Não encontrado' });
+        return res.status(200).json({ ok: true, excluido: id, hard: true });
+      }
+
       const ok = softDeleteEquipamento(id);
       if (!ok) return res.status(404).json({ message: 'Não encontrado' });
-      return res.status(200).json({ ok: true, desativado: id });
+      return res.status(200).json({ ok: true, pausado: id, hard: false });
     }
 
     return res.status(405).json({ message: 'Method not allowed' });

@@ -6,8 +6,8 @@
  *
  * Prioridade ao carregar:
  *   defaults → /admin/configuracoes (semente) → sessão localStorage
- * Assim a 1ª visita pega HSP/pdespesa/frete do admin; ajustes na 4a/gerador
- * (sessão) não são apagados ao abrir a Proposta manual.
+ * Sessão prevalece se o usuário alterou o valor; se ainda está no default
+ * hardcoded (ex. frete 0, pdespesaVar 22, PR 0.75), o admin manda.
  */
 
 export const CONFIG_RAPIDA_STORAGE_KEY = 'pieng-config-rapida';
@@ -181,15 +181,51 @@ export function clearConfigRapida(admin?: Record<string, unknown> | null): Confi
 /**
  * Merge: defaults ← admin (semente) ← sessão.
  * Edits da 4a / gerador / bridge V3 prevalecem sobre /admin/configuracoes.
+ *
+ * Exceção — campos semeados pelo admin: se a sessão ainda está no default
+ * hardcoded (ou frete=0), o valor de Configurações manda. Evita localStorage
+ * antigo “travar” frete 0 / pdespesa 22 / PR 0.75 e bloquear o admin.
  */
+const ADMIN_SEED_KEYS = [
+  'hsp',
+  'tarifa',
+  'pdespesaFixo',
+  'pdespesaVariavel',
+  'fretePadrao',
+  'performanceRate',
+  'bonusMicroPercent',
+] as const;
+
+function sessionLooksUnsetForAdminSeed(
+  key: (typeof ADMIN_SEED_KEYS)[number],
+  storeVal: number | undefined | null
+): boolean {
+  if (storeVal == null || !Number.isFinite(Number(storeVal))) return true;
+  const n = Number(storeVal);
+  // Frete 0 = sentinel (default antigo / nunca preenchido)
+  if (key === 'fretePadrao') return !(n > 0);
+  return n === CONFIG_RAPIDA_DEFAULTS[key];
+}
+
 export function resolveConfigRapida(admin?: Record<string, unknown> | null): ConfigRapidaShared {
   const fromAdmin = configRapidaFromAdmin(admin);
   const fromStore = loadConfigRapida();
-  return {
+  const merged: ConfigRapidaShared = {
     ...CONFIG_RAPIDA_DEFAULTS,
     ...fromAdmin,
     ...(fromStore || {}),
   };
+
+  for (const key of ADMIN_SEED_KEYS) {
+    const adminVal = fromAdmin[key];
+    if (adminVal == null || !Number.isFinite(Number(adminVal))) continue;
+    const storeVal = fromStore ? (fromStore[key] as number | undefined) : undefined;
+    if (!fromStore || sessionLooksUnsetForAdminSeed(key, storeVal)) {
+      merged[key] = Number(adminVal) as never;
+    }
+  }
+
+  return merged;
 }
 
 /** Campos do gerador-rapido que entram no compartilhamento */

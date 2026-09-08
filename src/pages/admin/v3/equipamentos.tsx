@@ -91,7 +91,7 @@ export default function AdminV3Equipamentos() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const [filtroAtivo, setFiltroAtivo] = useState<'1' | '0' | 'all'>('1');
+  const [filtroAtivo, setFiltroAtivo] = useState<'1' | '0' | 'all'>('all');
 
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
@@ -245,16 +245,19 @@ export default function AdminV3Equipamentos() {
     }
   };
 
-  const desativar = async (id: number, nome: string) => {
-    if (!confirm(`Desativar ${nome}?`)) return;
-    const res = await fetch(`/api/v3/equipamentos/${id}`, { method: 'DELETE' });
+  const pausar = async (id: number, nome: string) => {
+    const res = await fetch(`/api/v3/equipamentos/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ativo: false }),
+    });
     const data = await res.json();
     if (!res.ok) {
-      setMsg(data.message || 'Falha ao desativar');
+      setMsg(data.message || 'Falha ao pausar');
       return;
     }
     if (editId === id) fecharEdicao();
-    setMsg(`Desativado: ${nome}`);
+    setMsg(`Pausado: ${nome}`);
     await load();
   };
 
@@ -266,10 +269,29 @@ export default function AdminV3Equipamentos() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMsg(data.message || 'Falha ao ativar');
+      setMsg(data.message || 'Falha ao reativar');
       return;
     }
-    setMsg(`Ativado: ${nome}`);
+    setMsg(`Reativado: ${nome}`);
+    await load();
+  };
+
+  const excluir = async (id: number, nome: string) => {
+    if (
+      !confirm(
+        `EXCLUIR permanentemente "${nome}"?\n\nRemove do banco (preços e aliases). Não dá para desfazer.`
+      )
+    ) {
+      return;
+    }
+    const res = await fetch(`/api/v3/equipamentos/${id}?hard=1`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.message || 'Falha ao excluir');
+      return;
+    }
+    if (editId === id) fecharEdicao();
+    setMsg(`Excluído do banco: ${nome}`);
     await load();
   };
 
@@ -394,9 +416,9 @@ export default function AdminV3Equipamentos() {
                 onChange={(e) => setFiltroAtivo(e.target.value as '1' | '0' | 'all')}
                 className="rounded-lg bg-white border border-gray-300 px-3 py-2 text-sm"
               >
-                <option value="1">Ativos</option>
-                <option value="0">Inativos</option>
                 <option value="all">Todos</option>
+                <option value="1">Ativos</option>
+                <option value="0">Pausados</option>
               </select>
             </div>
 
@@ -549,8 +571,8 @@ export default function AdminV3Equipamentos() {
                     <th className="px-3 py-2">Marca</th>
                     <th className="px-3 py-2">Pot.</th>
                     <th className="px-3 py-2 min-w-[11rem]">Preço / CD</th>
-                    <th className="px-2 py-2 w-16 text-center" title="Ações">
-                      ···
+                    <th className="px-2 py-2 w-28 text-center" title="Ações">
+                      Ações
                     </th>
                   </tr>
                 </thead>
@@ -574,30 +596,52 @@ export default function AdminV3Equipamentos() {
                       (p) => p.preco_custo != null && Number(p.preco_custo) > 0
                     );
                     const div = it.divergencia;
+                    const pausado = !it.ativo;
                     return (
                       <tr
                         key={it.id}
-                        className={`border-t hover:bg-gray-50 ${
-                          div
-                            ? 'border-rose-200 bg-rose-50'
-                            : editId === it.id
-                              ? 'border-gray-200 bg-sky-50'
-                              : 'border-gray-200'
+                        className={`border-t ${
+                          pausado
+                            ? 'border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-100/90'
+                            : div
+                              ? 'border-rose-200 bg-rose-50 hover:bg-rose-50/80'
+                              : editId === it.id
+                                ? 'border-gray-200 bg-sky-50 hover:bg-sky-50'
+                                : 'border-gray-200 hover:bg-gray-50'
                         }`}
-                        title={div ? div.alerta : undefined}
+                        title={
+                          pausado
+                            ? 'Pausado — use a seta vermelha para reativar'
+                            : div
+                              ? div.alerta
+                              : undefined
+                        }
                       >
-                        <td className="px-3 py-2 font-mono text-xs text-sky-700">
+                        <td
+                          className={`px-3 py-2 font-mono text-xs ${
+                            pausado ? 'text-gray-400' : 'text-sky-700'
+                          }`}
+                        >
                           {it.sku_interno}
-                          {div ? (
+                          {pausado ? (
+                            <span className="ml-1 font-sans text-[10px] uppercase tracking-wide text-gray-500">
+                              pausado
+                            </span>
+                          ) : null}
+                          {!pausado && div ? (
                             <span className="ml-1 text-rose-600 font-sans" title={div.alerta}>
                               ⚠
                             </span>
                           ) : null}
                         </td>
-                        <td className="px-3 py-2">{it.nome}</td>
-                        <td className="px-3 py-2 text-gray-600">{it.categoria}</td>
+                        <td className={`px-3 py-2 ${pausado ? 'line-through decoration-gray-400' : ''}`}>
+                          {it.nome}
+                        </td>
+                        <td className={`px-3 py-2 ${pausado ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {it.categoria}
+                        </td>
                         <td className="px-3 py-2">{it.marca || '—'}</td>
-                        <td className="px-3 py-2 text-gray-600">
+                        <td className={`px-3 py-2 ${pausado ? 'text-gray-400' : 'text-gray-600'}`}>
                           {it.potencia_w
                             ? `${it.potencia_w}W`
                             : it.potencia_kw
@@ -608,10 +652,10 @@ export default function AdminV3Equipamentos() {
                           {precosOk.length > 0 ? (
                             <div
                               className={`text-xs leading-snug space-y-0.5 ${
-                                div ? 'text-rose-800' : 'text-gray-700'
+                                pausado ? 'text-gray-400' : div ? 'text-rose-800' : 'text-gray-700'
                               }`}
                             >
-                              {div ? (
+                              {!pausado && div ? (
                                 <div className="text-[11px] font-semibold text-rose-700 mb-0.5">
                                   Divergência {div.razao}× · {formatBRL(div.preco_min)}–
                                   {formatBRL(div.preco_max)}
@@ -624,18 +668,33 @@ export default function AdminV3Equipamentos() {
                                 )
                                 .map((p) => (
                                   <div key={p.cd_id}>
-                                    <span className={div ? 'text-rose-600' : 'text-gray-500'}>
+                                    <span
+                                      className={
+                                        pausado
+                                          ? 'text-gray-400'
+                                          : div
+                                            ? 'text-rose-600'
+                                            : 'text-gray-500'
+                                      }
+                                    >
                                       {p.cd_nome}
                                     </span>{' '}
                                     <span
                                       className={`tabular-nums ${
-                                        div ? 'font-semibold text-rose-800' : ''
+                                        pausado
+                                          ? ''
+                                          : div
+                                            ? 'font-semibold text-rose-800'
+                                            : ''
                                       }`}
                                     >
                                       {formatBRL(Number(p.preco_custo))}
                                     </span>
                                     {p.fonte === 'manual' ? (
-                                      <span className="text-amber-600"> ·m</span>
+                                      <span className={pausado ? 'text-gray-400' : 'text-amber-600'}>
+                                        {' '}
+                                        ·m
+                                      </span>
                                     ) : null}
                                   </div>
                                 ))}
@@ -657,24 +716,33 @@ export default function AdminV3Equipamentos() {
                           {it.ativo ? (
                             <button
                               type="button"
-                              onClick={() => desativar(it.id, it.nome)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-rose-50 text-base leading-none"
-                              title="Desativar (pausar)"
-                              aria-label="Desativar"
+                              onClick={() => pausar(it.id, it.nome)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-amber-50 text-base leading-none"
+                              title="Pausar (fica cinza na lista)"
+                              aria-label="Pausar"
                             >
-                              ⏸️→
+                              ⏸️
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => ativar(it.id, it.nome)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-emerald-50 text-lg leading-none"
-                              title="Ativar"
-                              aria-label="Ativar"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-rose-50 text-rose-600 text-lg font-bold leading-none"
+                              title="Reativar"
+                              aria-label="Reativar"
                             >
-                              ▶️
+                              →
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => excluir(it.id, it.nome)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-rose-100 text-rose-700 text-base leading-none"
+                            title="Excluir do banco (permanente)"
+                            aria-label="Excluir"
+                          >
+                            🗑️
+                          </button>
                         </td>
                       </tr>
                     );

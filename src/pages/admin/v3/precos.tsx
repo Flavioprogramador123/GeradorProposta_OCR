@@ -180,7 +180,7 @@ export default function AdminV3Precos() {
       const lines = (data.results || []).map((r: Record<string, unknown>) => {
         if (r.error) return `${r.fonte}/${r.cd || ''}: ERRO ${r.error}`;
         if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
-        return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos · ${r.itemsFound ?? ''} itens`;
+        return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos · ${r.pausados ?? 0} pausados · ${r.itemsFound ?? ''} itens`;
       });
       setMsg(
         (lines.join('\n') || 'Concluído') +
@@ -229,7 +229,7 @@ export default function AdminV3Precos() {
       const lines = (data.results || []).map((r: Record<string, unknown>) => {
         if (r.error) return `${r.fonte}/${r.cd || ''}: ERRO ${r.error}`;
         if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
-        return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos · ${r.file || ''}`;
+        return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos · ${r.pausados ?? 0} pausados · ${r.file || ''}`;
       });
       setMsg(
         `Pasta: ${data.uploaded || n} arquivo(s) · ${data.arquivos || 0} HTML aplicados\n` +
@@ -957,7 +957,17 @@ npm run v3:captura:force`}
                         {it.preco_custo != null ? formatBRL(it.preco_custo) : '—'}
                       </td>
                       <td className="px-3 py-2">{it.estoque ?? '—'}</td>
-                      <td className="px-3 py-2">{it.valido_estoque ? '✅' : '—'}</td>
+                      <td className="px-3 py-2">
+                        {it.valido_estoque ? (
+                          '✅'
+                        ) : /pausado/i.test(String(it.fonte || '')) || it.estoque === 0 ? (
+                          <span className="text-amber-700" title={it.fonte || 'Pausado'}>
+                            ⏸
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-xs text-gray-500">{it.fonte}</td>
                     </tr>
                   );
