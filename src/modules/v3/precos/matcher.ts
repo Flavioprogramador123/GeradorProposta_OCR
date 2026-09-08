@@ -31,10 +31,25 @@ function tokens(s: string): string[] {
     .filter((t) => t.length >= 2 && !['DE', 'DO', 'DA', 'COM', 'PARA', 'UN', 'UND', 'MT', 'MM'].includes(t));
 }
 
+/**
+ * Extrai o valor de kW do texto ORIGINAL (nao normalizado). norm() troca "." por espaco,
+ * o que quebra "7.3KW" em "7 3KW" e faz o "3KW" residual casar com candidatos de 3kW
+ * (ex.: SAJ 7.3KW-R5 sendo confundido com SAJ 3KW-R5). Por isso essa extracao precisa
+ * rodar sobre o nome cru, antes de qualquer normalizacao que apague o separador decimal.
+ */
+function extractKw(rawNome: string): number | null {
+  const re = new RegExp("([0-9]+[.,][0-9]+|[0-9]+)[ ]*K(?:W)?(?:[^A-Z0-9]|$)", "i");
+  const m = rawNome.toUpperCase().match(re);
+  if (!m) return null;
+  const n = Number(String(m[1]).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Score simples: aliases / nome / marca+potência */
 export function matchCatalogItem(item: CatalogItem): MatchResult {
   const db = getV3Db();
   const nItem = norm(item.nome);
+  const itemKw = extractKw(item.nome);
   const itemTokens = new Set(tokens(item.nome));
 
   const candidates = db
@@ -110,11 +125,7 @@ export function matchCatalogItem(item: CatalogItem): MatchResult {
   ) {
     const marca = norm(c.marca);
     const kw = c.potencia_kw;
-    const kwInt = Math.round(kw);
-    const kwStr = String(kw).replace('.', '[,.]');
-    const hasKw =
-      new RegExp(`(?:^|\\s|[^A-Z0-9])${kwInt}\\s*K(?:W)?(?:\\b|[^A-Z0-9])`, 'i').test(nItem) ||
-      new RegExp(`(?:^|\\s|[^A-Z0-9])${kwStr}\\s*K(?:W)?(?:\\b|[^A-Z0-9])`, 'i').test(nItem);
+    const hasKw = itemKw != null && Math.abs(itemKw - kw) < 0.05;
     if (nItem.includes(marca) && hasKw && 88 > score) {
       score = 88;
       reason = `marca+kW:${c.marca}/${c.potencia_kw}`;
@@ -225,10 +236,8 @@ export function matchCatalogItem(item: CatalogItem): MatchResult {
           continue;
         }
         // Mesma marca, kW diferente (DEYE 3KW ≠ DEYE 7.3KW)
-        const potItem = nItem.match(/(\d+[.,]\d+|\d+)\s*K(?:W)?(?:\b|[^A-Z0-9])/i);
-        if (potItem && c.potencia_kw) {
-          const pw = Number(String(potItem[1]).replace(',', '.'));
-          if (Number.isFinite(pw) && Math.abs(pw - Number(c.potencia_kw)) > 0.2) {
+        if (itemKw != null && c.potencia_kw) {
+          if (Math.abs(itemKw - Number(c.potencia_kw)) > 0.2) {
             continue;
           }
         }
