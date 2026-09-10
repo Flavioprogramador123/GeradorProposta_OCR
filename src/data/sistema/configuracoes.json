@@ -29,8 +29,8 @@
   "fator12x": 0.8944999879242502,
   "fator18x": 0.8479002597966396,
   "pdespesaFixo": 2000,
-  "pdespesaVariavel": 30,
-  "fretePadrao": 400,
+  "pdespesaVariavel": 40,
+  "fretePadrao": 200,
   "textoEconomiaAnual": "A partir de agora, R$ {valorEconomia} por ano deixam de sair da sua conta",
   "textoPayback": "Em {mesesPayback} meses a conta de luz deixa de ser despesa e vira o retorno do seu investimento",
   "textoTIR": "Seu dinheiro rende {percentualTIR}% ao ano com o sol — sem taxa de administração, sem imposto de renda",
@@ -60,7 +60,7 @@
   "empresaNome": "PIENG Soluções Energéticas",
   "empresaCNPJ": "XX.XXX.XXX/0001-XX",
   "metadata": {
-    "lastUpdate": "2026-09-05T23:09:42.606Z",
+    "lastUpdate": "2026-09-08T14:58:29.088Z",
     "version": "2.0"
   },
   "empresaTelefone": "(62) 99167-0536",

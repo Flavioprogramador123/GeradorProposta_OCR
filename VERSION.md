@@ -1,12 +1,23 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.19** (08/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.20** (10/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.19** - 08/09/2026 ✅ **ATUAL**
+### **v2.4.20** - 10/09/2026 ✅ **ATUAL**
+**📡 Disparo remoto captura (Tailscale → Postgres → PC → Supabase):**
+- ✅ Fila `pieng_jobs` + worker `v3:jobs:*`
+- ✅ App `captura-dispatch` (:3099) no PC do Postgres
+- ✅ Botão **Disparo Tailscale** em `/admin/v3/precos` e `/admin/soollar-captura`
+- ✅ Espelho local `configuracoes.json` alinhado à nuvem (frete/pdespesa)
+
+**📦 Arquivos:** `v3-jobs-worker.ts`, `docs/V3_JOBS_POSTGRES.md`, `precos.tsx`, `soollar-captura.tsx`, `configuracoes.json` · hub: `pieng_postgres/apps/captura-dispatch`
+
+---
+
+### **v2.4.19** - 08/09/2026
 **🔧 V3 captura, estoque e Configurações Rápidas:**
 - ✅ Match kW no nome cru (`7.3KW` ≠ `3KW`)
 - ✅ Sem estoque: pausa preço por CD (qtd 0, mantém preço); divergência ignora pausados

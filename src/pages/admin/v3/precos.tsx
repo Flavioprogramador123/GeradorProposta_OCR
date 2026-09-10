@@ -430,7 +430,7 @@ export default function AdminV3Precos() {
                   </ul>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 items-end">
                   <input
                     ref={pastaInputRef}
                     type="file"
@@ -439,6 +439,15 @@ export default function AdminV3Precos() {
                     {...({ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
                     onChange={(e) => importarPasta(e.target.files)}
                   />
+                  <a
+                    href="http://100.104.172.12:3099/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-lg bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium inline-flex items-center"
+                    title="Disparo remoto via Tailscale (PC do Postgres) → captura → Supabase"
+                  >
+                    Disparo Tailscale
+                  </a>
                   <button
                     type="button"
                     disabled={busy}

@@ -285,6 +285,15 @@ SOOLLAR_CD=Aeroporto`}</pre>
 
           <div className="admin-surface p-4 space-y-4">
           <div className="flex flex-wrap gap-3 items-end">
+            <a
+              href="http://100.104.172.12:3099/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium inline-flex items-center"
+              title="Disparo remoto via Tailscale (PC do Postgres) → captura → Supabase"
+            >
+              Disparo Tailscale
+            </a>
             <button
               type="button"
               disabled={running}
