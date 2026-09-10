@@ -14,6 +14,22 @@ Vercel/Netlify **não** entram no disparo.
 INSERT pending → worker claim → v3:captura:force → push Supabase → status done
 ```
 
+## App UI (Tailscale)
+
+No PC do Postgres:
+
+```powershell
+cd E:\Projetos\pieng_postgres\apps\captura-dispatch
+npm install
+npm start
+```
+
+No celular (mesma Tailscale): **http://100.104.172.12:3099**
+
+Botão **Disparar captura agora** → enfileira + dispara `v3:jobs:worker:once` → Supabase.
+
+Detalhes: `E:\Projetos\pieng_postgres\apps\captura-dispatch\README.md`
+
 ## 1) Criar tabela (no cluster)
 
 ```powershell
