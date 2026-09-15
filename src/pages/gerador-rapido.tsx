@@ -482,8 +482,17 @@ export default function GeradorRapido() {
       // MVP: botão Voltar se a proposta veio de kit/auto
       const nav = propostaData.v3Navegacao;
       const origemSalva = sanitizeOrigemUi(nav?.origemUi);
-      if (origemSalva) {
-        aplicarVoltarV3(origemSalva, typeof nav?.returnTo === 'string' ? nav.returnTo : null);
+      const returnToSalvo =
+        typeof nav?.returnTo === 'string' ? nav.returnTo : null;
+      if (origemSalva && origemSalva !== 'manual') {
+        aplicarVoltarV3(origemSalva, returnToSalvo);
+      } else if (returnToSalvo && returnToSalvo.startsWith('/admin/v3/')) {
+        const guess = returnToSalvo.includes('orcamento-base')
+          ? ('orcamento-base' as const)
+          : returnToSalvo.includes('proposta-auto')
+            ? ('proposta-auto' as const)
+            : null;
+        if (guess) aplicarVoltarV3(guess, returnToSalvo);
       }
       
       setLoading(false);
@@ -1756,19 +1765,31 @@ consolidado_orcamentos_distribuidores:
                         type="button"
                         onClick={() => {
                           rememberSlugForV3(slugAtual);
+                          const dest = slugAtual
+                            ? `${voltarV3Url}?slug=${encodeURIComponent(slugAtual)}`
+                            : voltarV3Url;
+                          // Sempre navegar para a tela de cards (kits / auto).
+                          // Só focar opener se ele já for a tela V3; senão o Voltar
+                          // “sumia” nos cards (focus sem reload / aba errada).
                           try {
                             if (window.opener && !window.opener.closed) {
-                              window.opener.focus();
-                              window.close();
-                              return;
+                              const opPath = String(
+                                window.opener.location?.pathname || ''
+                              );
+                              const isV3Opener =
+                                opPath.includes('/admin/v3/orcamento-base') ||
+                                opPath.includes('/admin/v3/proposta-auto');
+                              if (isV3Opener) {
+                                window.opener.location.assign(dest);
+                                window.opener.focus();
+                                window.close();
+                                return;
+                              }
                             }
                           } catch {
                             /* cross-origin / blocked */
                           }
-                          const q = slugAtual
-                            ? `?slug=${encodeURIComponent(slugAtual)}`
-                            : '';
-                          router.push(`${voltarV3Url}${q}`);
+                          router.push(dest);
                         }}
                         className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Voltar para ajustar kits / proposta automática (mesmo link ao reabrir)"

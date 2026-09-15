@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import InstallPWA from '@/components/InstallPWA';
 import { getTetoSolUrl } from '@/lib/tetoSolBridge';
-import {
-  editHrefFromOrigemUi,
-  rememberSlugForV3,
-  sanitizeOrigemUi,
-} from '@/lib/v3Navegacao';
 
 interface ClienteInfo {
   nome: string;
@@ -29,7 +23,6 @@ interface ClienteInfo {
 }
 
 export default function AdminIndex() {
-  const router = useRouter();
   const [clientes, setClientes] = useState<ClienteInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -241,30 +234,6 @@ export default function AdminIndex() {
   const propostaUrlPublica = (pasta: string) =>
     `https://pieng-propostas.vercel.app/proposta/${pasta}`;
 
-  const [editandoSlug, setEditandoSlug] = useState<string | null>(null);
-
-  /** Kit automático → proposta-auto; kit base → orcamento-base; senão gerador. */
-  const editarProposta = async (pasta: string) => {
-    setEditandoSlug(pasta);
-    try {
-      const res = await fetch(`/api/propostas/${encodeURIComponent(pasta)}`);
-      if (res.ok) {
-        const data = await res.json();
-        const origem = sanitizeOrigemUi(data?.v3Navegacao?.origemUi);
-        if (origem === 'proposta-auto' || origem === 'orcamento-base') {
-          rememberSlugForV3(pasta);
-          await router.push(editHrefFromOrigemUi(pasta, origem));
-          return;
-        }
-      }
-    } catch {
-      /* cai no gerador */
-    } finally {
-      setEditandoSlug(null);
-    }
-    await router.push(`/gerador-rapido?cliente=${encodeURIComponent(pasta)}`);
-  };
-
   /** Ordem: Ver → Editar | Copiar → WhatsApp | Pausar → Excluir */
   const renderClienteAcoes = (cliente: ClienteInfo, compact = false) => {
     const btn = compact
@@ -272,7 +241,6 @@ export default function AdminIndex() {
       : 'px-2 py-1 rounded text-sm font-medium';
     const sep = 'w-px self-stretch bg-slate-200 mx-0.5 hidden sm:block';
     const ativa = cliente.temProposta && !cliente.propostaPausada;
-    const editBusy = editandoSlug === cliente.pasta;
 
     return (
       <div className="flex gap-1.5 flex-wrap items-center">
@@ -287,15 +255,14 @@ export default function AdminIndex() {
             >
               👁️ Ver
             </a>
-            <button
-              type="button"
-              disabled={editBusy}
-              onClick={() => void editarProposta(cliente.pasta)}
-              className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              title="Editar: proposta automática / kits V3 ou gerador"
-            >
-              {editBusy ? '…' : '✏️ Editar'}
-            </button>
+            <Link href={`/gerador-rapido?cliente=${cliente.pasta}`} legacyBehavior>
+              <a
+                className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 text-sm font-medium inline-block"
+                title="Editar na proposta manual (Voltar leva ao kit / proposta automática)"
+              >
+                ✏️ Editar
+              </a>
+            </Link>
             {ativa && (
               <>
                 <span className={sep} aria-hidden />

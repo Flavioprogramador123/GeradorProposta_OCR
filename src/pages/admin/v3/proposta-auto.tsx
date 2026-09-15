@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import {
@@ -346,9 +346,14 @@ export default function AdminV3PropostaAuto() {
     }
   }, [router.isReady, router.query.slug]);
 
-  /** Reabre rascunho (margem + cards) ao voltar / Editar kit automático. */
+  /** Reabre rascunho (margem + cards) ao Voltar da proposta manual. */
+  const draftRestoredRef = useRef(false);
   useEffect(() => {
-    if (!sharedReady || !router.isReady || alts.length > 0) return;
+    draftRestoredRef.current = false;
+  }, [router.query.slug]);
+  useEffect(() => {
+    if (!sharedReady || !router.isReady) return;
+    if (draftRestoredRef.current) return;
     const draft = loadPropostaAutoDraft();
     if (!draft) return;
 
@@ -359,6 +364,8 @@ export default function AdminV3PropostaAuto() {
     const draftSlug = typeof draft.slugProposta === 'string' ? draft.slugProposta : '';
     // Se há slug na URL e o draft é de outra proposta, não misturar
     if (slugNow && draftSlug && slugNow !== draftSlug) return;
+
+    draftRestoredRef.current = true;
 
     if (typeof draft.modo === 'string') setModo(draft.modo as typeof modo);
     if (typeof draft.valor === 'number') setValor(draft.valor);
