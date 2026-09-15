@@ -22,6 +22,21 @@ interface ConfiguracaoSistema {
   dcAcMax: number;
   /** Tolerância de ajuste em pontos (ex.: 0,05 → teto = max+0,05) */
   dcAcTolPp: number;
+  /**
+   * Margem ±% em torno do alvo da Proposta automática (padrão 20).
+   * Permite encaixar as 3 alternativas mesmo com granularidade de módulo/DC-AC.
+   */
+  varianciaAlvoPct: number;
+  /**
+   * Potência mínima do módulo (Wp) no auto V3.
+   * Ex.: 500 exclui Maxeon 415 / módulos ~425 W que o time não quer.
+   */
+  moduloPotenciaMinW: number;
+  /**
+   * Potência mínima de inversor/micro (kW) no auto V3.
+   * Ex.: 1 exclui Enphase IQ8 ~0,475 kW (caro / 1 MPPT).
+   */
+  inversorPotenciaMinKw: number;
 
   // Parâmetros Financeiros
   taxaSelic: number;
@@ -92,6 +107,9 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   dcAcMin: 0.8,
   dcAcMax: 1.5,
   dcAcTolPp: 0.05,
+  varianciaAlvoPct: 20,
+  moduloPotenciaMinW: 500,
+  inversorPotenciaMinKw: 1,
 
   taxaSelic: 11.25,
   inflacaoAnual: 4.5,
@@ -182,6 +200,9 @@ export function mergeConfiguracoes(
     'dcAcMin',
     'dcAcMax',
     'dcAcTolPp',
+    'varianciaAlvoPct',
+    'moduloPotenciaMinW',
+    'inversorPotenciaMinKw',
     'bonusMicroPercent',
     'hspPadrao',
     'performanceRate',
@@ -236,6 +257,9 @@ export function extrairDefaultsV3(config: ConfiguracaoSistema) {
     dcAcMin: config.dcAcMin,
     dcAcMax: config.dcAcMax,
     dcAcTolPp: config.dcAcTolPp,
+    varianciaAlvoPct: config.varianciaAlvoPct,
+    moduloPotenciaMinW: config.moduloPotenciaMinW,
+    inversorPotenciaMinKw: config.inversorPotenciaMinKw,
     pdespesaFixo: config.pdespesaFixo,
     pdespesaVariavel: config.pdespesaVariavel,
     fretePadrao: config.fretePadrao,

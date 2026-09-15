@@ -162,11 +162,12 @@ export function matchCatalogItem(item: CatalogItem): MatchResult {
       reason = 'mc4';
     }
     // nItem normalizado: "2.36M" → "2 36M" (ponto vira espaço)
+    // Fortlev: "PERFIL CER/FIBRO - 2400 MM" ≈ trilho/perfil 2,36–2,40
     if (
       c.sku_interno === 'TRILHO-236' &&
       /PERFIL|TRILHO/.test(nItem) &&
-      /2\s*36/.test(nItem) &&
-      !/JUNCAO|2\s*40|2\s*50|2\s*70/.test(nItem)
+      !/JUNCAO|JUNÇÃO/.test(nItem) &&
+      (/2\s*36/.test(nItem) || /2\s*40/.test(nItem) || /2400/.test(nItem) || /CER|FIBRO|FLS/.test(nItem))
     ) {
       score = Math.max(score, 90);
       reason = 'trilho-236';
@@ -174,7 +175,7 @@ export function matchCatalogItem(item: CatalogItem): MatchResult {
     if (
       c.sku_interno === 'TRILHO-250' &&
       /PERFIL|TRILHO/.test(nItem) &&
-      /2\s*50/.test(nItem)
+      (/2\s*50/.test(nItem) || /2\s*70/.test(nItem))
     ) {
       score = Math.max(score, 90);
       reason = 'trilho-250';

@@ -74,7 +74,12 @@ export function isInversorHibrido(inv: {
   marca?: string | null;
   sku_interno?: string | null;
 }): boolean {
-  return /\bhibrid|\bhybrid/.test(blobInversor(inv));
+  const b = blobInversor(inv);
+  return (
+    /\bhibrid|\bhybrid/.test(b) ||
+    /\boff[\s-]?grid/.test(b) ||
+    /\bu-home|\bess\b|\bbateria/.test(b)
+  );
 }
 
 /**

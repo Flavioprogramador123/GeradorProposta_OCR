@@ -578,13 +578,12 @@ export default function Configuracoes() {
                             step="0.05"
                             min="0.3"
                             max="1.2"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
-                          <p className="text-xs text-gray-500 mt-1">Padrão 0,80</p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Máximo (sobrecarga)
+                            Máximo soft
                           </label>
                           <input
                             type="number"
@@ -593,15 +592,14 @@ export default function Configuracoes() {
                               handleInputChange('dcAcMax', parseFloat(e.target.value))
                             }
                             step="0.05"
-                            min="1"
+                            min="0.8"
                             max="2.2"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
-                          <p className="text-xs text-gray-500 mt-1">Padrão 1,50</p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tolerância ajuste (p.p.)
+                            Tolerância (p.p.)
                           </label>
                           <input
                             type="number"
@@ -611,14 +609,99 @@ export default function Configuracoes() {
                             }
                             step="0.01"
                             min="0"
-                            max="0.2"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
+                            max="0.3"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Padrão 0,05 → teto{' '}
-                            {(
-                              Number(config.dcAcMax ?? 1.5) + Number(config.dcAcTolPp ?? 0.05)
-                            ).toFixed(2)}
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Variância do alvo — Proposta automática */}
+                    <section className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          Margem ± do alvo (Proposta automática)
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Percentual em torno da geração/consumo/kWp pedido para encaixar sempre as
+                          3 alternativas (módulo + DC/AC). Padrão 20% (±).
+                        </p>
+                      </div>
+                      <div className="max-w-xs">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Variância do alvo (± %)
+                        </label>
+                        <input
+                          type="number"
+                          value={config.varianciaAlvoPct ?? 20}
+                          onChange={(e) =>
+                            handleInputChange('varianciaAlvoPct', parseFloat(e.target.value))
+                          }
+                          step="1"
+                          min="0"
+                          max="50"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Ex.: alvo 1000 kWh com 20% → elabora entre 800–1200 kWh
+                        </p>
+                      </div>
+                    </section>
+
+                    {/* Potência mínima catálogo */}
+                    <section className="rounded-xl border border-violet-200 bg-violet-50/30 p-4 sm:p-5 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          Potência mínima (Proposta automática V3)
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Filtra equipamentos do dimensionamento: módulos fracos (~415/425 W) e micros
+                          caros (ex.: Enphase ~0,475 kW).
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Módulo — mínimo (Wp)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.moduloPotenciaMinW ?? 500}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'moduloPotenciaMinW',
+                                parseFloat(e.target.value)
+                              )
+                            }
+                            step="5"
+                            min="0"
+                            max="800"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Padrão 500 — exclui Maxeon 415 / ~425 W
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Inversor / micro — mínimo (kW)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.inversorPotenciaMinKw ?? 1}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'inversorPotenciaMinKw',
+                                parseFloat(e.target.value)
+                              )
+                            }
+                            step="0.05"
+                            min="0"
+                            max="10"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Padrão 1,0 — exclui Enphase IQ8 ~0,475 kW
                           </p>
                         </div>
                       </div>

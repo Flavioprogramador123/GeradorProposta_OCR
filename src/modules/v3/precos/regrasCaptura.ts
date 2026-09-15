@@ -47,12 +47,10 @@ export function ehEquipamentoPrincipal(opts: {
   if (cat === 'estrutura') {
     // Trilhos / perfis de fixação + kits inox — parafuso solto e galvanizada ficam em consulta
     if (/TRILHO/i.test(u)) return true;
-    if (
-      /PERFIL/i.test(u) &&
-      /FIXA|MODULO|M[OÓ]DULO/i.test(u) &&
-      !/JUN[CÇ][AÃ]O/i.test(u)
-    ) {
-      return true;
+    // SOOLLAR: "PERFIL FIXAÇÃO MODULO 2,40MT…" · Fortlev: "PERFIL CER/FIBRO - 2400 MM - FLS"
+    if (/PERFIL/i.test(u) && !/JUN[CÇ][AÃ]O/i.test(u)) {
+      if (/FIXA|MODULO|M[OÓ]DULO/i.test(u)) return true;
+      if (/CER|FIBRO|SMART|FLS|2400|2[.,\s]?40|2[.,\s]?36|2[.,\s]?50/i.test(u)) return true;
     }
     if (/INOX/i.test(u) && /KIT|ESTRUTURA|GRAMPO|SUPORTE|FIXA/i.test(u)) return true;
     return false;

@@ -173,10 +173,30 @@ export default function AdminV3Precos() {
       const res = await fetch('/api/v3/captura-precos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fonte, headless: true }),
+        body: JSON.stringify({
+          fonte,
+          headless: true,
+          requestedBy: 'admin-precos-scraping-live',
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+
+      // Vercel: enfileira no PC (scrape 3 CDs + publish)
+      if (data.queued) {
+        setMsg(
+          `${data.message || 'Job enfileirado no PC.'}\n` +
+            `Job ${data.job?.id || '—'} · status ${data.job?.status || 'pending'}\n` +
+            'O worker local (CCA_TECNICA / F: Postgres) executa Scraping live + Publicar.'
+        );
+        setSyncMsg(
+          data.created
+            ? 'Fila OK — aguarde o worker publicar no Supabase.'
+            : 'Já havia captura em andamento no PC.'
+        );
+        return;
+      }
+
       const lines = (data.results || []).map((r: Record<string, unknown>) => {
         if (r.error) return `${r.fonte}/${r.cd || ''}: ERRO ${r.error}`;
         if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
@@ -410,13 +430,17 @@ export default function AdminV3Precos() {
                       Outros fornecedores (prompt.yaml) = depois.
                     </li>
                     <li>
-                      <span className="text-teal-700">Scraping live (3 CDs)</span> — captura no
-                      SOOLLAR e, se OK, <strong>publica no Supabase</strong> automaticamente.
-                      Precisa <code className="text-sky-700">.env</code>.
+                      <span className="text-teal-700">Scraping live (3 CDs)</span> — no PC roda
+                      Playwright; na Vercel enfileira no worker local (Postgres F:) e publica.
+                      Precisa <code className="text-sky-700">.env</code> no PC.
                     </li>
                     <li>
                       <span className="text-emerald-700">Captura SOOLLAR</span> — tela dedicada com
-                      probe, terminal ao vivo e opções de CD.
+                      probe, terminal ao vivo e opções de CD. Também:{' '}
+                      <Link href="/admin/fortlev-captura" className="text-teal-800 underline font-medium">
+                        Captura Fortlev
+                      </Link>{' '}
+                      (produto-avulso / BOM 391003).
                     </li>
                     <li>
                       <span className="text-sky-700">Publicar no Supabase</span> — sobe o catálogo
@@ -504,7 +528,8 @@ export default function AdminV3Precos() {
                     </p>
                     <p className="text-xs text-rose-700">
                       Mesmo equipamento com valores muito diferentes (razão ≥ 1,4×). Possível
-                      mismatch no scrape — revise antes de publicar.
+                      mismatch no scrape — revise antes de publicar. Preço inflado com
+                      estoque zero (placeholder SOOLLAR) é ignorado na comparação.
                     </p>
                     <ul className="text-xs text-rose-900 space-y-1 max-h-40 overflow-y-auto">
                       {divergencias.slice(0, 12).map((d) => (

@@ -8,6 +8,12 @@
 import fs from 'fs';
 import path from 'path';
 import { createConsoleLogger, capturarSoolarComBrowser, SOOLLAR_CDS } from '@/lib/soollar/scraper';
+import {
+  capturarFortlevComBrowser,
+  createFortlevLogger,
+  FORTLEV_CD_SLUG,
+} from '@/lib/fortlev/scraper';
+import { ensureFortlevCd } from '@/lib/fortlev/ensureCd';
 import { getV3TempDir } from '../db/paths';
 import {
   applyCatalogToCd,
@@ -24,6 +30,27 @@ import {
 } from './rejeitadosCaptura';
 
 export type CapturaFonte = 'temp' | 'scrape' | 'both';
+
+const ESTOQUE_FORTLEV_ASSUMIDO = 999;
+
+function isFortlevCdToken(x: string): boolean {
+  const t = String(x).toLowerCase().trim();
+  return t === 'fortlev' || t === '4';
+}
+
+function splitCdsPedido(cdsOpt?: string[]): {
+  soollar: typeof SOOLLAR_CDS;
+  fortlev: boolean;
+} {
+  if (!cdsOpt?.length) {
+    return { soollar: [...SOOLLAR_CDS], fortlev: true };
+  }
+  const fortlev = cdsOpt.some(isFortlevCdToken);
+  const soollar = SOOLLAR_CDS.filter((c) =>
+    cdsOpt.some((x) => x === c.slug || x === c.nome || x === String(c.id))
+  );
+  return { soollar, fortlev };
+}
 
 /** @deprecated Preferir botão Importar pasta (upload). Scripts: passar baseDir. */
 export async function atualizarPrecosFromTemp(opts?: { baseDir?: string }): Promise<{
@@ -183,9 +210,7 @@ export async function atualizarPrecosFromScrape(opts?: {
 }> {
   await refreshEstoqueMinimosFromAdmin();
   const results: unknown[] = [];
-  const cds = opts?.cds?.length
-    ? SOOLLAR_CDS.filter((c) => opts.cds!.some((x) => x === c.slug || x === c.nome || x === String(c.id)))
-    : [...SOOLLAR_CDS];
+  const { soollar: cds, fortlev: capturaFortlev } = splitCdsPedido(opts?.cds);
 
   const singleSession = opts?.singleSession !== false;
   const logs: unknown[] = [];
@@ -194,9 +219,14 @@ export async function atualizarPrecosFromScrape(opts?: {
     opts?.onLog?.(line.level, line.message, line.data);
   });
 
-  if (singleSession) {
+  if (cds.length === 0 && !capturaFortlev) {
+    results.push({ fonte: 'scrape', warning: 'Nenhum CD selecionado' });
+    return { results, stats: getPrecosStats() };
+  }
+
+  if (cds.length > 0 && singleSession) {
     try {
-      log('info', `V3 captura 1 sessão × ${cds.length} CD(s): ${cds.map((c) => c.nome).join(', ')}`);
+      log('info', `V3 captura 1 sessão × ${cds.length} CD(s) SOOLLAR: ${cds.map((c) => c.nome).join(', ')}`);
       const r = await capturarSoolarComBrowser(log, {
         headless: opts?.headless !== false,
         cds: cds.map((c) => c.nome),
@@ -256,51 +286,101 @@ export async function atualizarPrecosFromScrape(opts?: {
         error: e instanceof Error ? e.message : String(e),
       });
     }
-    persistRejeitadosFromResults('scrape', results);
-    return { results, stats: getPrecosStats() };
+  } else if (cds.length > 0) {
+    // Fallback: um browser por CD (legado)
+    for (const cd of cds) {
+      try {
+        log('info', `V3 captura preços CD ${cd.nome} (${cd.slug})`);
+        const r = await capturarSoolarComBrowser(log, {
+          headless: opts?.headless !== false,
+          cd: cd.nome,
+        });
+        const items = extractItemsFromScrapePayload(r.items || []);
+        const ignoradosDom = extractIgnoradosFromScrapePayload(r.items || [], cd.nome);
+        if (!items.length) {
+          results.push({
+            fonte: 'scrape',
+            cd: cd.nome,
+            slug: cd.slug,
+            loggedIn: r.loggedIn,
+            success: r.success,
+            warning: 'nenhum produto com preço/estoque extraído',
+            itemsRaw: r.items?.length || 0,
+            rejeitados: ignoradosDom,
+            itemsLidos: ignoradosDom.length,
+            matched: 0,
+          });
+          continue;
+        }
+        const applied = applyCatalogToCd(items, cd.slug, `scrape:${cd.slug}`, {
+          autoCadastrarModulos: true,
+        });
+        results.push({
+          fonte: 'scrape',
+          cd: cd.nome,
+          slug: cd.slug,
+          loggedIn: r.loggedIn,
+          itemsFound: items.length,
+          ...applied,
+          rejeitados: [...ignoradosDom, ...(applied.rejeitados || [])],
+        });
+      } catch (e) {
+        results.push({
+          fonte: 'scrape',
+          cd: cd.nome,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
   }
 
-  // Fallback: um browser por CD (legado)
-  for (const cd of cds) {
+  if (capturaFortlev) {
     try {
-      log('info', `V3 captura preços CD ${cd.nome} (${cd.slug})`);
-      const r = await capturarSoolarComBrowser(log, {
-        headless: opts?.headless !== false,
-        cd: cd.nome,
+      const cd = ensureFortlevCd();
+      const flog = createFortlevLogger((line) => {
+        opts?.onLog?.(line.level, line.message, line.data);
       });
-      const items = extractItemsFromScrapePayload(r.items || []);
-      const ignoradosDom = extractIgnoradosFromScrapePayload(r.items || [], cd.nome);
-      if (!items.length) {
+      log('info', `V3 captura CD Fortlev (${cd.slug})`);
+      const r = await capturarFortlevComBrowser(flog, {
+        headless: opts?.headless !== false,
+      });
+      if (!r.success || !r.items.length) {
         results.push({
           fonte: 'scrape',
           cd: cd.nome,
           slug: cd.slug,
           loggedIn: r.loggedIn,
           success: r.success,
-          warning: 'nenhum produto com preço/estoque extraído',
-          itemsRaw: r.items?.length || 0,
-          rejeitados: ignoradosDom,
-          itemsLidos: ignoradosDom.length,
+          warning: 'Fortlev: nenhum produto com preço',
+          bomKit: r.bomKit,
           matched: 0,
         });
-        continue;
+      } else {
+        const catalog: CatalogItem[] = r.items.map((it) => ({
+          nome: it.nome,
+          codigo: it.codigo,
+          preco: it.preco,
+          estoque: it.estoque ?? ESTOQUE_FORTLEV_ASSUMIDO,
+        }));
+        const applied = applyCatalogToCd(catalog, cd.slug, `scrape:${FORTLEV_CD_SLUG}`, {
+          autoCadastrarModulos: true,
+        });
+        results.push({
+          fonte: 'scrape',
+          cd: cd.nome,
+          slug: cd.slug,
+          loggedIn: r.loggedIn,
+          itemsFound: catalog.length,
+          bomKit: r.bomKit,
+          unmatchedSample: applied.unmatched.slice(0, 8),
+          ...applied,
+        });
       }
-      const applied = applyCatalogToCd(items, cd.slug, `scrape:${cd.slug}`, {
-        autoCadastrarModulos: true,
-      });
-      results.push({
-        fonte: 'scrape',
-        cd: cd.nome,
-        slug: cd.slug,
-        loggedIn: r.loggedIn,
-        itemsFound: items.length,
-        ...applied,
-        rejeitados: [...ignoradosDom, ...(applied.rejeitados || [])],
-      });
     } catch (e) {
       results.push({
         fonte: 'scrape',
-        cd: cd.nome,
+        cd: 'Fortlev',
+        slug: FORTLEV_CD_SLUG,
         error: e instanceof Error ? e.message : String(e),
       });
     }

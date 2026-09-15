@@ -7,6 +7,7 @@ import { resolveCdId } from '@/modules/v3/precos/repository';
 import { loadSistemaConfigFlat } from '@/lib/sistemaConfig';
 import { extrairDefaultsV3, mergeConfiguracoes } from '@/utils/configuracoes';
 import { ensureV3CatalogHydrated } from '@/modules/v3';
+import { refreshPotenciaMinimosFromAdmin } from '@/modules/v3/precos/potenciaMinimosConfig';
 
 async function loadAdminDefaultsV3() {
   try {
@@ -21,6 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await ensureV3CatalogHydrated();
     await refreshDcAcLimitsFromAdmin();
+    await refreshPotenciaMinimosFromAdmin();
     if (req.method === 'GET') {
       const params = getCalcParams();
       const admin = await loadAdminDefaultsV3();
@@ -36,6 +38,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             bonusMicroPercent: admin.bonusMicroPercent,
             placasPorMicro: admin.placasPorMicro,
             descontoPix: admin.descontoPix,
+            varianciaAlvoPct:
+              admin.varianciaAlvoPct != null
+                ? admin.varianciaAlvoPct
+                : params.varianciaAlvoPct,
           }
         : params;
 
@@ -52,6 +58,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               dcAcMin: admin.dcAcMin,
               dcAcMax: admin.dcAcMax,
               dcAcTolPp: admin.dcAcTolPp,
+              varianciaAlvoPct: admin.varianciaAlvoPct,
+              moduloPotenciaMinW: admin.moduloPotenciaMinW,
+              inversorPotenciaMinKw: admin.inversorPotenciaMinKw,
             }
           : null,
         dc_ac: dcAc,
@@ -66,12 +75,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'POST') {
       const body = req.body || {};
-      const cdId = resolveCdId(body.cdId ?? body.cd ?? 3);
+      const rawCdIds = Array.isArray(body.cdIds)
+        ? body.cdIds
+        : body.cdIds != null
+          ? [body.cdIds]
+          : [];
+      const cdIdsParsed = rawCdIds
+        .map((n: unknown) => resolveCdId(n as string | number))
+        .filter((n: number | null): n is number => Boolean(n));
+      const cdId =
+        resolveCdId((body.cdId ?? body.cd ?? cdIdsParsed[0] ?? 3) as string | number) ||
+        cdIdsParsed[0] ||
+        null;
       if (!cdId) return res.status(400).json({ message: 'CD inválido' });
+      const cdIds = cdIdsParsed.length
+        ? Array.from(new Set([cdId, ...cdIdsParsed]))
+        : [cdId];
 
       const admin = await loadAdminDefaultsV3();
       const modo = body.modo || 'geracao_mensal';
       const kits_manuais = Array.isArray(body.kits_manuais) ? body.kits_manuais : undefined;
+      const maxAltRaw =
+        body.maxAlternativas != null ? Number(body.maxAlternativas) : undefined;
+      const maxAlternativas =
+        maxAltRaw != null && Number.isFinite(maxAltRaw)
+          ? Math.min(6, Math.max(1, Math.round(maxAltRaw)))
+          : 6;
       const result = montarPropostaAuto({
         modo,
         geracao_mensal_kwh: body.geracao_mensal_kwh,
@@ -82,12 +111,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         consumo_mensal_min: body.consumo_mensal_min != null ? Number(body.consumo_mensal_min) : undefined,
         consumo_mensal_max: body.consumo_mensal_max != null ? Number(body.consumo_mensal_max) : undefined,
         cdId,
+        cdIds,
         cliente_nome: body.cliente_nome || 'Cliente Premium',
         hsp: body.hsp != null ? Number(body.hsp) : admin?.hsp,
         tarifa: body.tarifa != null ? Number(body.tarifa) : admin?.tarifa,
         performanceRate:
           body.performanceRate != null ? Number(body.performanceRate) : admin?.performanceRate,
-        maxAlternativas: body.maxAlternativas != null ? Number(body.maxAlternativas) : undefined,
+        maxAlternativas,
+        varianciaAlvoPct:
+          body.varianciaAlvoPct != null
+            ? Number(body.varianciaAlvoPct)
+            : admin?.varianciaAlvoPct,
         salvar: Boolean(body.salvar),
         frete: body.frete != null ? Number(body.frete) : admin?.fretePadrao ?? 0,
         kits_manuais,

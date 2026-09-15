@@ -10,8 +10,10 @@ import {
   getEstoqueMinimoPorCategoria,
 } from './regrasCaptura';
 import type { ItemRejeitado, MotivoRejeicao } from './rejeitadosCaptura';
+import { parsePotenciaKwDoNome } from './parsePotencia';
 
 export type { CatalogItem };
+export { parsePotenciaKwDoNome };
 
 function parseMoney(raw: string | null | undefined): number | null {
   if (!raw) return null;
@@ -73,6 +75,10 @@ function inferirModuloDoNome(nome: string): { potencia_w: number; marca: string;
 
 function skuFromNome(prefix: string, nome: string, codigo?: string | null): string {
   if (codigo && /^\d{5,7}$/.test(codigo)) return `${prefix}-${codigo}`.slice(0, 48);
+  // Fortlev: IMO00193 / IEF00232 / ILS00027
+  if (codigo && /^I[A-Z]{2}\d{5}$/i.test(codigo)) {
+    return `${prefix}-${codigo.toUpperCase()}`.slice(0, 48);
+  }
   const base = nome
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '-')
@@ -81,7 +87,33 @@ function skuFromNome(prefix: string, nome: string, codigo?: string | null): stri
   return `${prefix}-${base}`.slice(0, 48);
 }
 
-/** Classifica produto SOOLLAR para auto-cadastro (não só módulo). */
+/** Classifica produto SOOLLAR/Fortlev para auto-cadastro (não só módulo). */
+
+function pareceAcessorioNaoInversor(upper: string): boolean {
+  return /RSD|RAPID\s*SHUT|PVG-|CONTROLADOR|CABO\s*TRONCO|CABO-Q|CONECTOR|TAMPA\s*TERMINAL|FERRAMENTA|DISPOSITIVO\s*DE\s*RSD/i.test(
+    upper
+  );
+}
+
+/**
+ * Fortlev muitas vezes omite a palavra "INVERSOR" (ex.: "FoxESS On-Grid 10kW (G10-VB)").
+ */
+function pareceInversorSemPalavra(upper: string): boolean {
+  if (pareceAcessorioNaoInversor(upper)) return false;
+  if (/ON[\s-]?GRID|OFF[\s-]?GRID|H[IÍ]BRID|HYBRID/i.test(upper)) return true;
+  if (
+    /\b(FOXESS|SUNGROW|LIVOLTEK|SOLPLANET|GROWATT|DEYE|SAJ|SOLIS|FRONIUS)\b/.test(upper) &&
+    parsePotenciaKwDoNome(upper) != null
+  ) {
+    return true;
+  }
+  // Modelos típicos Fortlev / string
+  if (/\b(G\d+-VB|F\d{4}|SG\d|GT[13]-|ASW\d|MAC\d|H1-\d|BDM-\d|U-HOME|IQ8)/i.test(upper)) {
+    return true;
+  }
+  return false;
+}
+
 export function inferirEquipamentoDoNome(
   nome: string,
   codigo?: string | null
@@ -111,6 +143,11 @@ export function inferirEquipamentoDoNome(
 
   const marcaHint = (() => {
     const marcas = [
+      'ENPHASE',
+      'FOXESS',
+      'SUNGROW',
+      'LIVOLTEK',
+      'SOLPLANET',
       'DEYE',
       'SAJ',
       'GROWATT',
@@ -120,6 +157,7 @@ export function inferirEquipamentoDoNome(
       'WEG',
       'FRONIUS',
       'SMA',
+      'NEP',
       'CLAMPER',
       'TSUN',
       'RENEPV',
@@ -130,9 +168,38 @@ export function inferirEquipamentoDoNome(
     return 'GEN';
   })();
 
-  if (/MICRO\s*-?\s*INV|MICROINV/i.test(upper)) {
+  // Acessórios RSD / cabo tronco — nunca inversor
+  if (pareceAcessorioNaoInversor(upper) && !/MICRO\s*-?\s*INV|MICROINV|MICROINVERSOR/i.test(upper)) {
+    if (/\bMC4\b|CONECTOR/i.test(upper)) {
+      return {
+        categoria: 'conector',
+        potencia_w: null,
+        potencia_kw: null,
+        marca: marcaHint,
+        sku: skuFromNome('MC4-AUTO', nome, codigo),
+      };
+    }
+    if (/\bCABO\b|CABO-Q|TRONCO/i.test(upper)) {
+      return {
+        categoria: 'cabo',
+        potencia_w: null,
+        potencia_kw: null,
+        marca: marcaHint,
+        sku: skuFromNome('CAB-AUTO', nome, codigo),
+      };
+    }
+    return {
+      categoria: 'protecao',
+      potencia_w: null,
+      potencia_kw: null,
+      marca: marcaHint,
+      sku: skuFromNome('PRT-AUTO', nome, codigo),
+    };
+  }
+
+  if (/MICRO\s*-?\s*INV|MICROINV|MICROINVERSOR|\bBDM-\d/i.test(upper) || (/ENPHASE/i.test(upper) && /IQ\d|MICRO/i.test(upper))) {
     // Kits de fixação para micro não são o inversor
-    if (/KIT|FIXA|SUPORTE|TRILHO|PERFIL|GRAMPO/i.test(upper) && !/^MICRO/i.test(upper.trim())) {
+    if (/KIT|FIXA|SUPORTE|TRILHO|PERFIL|GRAMPO/i.test(upper) && !/MICROINV|MICROINVERSOR|BDM-/i.test(upper)) {
       return {
         categoria: 'estrutura',
         potencia_w: null,
@@ -141,20 +208,18 @@ export function inferirEquipamentoDoNome(
         sku: skuFromNome('EST-AUTO', nome, codigo),
       };
     }
-    const kwM = upper.match(/(\d+[.,]?\d*)\s*K(?:W)?\b/);
-    const potencia_kw = kwM ? Number(kwM[1].replace(',', '.')) : null;
+    const potencia_kw = parsePotenciaKwDoNome(nome);
     return {
       categoria: 'microinversor',
       potencia_w: potencia_kw ? Math.round(potencia_kw * 1000) : null,
       potencia_kw,
-      marca: marcaHint,
+      marca: marcaHint === 'GEN' ? 'NEP' : marcaHint,
       sku: skuFromNome('MIC-AUTO', nome, codigo),
     };
   }
 
-  if (/\bINVERSOR\b/i.test(upper)) {
-    const kwM = upper.match(/(\d+[.,]?\d*)\s*K(?:W)?\b/);
-    const potencia_kw = kwM ? Number(kwM[1].replace(',', '.')) : null;
+  if (/\bINVERSOR\b/i.test(upper) || pareceInversorSemPalavra(upper)) {
+    const potencia_kw = parsePotenciaKwDoNome(nome);
     return {
       categoria: 'inversor',
       potencia_w: potencia_kw ? Math.round(potencia_kw * 1000) : null,
@@ -496,7 +561,7 @@ export function applyCatalogToCd(
       });
     }
 
-    for (const [sku, row] of autoBySku) {
+    for (const [sku, row] of Array.from(autoBySku.entries())) {
       const { id, created } = upsertBySkuInterno({
         sku_interno: sku,
         sku_soollar: row.codigo || null,

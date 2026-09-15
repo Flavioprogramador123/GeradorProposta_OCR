@@ -14,12 +14,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const fonte = (req.body?.fonte || 'temp') as CapturaFonte;
   if (isServerlessFs() && (fonte === 'scrape' || fonte === 'both')) {
-    return res.status(503).json({
-      ok: false,
-      serverless: true,
-      message:
-        'Scraping SOOLLAR não roda na Vercel. Use fonte "temp" com dumps ou rode a captura no localhost.',
-    });
+    // Vercel não roda Playwright — enfileira no Supabase; worker no PC faz scrape + publish
+    try {
+      const { enqueueCapturaJob } = await import('@/modules/v3/precos/capturaJobsQueue');
+      const { created, job } = await enqueueCapturaJob({
+        requestedBy: String(req.body?.requestedBy || 'vercel-scraping-live').slice(0, 80),
+        payload: { fonte: 'scrape', headless: true, publicar: true, singleSession: true },
+      });
+      return res.status(created ? 202 : 200).json({
+        ok: true,
+        queued: true,
+        created,
+        job,
+        serverless: true,
+        message: created
+          ? 'Enfileirado na Vercel. PC local (Postgres F: + Playwright) vai rodar Scraping live (CDs SOOLLAR + Fortlev) e Publicar no Supabase.'
+          : 'Já havia captura pending/running no PC — aguarde concluir.',
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return res.status(503).json({
+        ok: false,
+        serverless: true,
+        message: /pieng_captura_jobs|schema cache|does not exist/i.test(msg)
+          ? 'Scraping remoto: execute sql/8_pieng_captura_jobs.sql no Supabase, depois tente de novo.'
+          : `Scraping não roda na Vercel e a fila falhou: ${msg}`,
+      });
+    }
   }
 
   const headless = req.body?.headless !== false;

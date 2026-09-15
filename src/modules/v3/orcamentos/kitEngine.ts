@@ -1,6 +1,10 @@
 import { getV3Db } from '../db/sqlite';
 import { getEstoqueMinimoPreco, resolverPrecoEquipamento } from '../precos/repository';
-import { resolveEquipPorSkuCanonico, ensureSkuCanonicoLinks } from './skuCanonico';
+import {
+  resolveEquipPorSkuCanonico,
+  resolveEquipPorSkuCanonicoNoCd,
+  ensureSkuCanonicoLinks,
+} from './skuCanonico';
 
 export interface KitItemInput {
   sku_interno: string;
@@ -47,12 +51,13 @@ function regraNum(chave: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function findEquipBySku(sku: string) {
+function findEquipBySku(sku: string, cdId?: number) {
   try {
     ensureSkuCanonicoLinks();
   } catch {
     /* ignore */
   }
+  if (cdId != null) return resolveEquipPorSkuCanonicoNoCd(sku, cdId);
   return resolveEquipPorSkuCanonico(sku);
 }
 
@@ -239,7 +244,7 @@ export function calcularOrcamentoBase(opts: {
   );
 
   for (const raw of opts.itens) {
-    const eq = findEquipBySku(raw.sku_interno);
+    const eq = findEquipBySku(raw.sku_interno, opts.cdId);
     if (!eq) {
       avisos.push(`SKU não cadastrado: ${raw.sku_interno}`);
       continue;
@@ -265,8 +270,8 @@ export function calcularOrcamentoBase(opts: {
     const qtdInversores = invs.reduce((s, i) => s + i.quantidade, 0);
     const mod = mods[0];
     const inv = invs[0];
-    const eqMod = mod ? findEquipBySku(mod.sku_interno) : undefined;
-    const eqInv = inv ? findEquipBySku(inv.sku_interno) : undefined;
+    const eqMod = mod ? findEquipBySku(mod.sku_interno, opts.cdId) : undefined;
+    const eqInv = inv ? findEquipBySku(inv.sku_interno, opts.cdId) : undefined;
 
     if (qtdModulos > 0) {
       const sugestoes = sugerirComplementos({
@@ -278,7 +283,7 @@ export function calcularOrcamentoBase(opts: {
         isMicro: eqInv?.categoria === 'microinversor',
       });
       for (const s of sugestoes) {
-        const eq = findEquipBySku(s.sku_interno);
+        const eq = findEquipBySku(s.sku_interno, opts.cdId);
         if (!eq) {
           avisos.push(`Complemento sem cadastro: ${s.sku_interno}`);
           continue;

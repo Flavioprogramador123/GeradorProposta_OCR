@@ -1,33 +1,45 @@
-# Instala worker de fila pieng_jobs (poll a cada 2 min via Task Scheduler).
-# Não substitui PIENG-V3-CapturaSoolar (agenda 07:30) — só sob demanda.
-#
-#   powershell -ExecutionPolicy Bypass -File scripts/v3-install-jobs-worker-task.ps1
-# UNDO: Unregister-ScheduledTask -TaskName 'PIENG-V3-JobsWorker' -Confirm:$false
-#
+# Instala tarefa Windows: worker de captura (poll Supabase Vercel + Postgres F:)
+# Rode como Administrador uma vez neste PC (CCA_TECNICA).
+
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
-if (-not (Test-Path (Join-Path $root 'package.json'))) { $root = Get-Location }
+$root = 'E:\Projetos\Prompt_ORC_pieng'
+$npmCmd = Get-Command npm.cmd -ErrorAction SilentlyContinue
+$npm = if ($npmCmd) { $npmCmd.Source } else { 'C:\Program Files\nodejs\npm.cmd' }
+if (-not (Test-Path $npm)) { throw "npm.cmd não encontrado: $npm" }
+if (-not (Test-Path $root)) { throw "Repo não encontrado: $root" }
 
 $taskName = 'PIENG-V3-JobsWorker'
-$npmCmd = Get-Command npm -ErrorAction SilentlyContinue
-$npm = if ($npmCmd) { $npmCmd.Source } else { 'npm' }
+$existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+if ($existing) {
+  Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+  Write-Host "Removida tarefa antiga $taskName"
+}
 
 $action = New-ScheduledTaskAction `
   -Execute 'cmd.exe' `
-  -Argument "/c cd /d `"$root`" && `"$npm`" run v3:jobs:worker:once" `
+  -Argument "/c cd /d `"$root`" && `"$npm`" run v3:jobs:worker" `
   -WorkingDirectory $root
 
-# A cada 2 minutos enquanto o usuário estiver logado
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddMinutes(1) `
-  -RepetitionInterval (New-TimeSpan -Minutes 2) `
-  -RepetitionDuration (New-TimeSpan -Days 9999)
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+$settings = New-ScheduledTaskSettingsSet `
+  -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries `
+  -StartWhenAvailable `
+  -RestartCount 3 `
+  -RestartInterval (New-TimeSpan -Minutes 1) `
+  -ExecutionTimeLimit (New-TimeSpan -Days 0)
 
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
 
-Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
-Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
+Register-ScheduledTask `
+  -TaskName $taskName `
+  -Action $action `
+  -Trigger $trigger `
+  -Settings $settings `
+  -Principal $principal `
+  -Description 'PIENG: poll fila captura (Vercel Supabase + Postgres F:) e roda v3:captura:force' | Out-Null
 
-Write-Host "OK: tarefa '$taskName' — a cada 2 min (npm run v3:jobs:worker:once)"
-Write-Host "UNDO: Unregister-ScheduledTask -TaskName '$taskName' -Confirm:`$false"
-Write-Host "Teste: npm run v3:jobs:test"
+Start-ScheduledTask -TaskName $taskName
+Write-Host "OK: $taskName iniciada (logon + agora)."
+Write-Host "Teste: cd $root; npm run v3:jobs:test"
+Write-Host "Dispatch UI: http://127.0.0.1:3099  /  http://100.104.172.12:3099"

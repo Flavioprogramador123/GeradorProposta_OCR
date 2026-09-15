@@ -114,6 +114,7 @@ export function upsertPrecoCd(input: {
   const isManual = fonte === 'manual' || fonte.startsWith('manual');
 
   // Manual: preço basta. Scrape/import: exige estoque > mínimo.
+  // (Estoque 0 com preço inflado na SOOLLAR → scrape marca inválido; admin pode forçar manual.)
   const valido = isManual
     ? precoIn != null && precoIn > 0
       ? 1
@@ -270,7 +271,8 @@ export interface PrecoResolvido {
 }
 
 /**
- * Preço no CD pedido; se faltar, usa outra filial (Aeroporto → Matriz → Feira).
+ * Preço no CD pedido; se faltar, usa outro CD ativo
+ * (preferência: Aeroporto → Matriz → Feira → Fortlev → demais).
  */
 export function resolverPrecoEquipamento(
   equipamentoId: number,
@@ -332,7 +334,15 @@ export function resolverPrecoEquipamento(
     };
   }
 
-  const ordemPreferencia = [1, 2, 3].filter((id) => id !== cdIdPreferido);
+  const ativos = db
+    .prepare(`SELECT id FROM cds WHERE ativo = 1 ORDER BY codigo`)
+    .all() as Array<{ id: number }>;
+  // SOOLLAR 1–3 primeiro; Fortlev e outros depois (mesma estratégia de escolha).
+  const ordemPreferencia = [
+    ...[1, 2, 3].filter((id) => ativos.some((a) => a.id === id)),
+    ...ativos.map((a) => a.id).filter((id) => id > 3),
+  ].filter((id) => id !== cdIdPreferido);
+
   const candidatos = db
     .prepare(
       `SELECT p.preco_custo, p.estoque, p.valido_estoque, p.cd_id, c.nome AS cd_nome

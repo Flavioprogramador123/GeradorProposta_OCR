@@ -87,23 +87,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (isServerlessFs()) {
-    const payload = {
-      ok: false,
-      message:
-        'Captura SOOLLAR só roda no PC local. No Vercel use localhost:3000/admin/soollar-captura.',
-      serverless: true,
-    };
-    if (req.body?.stream !== false) {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
+    // Sky (Probe) / Capturar na Vercel → enfileira scrape+publish no PC
+    try {
+      const { enqueueCapturaJob } = await import('@/modules/v3/precos/capturaJobsQueue');
+      const actionHint = String(req.body?.action || 'capturar');
+      const { created, job } = await enqueueCapturaJob({
+        requestedBy: `vercel-soollar-${actionHint}`.slice(0, 80),
+        payload: {
+          fonte: 'scrape',
+          headless: true,
+          publicar: true,
+          singleSession: true,
+          action: actionHint,
+        },
       });
-      writeSse(res, { type: 'error', ...payload });
-      writeSse(res, { type: 'done', ...payload });
-      return res.end();
+      const payload = {
+        ok: true,
+        queued: true,
+        created,
+        job,
+        serverless: true,
+        message: created
+          ? 'Enfileirado via Vercel. O PC vai rodar Scraping live (3 CDs) + Publicar no Supabase.'
+          : 'Já havia job pending/running no PC.',
+      };
+      if (req.body?.stream !== false) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+        });
+        writeSse(res, {
+          type: 'log',
+          line: {
+            ts: new Date().toISOString(),
+            level: 'ok',
+            message: payload.message,
+            data: { jobId: job.id, status: job.status },
+          },
+        });
+        writeSse(res, { type: 'done', ...payload });
+        return res.end();
+      }
+      return res.status(created ? 202 : 200).json(payload);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const payload = {
+        ok: false,
+        serverless: true,
+        message: /pieng_captura_jobs|schema cache|does not exist/i.test(msg)
+          ? 'Execute sql/8_pieng_captura_jobs.sql no Supabase para habilitar disparo remoto.'
+          : msg,
+      };
+      if (req.body?.stream !== false) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+        });
+        writeSse(res, { type: 'error', ...payload });
+        writeSse(res, { type: 'done', ...payload });
+        return res.end();
+      }
+      return res.status(503).json(payload);
     }
-    return res.status(503).json(payload);
   }
 
   const action = (req.body?.action || req.query.action || 'probe') as string;

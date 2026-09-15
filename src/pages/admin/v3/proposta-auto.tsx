@@ -12,7 +12,7 @@ import { formatBRL, formatNumberPt } from '@/lib/formatBRL';
 import { isInversorHibrido, passaFiltroRede220380 } from '@/modules/v3/calc/dcAcRatio';
 import { precificarComercialV2 } from '@/modules/v3/bridge/comercial';
 import { marcaCurtaEquipamento, resolveMarcaCurtaCard, sortByPrecoAsc } from '@/lib/equipamentoLabel';
-import { peekSlugForV3, rememberSlugForV3 } from '@/lib/v3Navegacao';
+import { peekSlugForV3, rememberSlugForV3, savePropostaAutoDraft, loadPropostaAutoDraft } from '@/lib/v3Navegacao';
 import { useRouter } from 'next/router';
 
 interface Params {
@@ -25,6 +25,7 @@ interface Params {
   bonusMicroPercent: number;
   maxAlternativas: number;
   placasPorMicro: number;
+  varianciaAlvoPct?: number;
 }
 
 interface PassoAuditoria {
@@ -91,6 +92,11 @@ interface Alt {
   orcamento_base_id?: number;
   origem?: 'manual_3a' | 'auto';
   faixa_alvo_kwh?: number;
+  fora_faixa?: boolean;
+  desvio_faixa_pct?: number | null;
+  cd_id?: number;
+  cd_nome?: string;
+  fornecedor?: string;
   breakdown: Record<string, number>;
   orcamento_itens?: ItemKit[];
   avisos?: string[];
@@ -100,11 +106,11 @@ interface Alt {
   };
 }
 
-const CDS = [
-  { id: 1, nome: 'Aeroporto' },
-  { id: 2, nome: 'Matriz' },
-  { id: 3, nome: 'Feira de Santana' },
-];
+interface CdOption {
+  id: number;
+  nome: string;
+  slug_portal?: string;
+}
 
 interface CatalogItem {
   id: number;
@@ -135,7 +141,14 @@ function fmtVal(v: number | string | boolean | null): string {
 export default function AdminV3PropostaAuto() {
   const router = useRouter();
   const [modo, setModo] = useState<'geracao_mensal' | 'potencia_kwp' | 'consumo_mensal'>('geracao_mensal');
+  const [cds, setCds] = useState<CdOption[]>([
+    { id: 1, nome: 'Aeroporto' },
+    { id: 2, nome: 'Matriz' },
+    { id: 3, nome: 'Feira de Santana' },
+  ]);
   const [cdId, setCdId] = useState(3);
+  /** CDs / fornecedores marcados para dimensionar (até 6 cards). */
+  const [cdIds, setCdIds] = useState<number[]>([3]);
   const [cliente, setCliente] = useState('Cliente Padrão');
   const [cidade, setCidade] = useState('Anápolis/GO');
   const [consumoMensal, setConsumoMensal] = useState(600);
@@ -155,12 +168,17 @@ export default function AdminV3PropostaAuto() {
   const [tarifa, setTarifa] = useState(1.17);
   const [pdespesaFixo, setPdespesaFixo] = useState(3000);
   const [pdespesaVariavel, setPdespesaVariavel] = useState(22);
+  /** Margem ±% em torno do alvo (configurável; padrão 20). */
+  const [varianciaAlvoPct, setVarianciaAlvoPct] = useState(20);
   const [fretePadrao, setFretePadrao] = useState(0);
   const [params, setParams] = useState<Params | null>(null);
   const [alts, setAlts] = useState<Alt[]>([]);
   const [geradorPayload, setGeradorPayload] = useState<Record<string, unknown> | null>(null);
   const [meta, setMeta] = useState<{
+    modo?: string;
     alvoKwp?: number;
+    alvoKwpMin?: number;
+    alvoKwpMax?: number;
     alvoGeracao?: number;
     alvoGeracaoMin?: number;
     alvoGeracaoMax?: number;
@@ -173,41 +191,47 @@ export default function AdminV3PropostaAuto() {
   const [recalcIdx, setRecalcIdx] = useState<number | null>(null);
   const [aberto, setAberto] = useState<Record<number, boolean>>({});
   const [sharedReady, setSharedReady] = useState(false);
-  const [catalogo, setCatalogo] = useState<CatalogItem[]>([]);
+  /** Catálogo precificado por CD — selects do card usam só o CD daquele card. */
+  const [catalogosByCd, setCatalogosByCd] = useState<Record<number, CatalogItem[]>>({});
   const [slugProposta, setSlugProposta] = useState<string | null>(null);
-  const modsCatalogo = useMemo(
-    () =>
+
+  const cdIdsParaCatalogo = useMemo(() => {
+    const s = new Set<number>([cdId, ...cdIds]);
+    for (const a of alts) {
+      const id = Number(a.cd_id);
+      if (Number.isFinite(id) && id > 0) s.add(id);
+    }
+    return Array.from(s).sort((a, b) => a - b);
+  }, [cdId, cdIds, alts]);
+
+  const catalogoHelpers = useMemo(() => {
+    const getCat = (cardCd: number | null | undefined) => {
+      const id = Number(cardCd) > 0 ? Number(cardCd) : cdId;
+      return catalogosByCd[id] || [];
+    };
+    const modsDoCd = (cardCd: number | null | undefined) =>
       sortByPrecoAsc(
-        catalogo.filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1)
-      ),
-    [catalogo]
-  );
-  const invsCatalogo = useMemo(
-    () =>
-      catalogo.filter(
+        getCat(cardCd).filter((c) => c.categoria === 'modulo' && c.valido_estoque === 1)
+      );
+    const invsDoCd = (cardCd: number | null | undefined) =>
+      getCat(cardCd).filter(
         (c) =>
           (c.categoria === 'inversor' || c.categoria === 'microinversor') && c.valido_estoque === 1
-      ),
-    [catalogo]
-  );
-  const invsPrincipais = useMemo(
-    () =>
+      );
+    const invsPrincipaisDoCd = (cardCd: number | null | undefined) =>
       sortByPrecoAsc(
-        invsCatalogo.filter(
+        invsDoCd(cardCd).filter(
           (c) =>
             (c.categoria === 'microinversor' || !isInversorHibrido(c)) &&
             passaFiltroRede220380(c, rede220380)
         )
-      ),
-    [invsCatalogo, rede220380]
-  );
-  const invsHibridos = useMemo(
-    () =>
+      );
+    const invsHibridosDoCd = (cardCd: number | null | undefined) =>
       sortByPrecoAsc(
-        invsCatalogo.filter((c) => c.categoria === 'inversor' && isInversorHibrido(c))
-      ),
-    [invsCatalogo]
-  );
+        invsDoCd(cardCd).filter((c) => c.categoria === 'inversor' && isInversorHibrido(c))
+      );
+    return { getCat, modsDoCd, invsDoCd, invsPrincipaisDoCd, invsHibridosDoCd };
+  }, [catalogosByCd, cdId, rede220380]);
 
   const applyShared = useCallback((shared: ConfigRapidaShared) => {
     setCliente(shared.nomeCliente);
@@ -250,6 +274,11 @@ export default function AdminV3PropostaAuto() {
 
     if (resV3.ok && data.params) {
       setParams(data.params);
+      if (data.params.varianciaAlvoPct != null) {
+        setVarianciaAlvoPct(Number(data.params.varianciaAlvoPct));
+      } else if (data.comercial_defaults?.varianciaAlvoPct != null) {
+        setVarianciaAlvoPct(Number(data.comercial_defaults.varianciaAlvoPct));
+      }
     }
 
     applyShared(shared);
@@ -270,6 +299,42 @@ export default function AdminV3PropostaAuto() {
   }, [loadParams]);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/v3/equipamentos');
+        const data = await res.json();
+        const list = (data.cds || []) as CdOption[];
+        if (!cancelled && list.length) {
+          const mapped = list.map((c) => ({
+            id: Number(c.id),
+            nome: c.nome,
+            slug_portal: (c as { slug_portal?: string }).slug_portal,
+          }));
+          setCds(mapped);
+          setCdIds((prev) => {
+            const valid = prev.filter((id) => mapped.some((c) => c.id === id));
+            if (valid.length) return valid;
+            const feira = mapped.find((c) => /feira/i.test(c.nome));
+            const fortlev = mapped.find(
+              (c) => c.slug_portal === 'fortlev' || /fortlev/i.test(c.nome)
+            );
+            const next = [feira?.id, fortlev?.id].filter(
+              (id): id is number => typeof id === 'number'
+            );
+            return next.length ? next : [mapped[0].id];
+          });
+        }
+      } catch {
+        /* mantém fallback SOOLLAR */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!router.isReady) return;
     const fromQuery =
       typeof router.query.slug === 'string' ? router.query.slug.trim() : '';
@@ -281,22 +346,110 @@ export default function AdminV3PropostaAuto() {
     }
   }, [router.isReady, router.query.slug]);
 
+  /** Reabre rascunho (margem + cards) ao voltar / Editar kit automático. */
   useEffect(() => {
+    if (!sharedReady || !router.isReady || alts.length > 0) return;
+    const draft = loadPropostaAutoDraft();
+    if (!draft) return;
+
+    const slugNow =
+      (typeof router.query.slug === 'string' && router.query.slug.trim()) ||
+      peekSlugForV3() ||
+      '';
+    const draftSlug = typeof draft.slugProposta === 'string' ? draft.slugProposta : '';
+    // Se há slug na URL e o draft é de outra proposta, não misturar
+    if (slugNow && draftSlug && slugNow !== draftSlug) return;
+
+    if (typeof draft.modo === 'string') setModo(draft.modo as typeof modo);
+    if (typeof draft.valor === 'number') setValor(draft.valor);
+    if (typeof draft.valorMin === 'number') setValorMin(draft.valorMin);
+    if (typeof draft.valorMax === 'number') setValorMax(draft.valorMax);
+    if (typeof draft.usarFaixa === 'boolean') setUsarFaixa(draft.usarFaixa);
+    if (typeof draft.varianciaAlvoPct === 'number') setVarianciaAlvoPct(draft.varianciaAlvoPct);
+    if (typeof draft.cliente === 'string' && draft.cliente) setCliente(draft.cliente);
+    if (typeof draft.cidade === 'string' && draft.cidade) setCidade(draft.cidade);
+    if (typeof draft.consumoMensal === 'number') setConsumoMensal(draft.consumoMensal);
+    if (typeof draft.tipoImovel === 'string') setTipoImovel(draft.tipoImovel);
+    if (typeof draft.hsp === 'number') setHsp(draft.hsp);
+    if (typeof draft.tarifa === 'number') setTarifa(draft.tarifa);
+    if (typeof draft.pdespesaFixo === 'number') setPdespesaFixo(draft.pdespesaFixo);
+    if (typeof draft.pdespesaVariavel === 'number') setPdespesaVariavel(draft.pdespesaVariavel);
+    if (typeof draft.fretePadrao === 'number') setFretePadrao(draft.fretePadrao);
+    if (typeof draft.cdId === 'number') setCdId(draft.cdId);
+    if (Array.isArray(draft.cdIds)) {
+      const ids = draft.cdIds.map(Number).filter((n) => Number.isFinite(n) && n > 0);
+      if (ids.length) setCdIds(ids);
+    }
+    if (typeof draft.incluirMicro === 'boolean') setIncluirMicro(draft.incluirMicro);
+    if (typeof draft.incluirString === 'boolean') setIncluirString(draft.incluirString);
+    if (typeof draft.rede220380 === 'boolean') setRede220380(draft.rede220380);
+    if (draftSlug) {
+      setSlugProposta(draftSlug);
+      rememberSlugForV3(draftSlug);
+    }
+    if (Array.isArray(draft.alts) && draft.alts.length) {
+      setAlts(draft.alts as Alt[]);
+      setAberto({});
+    }
+    if (draft.meta && typeof draft.meta === 'object') {
+      setMeta(draft.meta as typeof meta);
+    }
+    if (draft.geradorPayload && typeof draft.geradorPayload === 'object') {
+      setGeradorPayload(draft.geradorPayload as Record<string, unknown>);
+    }
+    if (Array.isArray(draft.auditoriaAlvo)) {
+      setAuditoriaAlvo(draft.auditoriaAlvo as PassoAuditoria[]);
+    }
+    if (Array.isArray(draft.avisosGlobais)) {
+      setAvisosGlobais(draft.avisosGlobais as string[]);
+    }
+    if (draft.params && typeof draft.params === 'object') {
+      setParams(draft.params as Params);
+    }
+    setMsg(
+      Array.isArray(draft.alts) && draft.alts.length
+        ? `Rascunho restaurado · ${draft.alts.length} alt. · margem ±${draft.varianciaAlvoPct ?? '?'}%`
+        : 'Rascunho parcial restaurado (margem/modo)'
+    );
+  }, [sharedReady, router.isReady, router.query.slug]);
+
+  useEffect(() => {
+    if (!cdIds.length) return;
+    const prefer =
+      cdIds.find((id) => {
+        const c = cds.find((x) => x.id === id);
+        return c && c.slug_portal !== 'fortlev' && !/fortlev/i.test(c.nome);
+      }) ?? cdIds[0];
+    if (prefer !== cdId) setCdId(prefer);
+  }, [cdIds, cds, cdId]);
+
+  useEffect(() => {
+    if (!cdIdsParaCatalogo.length) return;
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch(`/api/v3/orcamentos-base?catalogo=1&cdId=${cdId}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
-        if (!cancelled) setCatalogo(data.catalogo || []);
-      } catch {
-        if (!cancelled) setCatalogo([]);
-      }
+      const results = await Promise.all(
+        cdIdsParaCatalogo.map(async (id) => {
+          try {
+            const res = await fetch(`/api/v3/orcamentos-base?catalogo=1&cdId=${id}`);
+            const data = await res.json();
+            if (!res.ok) return [id, [] as CatalogItem[]] as const;
+            return [id, (data.catalogo || []) as CatalogItem[]] as const;
+          } catch {
+            return [id, [] as CatalogItem[]] as const;
+          }
+        })
+      );
+      if (cancelled) return;
+      setCatalogosByCd((prev) => {
+        const next = { ...prev };
+        for (const [id, cat] of results) next[id] = cat;
+        return next;
+      });
     })();
     return () => {
       cancelled = true;
     };
-  }, [cdId]);
+  }, [cdIdsParaCatalogo]);
 
   // Persistir de volta para o Gerador
   useEffect(() => {
@@ -370,6 +523,46 @@ export default function AdminV3PropostaAuto() {
     });
   };
 
+  const persistAutoDraft = (extra?: {
+    alts?: Alt[];
+    meta?: typeof meta;
+    geradorPayload?: Record<string, unknown> | null;
+    auditoriaAlvo?: PassoAuditoria[];
+    avisosGlobais?: string[];
+    params?: Params | null;
+  }) => {
+    savePropostaAutoDraft({
+      modo,
+      valor,
+      valorMin,
+      valorMax,
+      usarFaixa,
+      varianciaAlvoPct,
+      cliente,
+      cidade,
+      consumoMensal,
+      tipoImovel,
+      hsp,
+      tarifa,
+      pdespesaFixo,
+      pdespesaVariavel,
+      fretePadrao,
+      cdId,
+      cdIds,
+      incluirMicro,
+      incluirString,
+      rede220380,
+      slugProposta: slugProposta || peekSlugForV3() || null,
+      alts: extra?.alts ?? alts,
+      meta: extra?.meta !== undefined ? extra.meta : meta,
+      geradorPayload:
+        extra?.geradorPayload !== undefined ? extra.geradorPayload : geradorPayload,
+      auditoriaAlvo: extra?.auditoriaAlvo ?? auditoriaAlvo,
+      avisosGlobais: extra?.avisosGlobais ?? avisosGlobais,
+      params: extra?.params !== undefined ? extra.params : params,
+    });
+  };
+
   const gerar = async (salvar = false) => {
     setBusy(true);
     setMsg('');
@@ -378,6 +571,8 @@ export default function AdminV3PropostaAuto() {
       const body: Record<string, unknown> = {
         modo,
         cdId,
+        cdIds: cdIds.length ? cdIds : [cdId],
+        maxAlternativas: 6,
         cliente_nome: cliente,
         hsp,
         tarifa,
@@ -388,6 +583,7 @@ export default function AdminV3PropostaAuto() {
         incluir_micro: incluirMicro,
         incluir_string: incluirString,
         rede_220_380: rede220380,
+        varianciaAlvoPct,
       };
 
       if (modo === 'potencia_kwp') {
@@ -422,7 +618,10 @@ export default function AdminV3PropostaAuto() {
           setPdespesaVariavel(data.comercial_config.pdespesaVariavel);
       }
       setMeta({
+        modo: data.modo,
         alvoKwp: data.alvoKwp,
+        alvoKwpMin: data.alvoKwpMin,
+        alvoKwpMax: data.alvoKwpMax,
         alvoGeracao: data.alvoGeracao,
         alvoGeracaoMin: data.alvoGeracaoMin,
         alvoGeracaoMax: data.alvoGeracaoMax,
@@ -431,23 +630,41 @@ export default function AdminV3PropostaAuto() {
       setAuditoriaAlvo(data.auditoria_alvo || []);
       setAvisosGlobais(data.avisos || []);
       setParams(data.params);
-      const open: Record<number, boolean> = {};
-      lista.forEach((_, i) => {
-        open[i] = true;
-      });
-      setAberto(open);
+      setAberto({});
       const pix0 = lista[0]?.comercial?.ppix;
       const faixaTxt =
-        data.alvoGeracaoMin != null && data.alvoGeracaoMax != null
-          ? data.alvoGeracaoMin === data.alvoGeracaoMax
-            ? `${data.alvoGeracaoMin} kWh`
-            : `${data.alvoGeracaoMin}–${data.alvoGeracaoMax} kWh`
-          : `${data.alvoGeracao} kWh`;
+        data.modo === 'potencia_kwp' && data.alvoKwp != null
+          ? data.alvoKwpMin != null && data.alvoKwpMax != null
+            ? `${data.alvoKwp} kWp (± → ${data.alvoKwpMin}–${data.alvoKwpMax})`
+            : `${data.alvoKwp} kWp`
+          : data.alvoGeracaoMin != null && data.alvoGeracaoMax != null
+            ? data.alvoGeracaoMin === data.alvoGeracaoMax
+              ? `${data.alvoGeracaoMin} kWh`
+              : `${data.alvoGeracaoMin}–${data.alvoGeracaoMax} kWh`
+            : `${data.alvoGeracao} kWh`;
       setMsg(
         salvar
           ? `Salvo ${lista.length} orçamento(s) base`
           : `${lista.length} alt. · faixa ${faixaTxt} · PIX ${pix0 != null ? money(pix0) : '—'}`
       );
+      const metaNext = {
+        modo: data.modo as string | undefined,
+        alvoKwp: data.alvoKwp as number | undefined,
+        alvoKwpMin: data.alvoKwpMin as number | undefined,
+        alvoKwpMax: data.alvoKwpMax as number | undefined,
+        alvoGeracao: data.alvoGeracao as number | undefined,
+        alvoGeracaoMin: data.alvoGeracaoMin as number | undefined,
+        alvoGeracaoMax: data.alvoGeracaoMax as number | undefined,
+        consumoRef: data.consumoRef as number | null | undefined,
+      };
+      persistAutoDraft({
+        alts: lista,
+        meta: metaNext,
+        geradorPayload: data.gerador_payload || null,
+        auditoriaAlvo: data.auditoria_alvo || [],
+        avisosGlobais: data.avisos || [],
+        params: data.params || null,
+      });
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       setAlts([]);
@@ -463,14 +680,19 @@ export default function AdminV3PropostaAuto() {
 
   const abrirGerador = () => {
     if (!geradorPayload) {
-      setMsg('Dimensionar antes de abrir a Proposta manual');
+      setMsg('Dimensionar antes de seguir para a próxima fase');
+      return;
+    }
+    if (!alts.length) {
+      setMsg('Nenhuma alternativa para enviar');
       return;
     }
     try {
       persistSharedNow();
+      persistAutoDraft();
+      const orcsAll = (geradorPayload.orcamentos as Record<string, unknown>[] | undefined) || [];
       const orcamentos = alts.map((a, i) => {
-          const orcs = (geradorPayload.orcamentos as Record<string, unknown>[] | undefined) || [];
-          const base = orcs[i] || {};
+          const base = orcsAll[i] || {};
           const kit = a.custo_total;
           const freteAlt = a.frete ?? fretePadrao;
           const pcusto = a.comercial?.pcusto ?? kit + freteAlt;
@@ -484,6 +706,8 @@ export default function AdminV3PropostaAuto() {
         });
       const payload = {
         ...geradorPayload,
+        origem: `V3 proposta-auto · ${orcamentos.length} alternativa(s)`,
+        quantidadeTotal: orcamentos.length,
         cliente: {
           nomeCliente: cliente,
           cidadeCliente: cidade,
@@ -505,12 +729,12 @@ export default function AdminV3PropostaAuto() {
         origemUi: 'proposta-auto',
         slugProposta: slugProposta || peekSlugForV3() || undefined,
       }));
-      // Garante sessão antes do gerador aplicar /admin/config
       persistSharedNow();
       window.open(
         '/gerador-rapido?modo=v3&voltar=' + encodeURIComponent('/admin/v3/proposta-auto'),
         '_blank'
       );
+      setMsg(`Enviando ${alts.length} card(s) para a próxima fase`);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     }
@@ -541,21 +765,26 @@ export default function AdminV3PropostaAuto() {
     setAlts((prev) =>
       prev.map((a, i) => {
         if (i !== idx) return a;
+        const cardCd = a.cd_id || cdId;
+        const mods = catalogoHelpers.modsDoCd(cardCd);
+        const invs = catalogoHelpers.invsDoCd(cardCd);
         const next = { ...a, ...patch };
         if (patch.sku_modulo) {
-          const mod = modsCatalogo.find((m) => m.sku_interno === patch.sku_modulo);
+          const mod = mods.find((m) => m.sku_interno === patch.sku_modulo);
           if (mod) {
             next.nome_modulo = mod.nome;
             next.potencia_modulo_w = mod.potencia_w || next.potencia_modulo_w;
             next.preco_unit_modulo = mod.preco_custo ?? next.preco_unit_modulo;
+            next.marca_modulo = mod.marca ?? next.marca_modulo ?? null;
           }
         }
         if (patch.sku_inversor) {
-          const inv = invsCatalogo.find((m) => m.sku_interno === patch.sku_inversor);
+          const inv = invs.find((m) => m.sku_interno === patch.sku_inversor);
           if (inv) {
             next.nome_inversor = inv.nome;
             next.potencia_inversor_kw = inv.potencia_kw || next.potencia_inversor_kw;
             next.preco_unit_inversor = inv.preco_custo ?? next.preco_unit_inversor;
+            next.marca_inversor = inv.marca ?? next.marca_inversor ?? null;
             next.tipo = inv.categoria === 'microinversor' ? 'micro' : 'string';
           }
         }
@@ -576,12 +805,15 @@ export default function AdminV3PropostaAuto() {
     try {
       const qtdMod = Math.max(1, Number(a.qtd_modulos) || 1);
       const qtdInv = Math.max(1, Number(a.qtd_inversores) || 1);
+      const cardCd = a.cd_id || cdId;
+      const mods = catalogoHelpers.modsDoCd(cardCd);
+      const invs = catalogoHelpers.invsDoCd(cardCd);
       const res = await fetch('/api/v3/orcamentos-base', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           preview: true,
-          cdId,
+          cdId: cardCd,
           autoComplementos: true,
           itens: [
             { sku_interno: a.sku_modulo, quantidade: qtdMod },
@@ -599,8 +831,8 @@ export default function AdminV3PropostaAuto() {
       };
       if (!calc) throw new Error('Preview sem calc');
 
-      const mod = modsCatalogo.find((m) => m.sku_interno === a.sku_modulo);
-      const inv = invsCatalogo.find((m) => m.sku_interno === a.sku_inversor);
+      const mod = mods.find((m) => m.sku_interno === a.sku_modulo);
+      const inv = invs.find((m) => m.sku_interno === a.sku_inversor);
       const potW = mod?.potencia_w || a.potencia_modulo_w || 550;
       const potKwInv = inv?.potencia_kw || a.potencia_inversor_kw || 0;
       const isMicro = (inv?.categoria || a.tipo) === 'microinversor' || a.tipo === 'micro';
@@ -619,14 +851,93 @@ export default function AdminV3PropostaAuto() {
         frete
       );
       const tipo: 'micro' | 'string' = isMicro ? 'micro' : 'string';
-      const titulo = `${tipo === 'micro' ? 'Micro' : 'String'} ${inv?.marca || ''} ${qtdMod}×${potW}W`
+      const prefixoCd = a.fornecedor || a.cd_nome ? `${a.fornecedor || a.cd_nome} · ` : '';
+      const titulo = `${prefixoCd}${tipo === 'micro' ? 'Micro' : 'String'} ${inv?.marca || ''} ${qtdMod}×${potW}W`
         .replace(/\s+/g, ' ')
         .trim();
+
+      // Faixa / desvio alinhados ao modo (kWp vs kWh) — mesmos critérios do motor
+      const modoKwp = meta?.modo === 'potencia_kwp' && (meta.alvoKwp ?? 0) > 0;
+      const alvoKwpMeta = meta?.alvoKwp ?? 0;
+      const kwpMin = meta?.alvoKwpMin ?? alvoKwpMeta * (1 - (varianciaAlvoPct || 0) / 100);
+      const kwpMax = meta?.alvoKwpMax ?? alvoKwpMeta * (1 + (varianciaAlvoPct || 0) / 100);
+      const gerAlvo =
+        a.faixa_alvo_kwh && a.faixa_alvo_kwh > 0
+          ? a.faixa_alvo_kwh
+          : meta?.alvoGeracao ?? geracao_mensal_kwh;
+      const gerMin = meta?.alvoGeracaoMin ?? gerAlvo;
+      const gerMax = meta?.alvoGeracaoMax ?? gerAlvo;
+      const { baixo: varLo, alto: varHi } = (() => {
+        const v = Math.min(50, Math.max(0, Number(varianciaAlvoPct) || 0)) / 100;
+        return { baixo: 1 - v, alto: 1 + v };
+      })();
+
+      let fora_faixa: boolean;
+      let desvio_faixa_pct: number | null;
+      if (modoKwp) {
+        fora_faixa = potencia_kwp + 1e-9 < kwpMin || potencia_kwp - 1e-9 > kwpMax;
+        desvio_faixa_pct =
+          alvoKwpMeta > 0
+            ? Math.round(((potencia_kwp - alvoKwpMeta) / alvoKwpMeta) * 1000) / 10
+            : null;
+      } else {
+        const lo = Math.min(gerMin, gerMax) * varLo;
+        const hi = Math.max(gerMin, gerMax) * varHi;
+        fora_faixa = geracao_mensal_kwh < lo || geracao_mensal_kwh > hi;
+        desvio_faixa_pct =
+          gerAlvo > 0
+            ? Math.round(((geracao_mensal_kwh - gerAlvo) / gerAlvo) * 1000) / 10
+            : null;
+      }
+
+      const avisosKit = [...(calc.avisos || [])];
+      if (fora_faixa) {
+        avisosKit.unshift(
+          modoKwp
+            ? `Fora da faixa de kWp: ${potencia_kwp.toFixed(2)} kWp (alvo ${alvoKwpMeta.toFixed(2)}, faixa ${kwpMin.toFixed(2)}–${kwpMax.toFixed(2)})`
+            : `Fora da faixa pedida: gerou ${geracao_mensal_kwh} kWh (alvo ${Math.round(gerAlvo)}, faixa ${Math.round(gerMin)}–${Math.round(gerMax)})`
+        );
+      }
+
+      const economia =
+        consumoRef && consumoRef > 0
+          ? Math.round(Math.min(geracao_mensal_kwh, consumoRef) * tarifa * 100) / 100
+          : Math.round(geracao_mensal_kwh * tarifa * 100) / 100;
+
+      const passoKit: PassoAuditoria = {
+        etapa: 'Kit montado (recalculado no card)',
+        formula: 'kWp = qtd×Wp/1000 · geração = kWp×HSP×dias×PR[×bonus micro]',
+        valores: {
+          sku_modulo: a.sku_modulo,
+          sku_inversor: a.sku_inversor,
+          qtd_modulos: qtdMod,
+          qtd_inversores: qtdInv,
+          kWp: potencia_kwp,
+          geracao: geracao_mensal_kwh,
+          faixa_alvo_kwh: gerAlvo,
+          faixa_alvo_kwp: modoKwp ? alvoKwpMeta : null,
+          faixa_min: modoKwp ? kwpMin : gerMin,
+          faixa_max: modoKwp ? kwpMax : gerMax,
+          fora_faixa,
+          modo_margem: modoKwp ? 'kwp' : 'kwh',
+          bonus_micro: isMicro,
+          origem: a.origem || 'auto',
+          cd_id: a.cd_id ?? cdId,
+          cd_nome: a.cd_nome || null,
+          recalculado: true,
+        },
+        resultado: fora_faixa
+          ? modoKwp
+            ? `${potencia_kwp.toFixed(2)} kWp FORA ${kwpMin.toFixed(2)}–${kwpMax.toFixed(2)} · PIX ${comercial.ppix}`
+            : `${geracao_mensal_kwh} kWh FORA ${Math.round(gerMin)}–${Math.round(gerMax)} · PIX ${comercial.ppix}`
+          : `${potencia_kwp.toFixed(2)} kWp · ${geracao_mensal_kwh} kWh/mês · PIX ${comercial.ppix}`,
+      };
 
       const patched: Alt = {
         ...a,
         titulo,
         tipo,
+        cd_id: cardCd,
         sku_modulo: a.sku_modulo,
         sku_inversor: a.sku_inversor,
         nome_modulo: mod?.nome || a.nome_modulo,
@@ -651,7 +962,14 @@ export default function AdminV3PropostaAuto() {
         comercial,
         orcamento_itens: calc.itens,
         breakdown: calc.breakdown,
-        avisos: calc.avisos,
+        avisos: avisosKit,
+        fora_faixa,
+        desvio_faixa_pct,
+        faixa_alvo_kwh: Math.round(gerAlvo),
+        auditoria: {
+          passos: [passoKit],
+          economia_mensal_estimada: economia,
+        },
         precos: {
           ...a.precos,
           custo: calc.custo_total,
@@ -661,6 +979,7 @@ export default function AdminV3PropostaAuto() {
       };
 
       setAlts((prev) => prev.map((x, i) => (i === idx ? patched : x)));
+      setAberto((prev) => ({ ...prev, [idx]: true }));
       setGeradorPayload((prev) => {
         if (!prev) return prev;
         const orcs = [...((prev.orcamentos as Record<string, unknown>[]) || [])];
@@ -775,7 +1094,7 @@ export default function AdminV3PropostaAuto() {
               onClick={abrirGerador}
               className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 text-sm font-medium"
             >
-              Abrir na Proposta manual
+              Próxima Fase da Análise
             </button>
             {busy && (
               <span className="text-xs text-gray-500">Processando…</span>
@@ -915,20 +1234,39 @@ export default function AdminV3PropostaAuto() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mb-6 admin-surface p-4">
-            <label className="text-sm">
-              <span className="text-xs text-gray-500">CD</span>
-              <select
-                value={cdId}
-                onChange={(e) => setCdId(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
-              >
-                {CDS.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="text-sm md:col-span-1">
+              <span className="text-xs text-gray-500">CD / fornecedor (marque um ou mais)</span>
+              <div className="mt-2 flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 max-h-40 overflow-y-auto">
+                {cds.map((c) => {
+                  const label =
+                    c.slug_portal === 'fortlev' || /fortlev/i.test(c.nome)
+                      ? 'Fortlev'
+                      : `SOOLLAR · ${c.nome}`;
+                  const checked = cdIds.includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setCdIds((prev) => {
+                            if (prev.includes(c.id)) {
+                              const next = prev.filter((id) => id !== c.id);
+                              return next.length ? next : prev;
+                            }
+                            return [...prev, c.id];
+                          });
+                        }}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-[11px] text-gray-500">
+                Gera até 6 cards diversificados · catálogo 3a: CD {cdId}
+              </p>
+            </div>
             <label className="text-sm">
               <span className="text-xs text-gray-500">Modo</span>
               <select
@@ -1035,6 +1373,52 @@ export default function AdminV3PropostaAuto() {
                 </label>
               </>
             )}
+            <label className="text-sm md:col-span-2">
+              <span className="text-xs text-gray-500">
+                {modo === 'potencia_kwp' ? 'Margem ± kWp (%)' : 'Margem ± alvo (%)'}
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={50}
+                step={1}
+                value={varianciaAlvoPct}
+                onChange={(e) => setVarianciaAlvoPct(Number(e.target.value))}
+                onBlur={async () => {
+                  const v = Math.min(50, Math.max(0, Number(varianciaAlvoPct) || 20));
+                  setVarianciaAlvoPct(v);
+                  try {
+                    await fetch('/api/v3/proposta-auto', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ varianciaAlvoPct: v }),
+                    });
+                    const cfgRes = await fetch('/api/admin/config');
+                    if (cfgRes.ok) {
+                      const cfg = await cfgRes.json();
+                      await fetch('/api/admin/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...cfg, varianciaAlvoPct: v }),
+                      });
+                    }
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="mt-1 w-full rounded-lg bg-white border border-indigo-300 px-3 py-2"
+                title={
+                  modo === 'potencia_kwp'
+                    ? 'Margem em torno do kWp pedido (ex.: 6,8 ±5% → kits 10×680W, 11×600W…). Também em /admin/configuracoes.'
+                    : 'Margem em torno do alvo (kWh) para encaixar as propostas. Também em /admin/configuracoes.'
+                }
+              />
+              <span className="text-[10px] text-gray-500 mt-0.5 block">
+                {modo === 'potencia_kwp'
+                  ? `±${varianciaAlvoPct}% do kWp · salva ao sair do campo`
+                  : `±${varianciaAlvoPct}% · salva ao sair do campo`}
+              </span>
+            </label>
           </div>
 
           {msg && <p className="mb-4 text-sm text-amber-800">{msg}</p>}
@@ -1052,10 +1436,38 @@ export default function AdminV3PropostaAuto() {
               {meta && (
                 <p className="text-sm text-gray-700 mb-3">
                   Alvo mid: <strong>{meta.alvoKwp} kWp</strong> · geração ~<strong>{meta.alvoGeracao} kWh/mês</strong>
-                  {meta.alvoGeracaoMin != null && meta.alvoGeracaoMax != null ? (
+                  {meta.modo === 'potencia_kwp' ? (
+                    meta.alvoKwpMin != null && meta.alvoKwpMax != null ? (
+                      <>
+                        {' '}
+                        · faixa kWp <strong>{meta.alvoKwpMin}–{meta.alvoKwpMax}</strong>
+                      </>
+                    ) : null
+                  ) : meta.alvoGeracaoMin != null && meta.alvoGeracaoMax != null ? (
                     <>
                       {' '}
                       · faixa <strong>{meta.alvoGeracaoMin}–{meta.alvoGeracaoMax} kWh</strong>
+                    </>
+                  ) : null}
+                  {varianciaAlvoPct != null ? (
+                    <>
+                      {' '}
+                      · margem <strong>±{varianciaAlvoPct}%</strong>
+                      {meta.modo === 'potencia_kwp' &&
+                      meta.alvoKwpMin != null &&
+                      meta.alvoKwpMax != null ? (
+                        <>
+                          {' '}
+                          (trabalho ~{meta.alvoKwpMin}–{meta.alvoKwpMax} kWp)
+                        </>
+                      ) : meta.alvoGeracaoMin != null && meta.alvoGeracaoMax != null ? (
+                        <>
+                          {' '}
+                          (trabalho ~
+                          {Math.round(meta.alvoGeracaoMin * (1 - varianciaAlvoPct / 100))}–
+                          {Math.round(meta.alvoGeracaoMax * (1 + varianciaAlvoPct / 100))} kWh)
+                        </>
+                      ) : null}
                     </>
                   ) : null}
                   {meta.consumoRef != null ? (
@@ -1088,7 +1500,17 @@ export default function AdminV3PropostaAuto() {
 
           <div className="space-y-5">
             {alts.map((a, idx) => {
-              const open = aberto[idx] !== false;
+              const open = aberto[idx] === true;
+              const cardCd = a.cd_id || cdId;
+              const modsCard = catalogoHelpers.modsDoCd(cardCd);
+              const invsCard = catalogoHelpers.invsDoCd(cardCd);
+              const invsPrincipaisCard = catalogoHelpers.invsPrincipaisDoCd(cardCd);
+              const invsHibridosCard = catalogoHelpers.invsHibridosDoCd(cardCd);
+              const cdLabel =
+                a.fornecedor ||
+                a.cd_nome ||
+                cds.find((c) => c.id === cardCd)?.nome ||
+                `CD ${cardCd}`;
               return (
                 <article
                   key={idx}
@@ -1097,6 +1519,7 @@ export default function AdminV3PropostaAuto() {
                   <button
                     type="button"
                     onClick={() => toggle(idx)}
+                    aria-expanded={open}
                     className="w-full text-left px-5 py-4 flex flex-wrap items-start justify-between gap-3 hover:bg-gray-50"
                   >
                     <div>
@@ -1104,14 +1527,51 @@ export default function AdminV3PropostaAuto() {
                         <span className="text-xs uppercase tracking-wide text-gray-500">
                           Alt {idx + 1} · {a.tipo}
                         </span>
+                        {(a.fornecedor || a.cd_nome) && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800">
+                            {a.fornecedor || a.cd_nome}
+                          </span>
+                        )}
                         {a.origem === 'manual_3a' && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
                             por kits
                           </span>
                         )}
-                        {a.faixa_alvo_kwh != null && (
+                        {meta?.modo === 'potencia_kwp' && meta.alvoKwp != null ? (
+                          <span className="text-[10px] text-gray-500">
+                            alvo {meta.alvoKwp} kWp
+                            {meta.alvoKwpMin != null && meta.alvoKwpMax != null
+                              ? ` (± ${meta.alvoKwpMin}–${meta.alvoKwpMax})`
+                              : ''}
+                          </span>
+                        ) : a.faixa_alvo_kwh != null ? (
                           <span className="text-[10px] text-gray-500">alvo ~{a.faixa_alvo_kwh} kWh</span>
-                        )}
+                        ) : null}
+                        {a.fora_faixa ? (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-800"
+                            title={
+                              meta?.modo === 'potencia_kwp'
+                                ? 'kWp fora da faixa ± margem do alvo'
+                                : 'Geração fora da faixa da auditoria indigo'
+                            }
+                          >
+                            fora da faixa
+                            {a.desvio_faixa_pct != null
+                              ? ` ${a.desvio_faixa_pct > 0 ? '+' : ''}${a.desvio_faixa_pct}%`
+                              : ''}
+                          </span>
+                        ) : meta?.modo === 'potencia_kwp' &&
+                          meta.alvoKwpMin != null &&
+                          meta.alvoKwpMax != null ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                            na faixa {meta.alvoKwpMin}–{meta.alvoKwpMax} kWp
+                          </span>
+                        ) : meta?.alvoGeracaoMin != null && meta?.alvoGeracaoMax != null ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                            na faixa {meta.alvoGeracaoMin}–{meta.alvoGeracaoMax}
+                          </span>
+                        ) : null}
                         {a.orcamento_base_id && (
                           <span className="text-xs text-blue-600">#{a.orcamento_base_id}</span>
                         )}
@@ -1349,6 +1809,7 @@ export default function AdminV3PropostaAuto() {
                           </div>
                           <p className="text-[11px] text-gray-500 mb-2">
                             Altere módulo/inversor ou quantidades abaixo e clique em Recalcular kit neste card.
+                            Catálogo apenas <strong>{cdLabel}</strong> (CD {cardCd}) — aquisição casada.
                           </p>
                           <div className="overflow-x-auto rounded-lg border border-gray-200">
                             <table className="w-full text-xs text-left">
@@ -1399,12 +1860,12 @@ export default function AdminV3PropostaAuto() {
                                             }
                                             className="w-full min-h-[2.25rem] rounded border border-sky-300 bg-white px-2 py-2 text-xs leading-snug"
                                           >
-                                            {!modsCatalogo.some((m) => m.sku_interno === a.sku_modulo) && (
+                                            {!modsCard.some((m) => m.sku_interno === a.sku_modulo) && (
                                               <option value={a.sku_modulo}>
                                                 {a.nome_modulo || a.sku_modulo}
                                               </option>
                                             )}
-                                            {modsCatalogo.map((m) => (
+                                            {modsCard.map((m) => (
                                               <option key={m.sku_interno} value={m.sku_interno}>
                                                 {m.nome}
                                                 {m.potencia_w ? ` · ${m.potencia_w}W` : ''}
@@ -1421,21 +1882,21 @@ export default function AdminV3PropostaAuto() {
                                             }
                                             className="w-full min-h-[2.25rem] rounded border border-sky-300 bg-white px-2 py-2 text-xs leading-snug"
                                           >
-                                            {!invsCatalogo.some((m) => m.sku_interno === a.sku_inversor) && (
+                                            {!invsCard.some((m) => m.sku_interno === a.sku_inversor) && (
                                               <option value={a.sku_inversor}>
                                                 {a.nome_inversor || a.sku_inversor}
                                               </option>
                                             )}
-                                            {invsPrincipais.map((m) => (
+                                            {invsPrincipaisCard.map((m) => (
                                               <option key={m.sku_interno} value={m.sku_interno}>
                                                 {m.categoria === 'microinversor' ? 'Micro · ' : ''}
                                                 {m.nome}
                                                 {m.potencia_kw != null ? ` · ${m.potencia_kw} kW` : ''}
                                               </option>
                                             ))}
-                                            {invsHibridos.length > 0 && (
+                                            {invsHibridosCard.length > 0 && (
                                               <optgroup label="Híbridos">
-                                                {invsHibridos.map((m) => (
+                                                {invsHibridosCard.map((m) => (
                                                   <option key={m.sku_interno} value={m.sku_interno}>
                                                     {m.nome}
                                                     {m.potencia_kw != null ? ` · ${m.potencia_kw} kW` : ''}

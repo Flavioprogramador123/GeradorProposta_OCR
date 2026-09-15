@@ -15,19 +15,19 @@ export type EquipRow = {
 /** Ordem de preferência: default comercial = fibro inox madeira + perfil fibro */
 export const SKU_CANONICO_CANDIDATOS: Record<string, string[]> = {
   'KIT-ESTRUTURA-4MOD': [
+    'EST-AUTO-391003', // fibro + parafuso inox madeira · 4 mód (default preço / Fortlev BOM)
     'KIT-ESTRUTURA-4MOD',
-    'EST-AUTO-391003', // fibro + parafuso inox madeira · 4 mód (default preço)
     'EST-AUTO-391004', // fibro inox metal
     'EST-AUTO-361048',
     'EST-AUTO-391005', // metal mini-trilho (alternativa)
     'EST-AUTO-474800', // fibro galvanizado madeira
   ],
   // Default preço: perfil fibro/cerâmica (composição); qtd final no fechamento
-  'TRILHO-236': ['TRILHO-236', 'EST-AUTO-52835', 'EST-AUTO-525714'],
-  'TRILHO-250': ['TRILHO-250', 'EST-AUTO-52835', 'EST-AUTO-525714'],
-  'CABO-4MM-25-V': ['CABO-4MM-25-V', 'CAB-AUTO-97082'],
-  'CABO-4MM-25-P': ['CABO-4MM-25-P', 'CAB-AUTO-97081'],
-  'MC4-PAR': ['MC4-PAR', 'MC4-AUTO-440111'],
+  'TRILHO-236': ['TRILHO-236', 'EST-AUTO-52835', 'EST-AUTO-525714', 'EST-AUTO-IEF00229', 'EST-AUTO-IEF00207'],
+  'TRILHO-250': ['TRILHO-250', 'EST-AUTO-52835', 'EST-AUTO-525714', 'EST-AUTO-IEF00207', 'EST-AUTO-IEF00208'],
+  'CABO-4MM-25-V': ['CABO-4MM-25-V', 'CAB-AUTO-97082', 'CAB-AUTO-ICA00009'],
+  'CABO-4MM-25-P': ['CABO-4MM-25-P', 'CAB-AUTO-97081', 'CAB-AUTO-ICA00008'],
+  'MC4-PAR': ['MC4-PAR', 'MC4-AUTO-440111', 'MC4-AUTO-ICO00001'],
 };
 
 const SKU_CANONICO_PADRAO: Record<
@@ -42,11 +42,19 @@ const SKU_CANONICO_PADRAO: Record<
   },
   'TRILHO-236': {
     categoria: 'estrutura',
-    like: ['%PERFIL%FIBRO%', '%2,40MT%FIBRO%', '%2.40MT%FIBRO%', '%2,36%', '%2.36%'],
+    like: [
+      '%PERFIL%FIBRO%',
+      '%PERFIL%CER%',
+      '%2400%MM%',
+      '%2,40MT%FIBRO%',
+      '%2.40MT%FIBRO%',
+      '%2,36%',
+      '%2.36%',
+    ],
   },
   'TRILHO-250': {
     categoria: 'estrutura',
-    like: ['%PERFIL%FIBRO%', '%2,40MT%FIBRO%', '%2.70%', '%2,50%', '%2.50%'],
+    like: ['%PERFIL%FIBRO%', '%PERFIL%CER%', '%2400%MM%', '%2,40MT%FIBRO%', '%2.70%', '%2,50%', '%2.50%'],
   },
   'CABO-4MM-25-V': {
     categoria: 'cabo',
@@ -135,14 +143,26 @@ export function resolveEquipPorSkuCanonico(sku: string): EquipRow | undefined {
   const key = (sku || '').trim();
   if (!key) return undefined;
 
+  const candidates = SKU_CANONICO_CANDIDATOS[key];
+  // Canônicos: preferir candidato físico (ex. EST-AUTO-391003) antes do placeholder KIT-*
+  if (candidates?.length) {
+    for (const c of candidates) {
+      const row = pickBySku(c, true);
+      if (row) return row;
+    }
+    const viaAlias = pickByAlias(key);
+    if (viaAlias) return viaAlias;
+    const viaPattern = pickByPattern(key);
+    if (viaPattern) return viaPattern;
+    for (const c of candidates) {
+      const row = pickBySku(c, false);
+      if (row) return row;
+    }
+    return undefined;
+  }
+
   const direct = pickBySku(key, true);
   if (direct) return direct;
-
-  const candidates = SKU_CANONICO_CANDIDATOS[key] || [key];
-  for (const c of candidates) {
-    const row = pickBySku(c, true);
-    if (row) return row;
-  }
 
   const viaAlias = pickByAlias(key);
   if (viaAlias) return viaAlias;
@@ -150,12 +170,49 @@ export function resolveEquipPorSkuCanonico(sku: string): EquipRow | undefined {
   const viaPattern = pickByPattern(key);
   if (viaPattern) return viaPattern;
 
+  return pickBySku(key, false);
+}
+
+/**
+ * Como resolveEquipPorSkuCanonico, mas prefere candidato com preço válido no CD.
+ * Útil para Fortlev vs SOOLLAR no mesmo seletor.
+ */
+export function resolveEquipPorSkuCanonicoNoCd(
+  sku: string,
+  cdId: number
+): EquipRow | undefined {
+  const key = (sku || '').trim();
+  if (!key) return undefined;
+  const db = getV3Db();
+  const candidates = SKU_CANONICO_CANDIDATOS[key] || [key];
+
+  const temPrecoNoCd = (equipamentoId: number): boolean => {
+    const ok = db
+      .prepare(
+        `SELECT 1 AS x FROM precos_cd
+         WHERE equipamento_id = ? AND cd_id = ?
+           AND valido_estoque = 1 AND preco_custo IS NOT NULL AND preco_custo > 0`
+      )
+      .get(equipamentoId, cdId) as { x: number } | undefined;
+    return Boolean(ok);
+  };
+
+  // 1) candidatos ativos com preço no CD
+  for (const c of candidates) {
+    const row = pickBySku(c, true);
+    if (row && temPrecoNoCd(row.id)) return row;
+  }
+  // 2) candidatos inativos com preço no CD (ex.: Fortlev PERFIL recém-capturado)
   for (const c of candidates) {
     const row = pickBySku(c, false);
-    if (row) return row;
+    if (!row || temPrecoNoCd(row.id) === false) continue;
+    db.prepare(
+      `UPDATE equipamentos SET ativo = 1, updated_at = datetime('now') WHERE id = ? AND ativo != 1`
+    ).run(row.id);
+    return { ...row };
   }
 
-  return undefined;
+  return resolveEquipPorSkuCanonico(key);
 }
 
 /**
@@ -171,15 +228,26 @@ export function ensureSkuCanonicoLinks(): { linked: string[]; activated: string[
     'INSERT OR IGNORE INTO equipamento_aliases (equipamento_id, texto_match) VALUES (?, ?)'
   );
 
-  // Ativa defaults comerciais (fibro inox madeira + perfis) antes do vínculo
-  const ativarDefault = ['EST-AUTO-391003', 'EST-AUTO-52835', 'EST-AUTO-525714'];
+  // Ativa defaults comerciais (fibro inox madeira + perfis SOOLLAR/Fortlev) antes do vínculo
+  const ativarDefault = [
+    'EST-AUTO-391003',
+    'EST-AUTO-52835',
+    'EST-AUTO-525714',
+    'EST-AUTO-IEF00229', // Fortlev PERFIL CER/FIBRO 2400 = trilho/perfil
+    'EST-AUTO-IEF00207',
+  ];
   for (const sku of ativarDefault) {
     const row = pickBySku(sku, false);
     if (!row) continue;
     const st = db.prepare('SELECT ativo FROM equipamentos WHERE id = ?').get(row.id) as {
       ativo: number;
     };
-    const prioridade = sku === 'EST-AUTO-391003' || sku === 'EST-AUTO-52835' ? 35 : null;
+    const prioridade =
+      sku === 'EST-AUTO-391003' ||
+      sku === 'EST-AUTO-52835' ||
+      sku === 'EST-AUTO-IEF00229'
+        ? 35
+        : null;
     if (st.ativo !== 1) {
       if (prioridade != null) {
         db.prepare(

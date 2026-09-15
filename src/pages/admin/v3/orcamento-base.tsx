@@ -64,11 +64,11 @@ export interface CardKitIncluido {
   calc?: Calc;
 }
 
-const CDS = [
-  { id: 1, nome: 'Aeroporto' },
-  { id: 2, nome: 'Matriz' },
-  { id: 3, nome: 'Feira de Santana' },
-];
+interface CdOption {
+  id: number;
+  nome: string;
+  slug_portal?: string;
+}
 
 const STORAGE_KEY = 'v3-kits-incluidos';
 /** Limite comercial: módulos por microinversor (config placasPorMicro). */
@@ -113,6 +113,11 @@ function recalcCalcLocal(itens: CalcItem[]): Calc {
 
 export default function AdminV3OrcamentoBase() {
   const router = useRouter();
+  const [cds, setCds] = useState<CdOption[]>([
+    { id: 1, nome: 'Aeroporto' },
+    { id: 2, nome: 'Matriz' },
+    { id: 3, nome: 'Feira de Santana' },
+  ]);
   const [cdId, setCdId] = useState(3);
   const [catalogo, setCatalogo] = useState<CatalogItem[]>([]);
   const [titulo, setTitulo] = useState('Cliente Premium');
@@ -133,6 +138,31 @@ export default function AdminV3OrcamentoBase() {
   const [busy, setBusy] = useState(false);
   /** Slug da proposta já publicada (Editar → Voltar kits) — reabre gerador sem mudar o link */
   const [slugProposta, setSlugProposta] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/v3/equipamentos');
+        const data = await res.json();
+        const list = (data.cds || []) as CdOption[];
+        if (!cancelled && list.length) {
+          setCds(
+            list.map((c) => ({
+              id: Number(c.id),
+              nome: c.nome,
+              slug_portal: (c as { slug_portal?: string }).slug_portal,
+            }))
+          );
+        }
+      } catch {
+        /* fallback */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -345,7 +375,7 @@ export default function AdminV3OrcamentoBase() {
     if (card.calc) {
       setCalc({
         ...card.calc,
-        cd_nome: card.calc.cd_nome || CDS.find((c) => c.id === card.cdId)?.nome || '',
+        cd_nome: card.calc.cd_nome || cds.find((c) => c.id === card.cdId)?.nome || '',
       });
     } else {
       setCalc(null);
@@ -812,15 +842,17 @@ export default function AdminV3OrcamentoBase() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-6 admin-surface p-4">
             <label className="text-sm">
-              <span className="text-gray-500 text-xs">CD</span>
+              <span className="text-gray-500 text-xs">CD / fornecedor</span>
               <select
                 value={cdId}
                 onChange={(e) => setCdId(Number(e.target.value))}
                 className="mt-1 w-full rounded-lg bg-white border border-gray-300 px-3 py-2"
               >
-                {CDS.map((c) => (
+                {cds.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.nome}
+                    {c.slug_portal === 'fortlev' || /fortlev/i.test(c.nome)
+                      ? `Fortlev (fornecedor)`
+                      : `SOOLLAR · ${c.nome}`}
                   </option>
                 ))}
               </select>

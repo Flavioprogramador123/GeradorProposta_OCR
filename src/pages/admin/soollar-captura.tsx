@@ -299,6 +299,7 @@ SOOLLAR_CD=Aeroporto`}</pre>
               disabled={running}
               onClick={() => runAction('probe')}
               className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 text-sm font-medium"
+              title="No PC: testa login. Na Vercel: enfileira scrape 3 CDs + publish no worker local."
             >
               1) Probe login
             </button>

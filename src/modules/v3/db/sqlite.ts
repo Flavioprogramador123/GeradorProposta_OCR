@@ -136,11 +136,13 @@ export async function ensureV3CatalogHydrated(opts?: { force?: boolean }): Promi
 export function getV3Db(): Database {
   if (cached) {
     cached.exec(V3_SCHEMA_SQL);
+    ensureFortlevCdRow(cached);
     return cached;
   }
 
   const db = openDbFresh();
   seedCdsIfEmpty(db);
+  ensureFortlevCdRow(db);
   seedRegrasIfEmpty(db);
   cached = db;
   return db;
@@ -187,11 +189,27 @@ function seedCdsIfEmpty(db: Database) {
     { id: 1, codigo: 1, nome: 'Aeroporto', slug_portal: 'cdaeroportogo' },
     { id: 2, codigo: 2, nome: 'Matriz', slug_portal: 'cdgoiania' },
     { id: 3, codigo: 3, nome: 'Feira de Santana', slug_portal: 'cdfeiradesantanaba' },
+    { id: 4, codigo: 4, nome: 'Fortlev', slug_portal: 'fortlev' },
   ];
   const tx = db.transaction(() => {
     for (const c of cds) insert.run(c);
   });
   tx();
+}
+
+/** CD Fortlev como 4º “CD” (mesmo seletor da SOOLLAR). Idempotente. */
+function ensureFortlevCdRow(db: Database) {
+  const existing = db
+    .prepare(
+      `SELECT id FROM cds WHERE lower(slug_portal) = 'fortlev' OR lower(nome) = 'fortlev' LIMIT 1`
+    )
+    .get() as { id: number } | undefined;
+  if (existing) return;
+  const maxRow = db.prepare('SELECT COALESCE(MAX(id), 0) AS m FROM cds').get() as { m: number };
+  const id = Math.max(4, maxRow.m + 1);
+  db.prepare(
+    `INSERT INTO cds (id, codigo, nome, slug_portal, ativo) VALUES (?, ?, 'Fortlev', 'fortlev', 1)`
+  ).run(id, id);
 }
 
 function seedRegrasIfEmpty(db: Database) {

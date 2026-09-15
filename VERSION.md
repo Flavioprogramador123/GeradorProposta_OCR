@@ -1,12 +1,23 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.20** (10/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.21** (15/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.20** - 10/09/2026 ✅ **ATUAL**
+### **v2.4.21** - 15/09/2026 ✅ **ATUAL**
+**📡 Vercel aciona scraping no PC (F:/Postgres) + publish:**
+- ✅ Botões **Probe (sky)** e **Scraping live (teal)** na Vercel enfileiram job remoto
+- ✅ Fila Supabase (`pieng_captura_jobs` ou fallback `configuracoes.v3_captura_job`)
+- ✅ Worker local roda `v3:captura:force` (3 CDs) e publica no Supabase
+- ✅ `captura-dispatch` :3099 ativo no CCA_TECNICA
+
+**📦:** `capturaJobsQueue.ts`, `/api/v3/jobs/captura`, `sql/8_pieng_captura_jobs.sql`, `v3-jobs-worker.ts`
+
+---
+
+### **v2.4.20** - 10/09/2026
 **📡 Disparo remoto captura (Tailscale → Postgres → PC → Supabase):**
 - ✅ Fila `pieng_jobs` + worker `v3:jobs:*`
 - ✅ App `captura-dispatch` (:3099) no PC do Postgres

@@ -1,22 +1,29 @@
-# PIENG Jobs — disparo local via Postgres (Tailscale)
+# PIENG Jobs — disparo local via Postgres (Tailscale) + Vercel via Supabase
 
-Atualizado: **2026-09-10**
+Atualizado: **2026-09-15**
 
 ## Ideia
 
-- **Postgres Tailscale** (`pieng_saas.pieng_jobs`) = fila de **comando**
-- **PC** = executa o que já existe (`npm run v3:captura:force`)
-- **Supabase** = recebe o **resultado** (publish do catálogo após scrape)
-
-Vercel/Netlify **não** entram no disparo.
+- **Vercel** (botões Scraping live / Probe) → INSERT em `pieng_captura_jobs` (Supabase)
+- **Postgres Tailscale em F:** (`pieng_saas.pieng_jobs`) = fila da UI `:3099`
+- **PC (CCA_TECNICA)** = worker Playwright (`npm run v3:captura:force`)
+- **Supabase** = recebe o **resultado** (publish do catálogo)
 
 ```text
-INSERT pending → worker claim → v3:captura:force → push Supabase → status done
+Vercel botão → pieng_captura_jobs (pending)
+         ↓
+Worker PC claim → v3:captura:force (3 CDs) → push catálogo → done
+
+UI Tailscale :3099 → pieng_jobs (Postgres F:) → mesmo worker
 ```
 
-## App UI (Tailscale)
+## 0) SQL obrigatório (Supabase)
 
-No PC do Postgres:
+No SQL Editor do projeto:
+
+`sql/8_pieng_captura_jobs.sql`
+
+## 1) App UI Tailscale (Postgres F:)
 
 ```powershell
 cd E:\Projetos\pieng_postgres\apps\captura-dispatch
@@ -24,94 +31,26 @@ npm install
 npm start
 ```
 
-No celular (mesma Tailscale): **http://100.104.172.12:3099**
+http://127.0.0.1:3099 · http://100.104.172.12:3099
 
-Botão **Disparar captura agora** → enfileira + dispara `v3:jobs:worker:once` → Supabase.
-
-Detalhes: `E:\Projetos\pieng_postgres\apps\captura-dispatch\README.md`
-
-## 1) Criar tabela (no cluster)
+## 2) Worker no logon (recomendado)
 
 ```powershell
-$env:PGPASSWORD = 'pieng_saas_dev_only'
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -h 100.104.172.12 -U pieng_saas -d pieng_saas `
-  -f "E:\Projetos\pieng_postgres\scripts\postgres\02_pieng_jobs.sql"
+powershell -ExecutionPolicy Bypass -File E:\Projetos\Prompt_ORC_pieng\scripts\v3-install-jobs-worker-task.ps1
 ```
 
-## 2) Teste sem Playwright (dry-run)
-
-Na pasta `Prompt_ORC_pieng`:
+## 3) Teste
 
 ```powershell
 cd E:\Projetos\Prompt_ORC_pieng
 npm run v3:jobs:test
 ```
 
-Enfileira + claim + `done` com mensagem `dry-run OK` (não abre Chromium).
+## 4) Disparo real
 
-## 3) Disparo real
+- **Vercel:** `/admin/v3/precos` → Scraping live (teal) ou `/admin/soollar-captura` → Probe (sky)
+- **Local / Tailscale:** botão Disparar em `:3099` ou `npm run v3:jobs:enqueue`
 
-```powershell
-npm run v3:jobs:enqueue
-npm run v3:jobs:worker:once
-# ou loop:
-npm run v3:jobs:worker
-```
+## DESFAZER
 
-O worker chama `npm run v3:captura:force` (já publica no Supabase se `publicarAposOk`).
-
-Enfileirar só pelo SQL:
-
-```powershell
-$env:PGPASSWORD = 'pieng_saas_dev_only'
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -h 100.104.172.12 -U pieng_saas -d pieng_saas `
-  -f "E:\Projetos\pieng_postgres\scripts\postgres\02_pieng_jobs_enqueue.sql"
-```
-
-## 4) Agenda 07:30 (já existente)
-
-Continua independente:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/v3-install-task-scheduler.ps1
-```
-
-O worker de jobs é **sob demanda** (fila); a agenda é o horário fixo.
-
-## Env opcional
-
-```text
-PIENG_JOBS_DATABASE_URL=postgresql://pieng_saas:...@100.104.172.12:5432/pieng_saas
-PIENG_JOBS_POLL_MS=15000
-```
-
-## DESFAZER (UNDO)
-
-### Remover tabela
-
-```powershell
-$env:PGPASSWORD = 'pieng_saas_dev_only'
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -h 100.104.172.12 -U pieng_saas -d pieng_saas `
-  -f "E:\Projetos\pieng_postgres\scripts\postgres\02_pieng_jobs_UNDO.sql"
-```
-
-### Reverter código Git
-
-```powershell
-# Prompt_ORC_pieng
-cd E:\Projetos\Prompt_ORC_pieng
-git log --oneline -5
-git revert <commit>   # ou reset se ainda não push
-
-# pieng_postgres
-cd E:\Projetos\pieng_postgres
-git log --oneline -5
-git revert <commit>
-```
-
-### Remover dependência `pg` (se reverter o package.json)
-
-```powershell
-cd E:\Projetos\Prompt_ORC_pieng
-npm uninstall pg @types/pg
-```
+Dropar `pieng_captura_jobs` no Supabase se necessário; tarefa `PIENG-V3-JobsWorker`; app `:3099`.

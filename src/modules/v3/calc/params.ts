@@ -12,6 +12,11 @@ export interface CalcParams {
   coberturaAlvoMin: number;
   coberturaAlvoMax: number;
   maxAlternativas: number;
+  /**
+   * Margem ±% em torno do alvo (auditoria indigo) para encaixar até N propostas.
+   * Ex.: 20 → aceita 80%–120% do alvo/faixa. Editável em /admin/configuracoes.
+   */
+  varianciaAlvoPct: number;
 }
 
 const DEFAULTS: CalcParams = {
@@ -25,8 +30,22 @@ const DEFAULTS: CalcParams = {
   placasPorMicro: 4,
   coberturaAlvoMin: 90,
   coberturaAlvoMax: 120,
-  maxAlternativas: 3,
+  maxAlternativas: 6,
+  varianciaAlvoPct: 20,
 };
+
+/** Clamp 0–50 (%). 0 = sem margem extra (faixa já expandida). */
+export function sanitizeVarianciaAlvoPct(raw: unknown, fallback = 20): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(50, Math.max(0, Math.round(n * 10) / 10));
+}
+
+/** Fatores lo/hi a partir da margem % (20 → 0.8 / 1.2). */
+export function fatoresVarianciaAlvo(pct: number): { baixo: number; alto: number } {
+  const v = sanitizeVarianciaAlvoPct(pct) / 100;
+  return { baixo: 1 - v, alto: 1 + v };
+}
 
 /**
  * Seed V3 (4a) — HSP/PR/tarifa aqui são fallback se admin não sobrescrever.
@@ -48,7 +67,9 @@ export function getCalcParams(): CalcParams {
     return { ...DEFAULTS };
   }
   try {
-    return { ...DEFAULTS, ...JSON.parse(row.valor_json) };
+    const parsed = { ...DEFAULTS, ...JSON.parse(row.valor_json) } as CalcParams;
+    parsed.varianciaAlvoPct = sanitizeVarianciaAlvoPct(parsed.varianciaAlvoPct, DEFAULTS.varianciaAlvoPct);
+    return parsed;
   } catch {
     return { ...DEFAULTS };
   }
@@ -56,7 +77,10 @@ export function getCalcParams(): CalcParams {
 
 export function setCalcParams(partial: Partial<CalcParams>): CalcParams {
   const current = getCalcParams();
-  const next = { ...current, ...partial };
+  const next: CalcParams = { ...current, ...partial };
+  if (partial.varianciaAlvoPct != null) {
+    next.varianciaAlvoPct = sanitizeVarianciaAlvoPct(partial.varianciaAlvoPct, current.varianciaAlvoPct);
+  }
   const db = getV3Db();
   db.prepare(
     `INSERT INTO kits_regras (chave, valor_json, descricao) VALUES (?, ?, ?)
