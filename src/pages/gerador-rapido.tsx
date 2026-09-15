@@ -28,8 +28,14 @@ import {
   rememberSlugForV3,
   returnToFromOrigem,
   sanitizeOrigemUi,
+  savePropostaAutoDraft,
+  loadPropostaAutoDraft,
   type OrigemUiV3,
 } from '@/lib/v3Navegacao';
+import {
+  altsFromPropostaSistemas,
+  kitsFromPropostaSistemas,
+} from '@/lib/v3RestoreFromProposta';
 
 interface Orcamento {
   nome: string;
@@ -493,6 +499,65 @@ export default function GeradorRapido() {
             ? ('proposta-auto' as const)
             : null;
         if (guess) aplicarVoltarV3(guess, returnToSalvo);
+      }
+
+      // Garante cards ao Voltar: se não há rascunho/kits na sessão, reconstrói da proposta
+      try {
+        const origemFinal =
+          (origemSalva && origemSalva !== 'manual' ? origemSalva : null) ||
+          (returnToSalvo?.includes('proposta-auto')
+            ? 'proposta-auto'
+            : returnToSalvo?.includes('orcamento-base')
+              ? 'orcamento-base'
+              : null);
+        if (origemFinal === 'proposta-auto' && Array.isArray(propostaData.sistemas)) {
+          const draft = loadPropostaAutoDraft();
+          const draftSlug =
+            draft && typeof draft.slugProposta === 'string' ? draft.slugProposta : '';
+          const draftAlts = Array.isArray(draft?.alts) ? draft!.alts : [];
+          const sameSlug = !draftSlug || draftSlug === slugProposta;
+          if (!sameSlug || draftAlts.length === 0) {
+            const alts = altsFromPropostaSistemas(propostaData.sistemas);
+            if (alts.length) {
+              savePropostaAutoDraft({
+                slugProposta,
+                alts,
+                cliente: propostaData.cliente?.nome || config.nomeCliente,
+                cidade: propostaData.cliente?.cidade || config.cidadeCliente,
+                consumoMensal:
+                  propostaData.cliente?.consumoMensal ||
+                  propostaData.config?.consumoMensal ||
+                  config.consumoMensal,
+                hsp: propostaData.config?.hsp || config.hsp,
+                tarifa: propostaData.config?.tarifa || config.tarifa,
+                pdespesaFixo: propostaData.config?.pdespesaFixo || config.pdespesaFixo,
+                pdespesaVariavel:
+                  propostaData.config?.pdespesaVariavel || config.pdespesaVariavel,
+              });
+              console.log('📌 Rascunho auto reconstruído da proposta:', alts.length, 'cards');
+            }
+          }
+        }
+        if (origemFinal === 'orcamento-base' && Array.isArray(propostaData.sistemas)) {
+          const key = 'v3-kits-incluidos';
+          let hasCards = false;
+          try {
+            const raw = localStorage.getItem(key);
+            const parsed = raw ? JSON.parse(raw) : null;
+            hasCards = Array.isArray(parsed) && parsed.length > 0;
+          } catch {
+            hasCards = false;
+          }
+          if (!hasCards) {
+            const kits = kitsFromPropostaSistemas(propostaData.sistemas);
+            if (kits.length) {
+              localStorage.setItem(key, JSON.stringify(kits));
+              console.log('📌 Kits reconstruídos da proposta:', kits.length, 'cards');
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ Falha ao preparar cards para Voltar:', e);
       }
       
       setLoading(false);

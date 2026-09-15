@@ -289,7 +289,10 @@ export default function AdminV3OrcamentoBase() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as CardKitIncluido[];
-        if (Array.isArray(parsed)) setCards(parsed);
+        if (Array.isArray(parsed) && parsed.length) {
+          setCards(parsed);
+          return;
+        }
       }
     } catch {
       /* ignore */
@@ -307,6 +310,41 @@ export default function AdminV3OrcamentoBase() {
       return resolved;
     });
   };
+
+  /** Se não há cards na sessão, reconstrói a grade a partir da proposta (Editar → Voltar). */
+  useEffect(() => {
+    if (!router.isReady) return;
+    const slug =
+      (typeof router.query.slug === 'string' && router.query.slug.trim()) ||
+      peekSlugForV3() ||
+      '';
+    if (!slug) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed) && parsed.length) return;
+
+        const res = await fetch(`/api/propostas/${encodeURIComponent(slug)}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const { kitsFromPropostaSistemas } = await import('@/lib/v3RestoreFromProposta');
+        const kits = kitsFromPropostaSistemas(data?.sistemas || [], cdId);
+        if (!kits.length || cancelled) return;
+        persistCards(kits as CardKitIncluido[]);
+        setMsg(`Cards restaurados da proposta · ${kits.length} kit(s)`);
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só no slug; persistCards é estável o suficiente
+  }, [router.isReady, router.query.slug, cdId]);
 
   const money = (n: number | null | undefined) => (n == null ? '—' : formatBRL(n));
 

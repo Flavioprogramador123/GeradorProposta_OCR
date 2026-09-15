@@ -354,70 +354,143 @@ export default function AdminV3PropostaAuto() {
   useEffect(() => {
     if (!sharedReady || !router.isReady) return;
     if (draftRestoredRef.current) return;
-    const draft = loadPropostaAutoDraft();
-    if (!draft) return;
 
     const slugNow =
       (typeof router.query.slug === 'string' && router.query.slug.trim()) ||
       peekSlugForV3() ||
       '';
-    const draftSlug = typeof draft.slugProposta === 'string' ? draft.slugProposta : '';
-    // Se há slug na URL e o draft é de outra proposta, não misturar
-    if (slugNow && draftSlug && slugNow !== draftSlug) return;
 
-    draftRestoredRef.current = true;
+    const applyDraft = (draft: Record<string, unknown>, fromLabel: string) => {
+      draftRestoredRef.current = true;
+      const draftSlug = typeof draft.slugProposta === 'string' ? draft.slugProposta : '';
+      if (typeof draft.modo === 'string') setModo(draft.modo as typeof modo);
+      if (typeof draft.valor === 'number') setValor(draft.valor);
+      if (typeof draft.valorMin === 'number') setValorMin(draft.valorMin);
+      if (typeof draft.valorMax === 'number') setValorMax(draft.valorMax);
+      if (typeof draft.usarFaixa === 'boolean') setUsarFaixa(draft.usarFaixa);
+      if (typeof draft.varianciaAlvoPct === 'number') setVarianciaAlvoPct(draft.varianciaAlvoPct);
+      if (typeof draft.cliente === 'string' && draft.cliente) setCliente(draft.cliente);
+      if (typeof draft.cidade === 'string' && draft.cidade) setCidade(draft.cidade);
+      if (typeof draft.consumoMensal === 'number') setConsumoMensal(draft.consumoMensal);
+      if (typeof draft.tipoImovel === 'string') setTipoImovel(draft.tipoImovel);
+      if (typeof draft.hsp === 'number') setHsp(draft.hsp);
+      if (typeof draft.tarifa === 'number') setTarifa(draft.tarifa);
+      if (typeof draft.pdespesaFixo === 'number') setPdespesaFixo(draft.pdespesaFixo);
+      if (typeof draft.pdespesaVariavel === 'number') setPdespesaVariavel(draft.pdespesaVariavel);
+      if (typeof draft.fretePadrao === 'number') setFretePadrao(draft.fretePadrao);
+      if (typeof draft.cdId === 'number') setCdId(draft.cdId);
+      if (Array.isArray(draft.cdIds)) {
+        const ids = draft.cdIds.map(Number).filter((n) => Number.isFinite(n) && n > 0);
+        if (ids.length) setCdIds(ids);
+      }
+      if (typeof draft.incluirMicro === 'boolean') setIncluirMicro(draft.incluirMicro);
+      if (typeof draft.incluirString === 'boolean') setIncluirString(draft.incluirString);
+      if (typeof draft.rede220380 === 'boolean') setRede220380(draft.rede220380);
+      if (draftSlug) {
+        setSlugProposta(draftSlug);
+        rememberSlugForV3(draftSlug);
+      } else if (slugNow) {
+        setSlugProposta(slugNow);
+        rememberSlugForV3(slugNow);
+      }
+      if (Array.isArray(draft.alts) && draft.alts.length) {
+        setAlts(draft.alts as Alt[]);
+        setAberto({});
+      }
+      if (draft.meta && typeof draft.meta === 'object') {
+        setMeta(draft.meta as typeof meta);
+      }
+      if (draft.geradorPayload && typeof draft.geradorPayload === 'object') {
+        setGeradorPayload(draft.geradorPayload as Record<string, unknown>);
+      }
+      if (Array.isArray(draft.auditoriaAlvo)) {
+        setAuditoriaAlvo(draft.auditoriaAlvo as PassoAuditoria[]);
+      }
+      if (Array.isArray(draft.avisosGlobais)) {
+        setAvisosGlobais(draft.avisosGlobais as string[]);
+      }
+      if (draft.params && typeof draft.params === 'object') {
+        setParams(draft.params as Params);
+      }
+      const nAlts = Array.isArray(draft.alts) ? draft.alts.length : 0;
+      setMsg(
+        nAlts
+          ? `${fromLabel} · ${nAlts} alt. · margem ±${draft.varianciaAlvoPct ?? '?'}%`
+          : `${fromLabel} (parcial)`
+      );
+    };
 
-    if (typeof draft.modo === 'string') setModo(draft.modo as typeof modo);
-    if (typeof draft.valor === 'number') setValor(draft.valor);
-    if (typeof draft.valorMin === 'number') setValorMin(draft.valorMin);
-    if (typeof draft.valorMax === 'number') setValorMax(draft.valorMax);
-    if (typeof draft.usarFaixa === 'boolean') setUsarFaixa(draft.usarFaixa);
-    if (typeof draft.varianciaAlvoPct === 'number') setVarianciaAlvoPct(draft.varianciaAlvoPct);
-    if (typeof draft.cliente === 'string' && draft.cliente) setCliente(draft.cliente);
-    if (typeof draft.cidade === 'string' && draft.cidade) setCidade(draft.cidade);
-    if (typeof draft.consumoMensal === 'number') setConsumoMensal(draft.consumoMensal);
-    if (typeof draft.tipoImovel === 'string') setTipoImovel(draft.tipoImovel);
-    if (typeof draft.hsp === 'number') setHsp(draft.hsp);
-    if (typeof draft.tarifa === 'number') setTarifa(draft.tarifa);
-    if (typeof draft.pdespesaFixo === 'number') setPdespesaFixo(draft.pdespesaFixo);
-    if (typeof draft.pdespesaVariavel === 'number') setPdespesaVariavel(draft.pdespesaVariavel);
-    if (typeof draft.fretePadrao === 'number') setFretePadrao(draft.fretePadrao);
-    if (typeof draft.cdId === 'number') setCdId(draft.cdId);
-    if (Array.isArray(draft.cdIds)) {
-      const ids = draft.cdIds.map(Number).filter((n) => Number.isFinite(n) && n > 0);
-      if (ids.length) setCdIds(ids);
+    const draft = loadPropostaAutoDraft();
+    if (draft) {
+      const draftSlug = typeof draft.slugProposta === 'string' ? draft.slugProposta : '';
+      if (slugNow && draftSlug && slugNow !== draftSlug) {
+        /* outra proposta — tenta API abaixo */
+      } else {
+        const hasAlts = Array.isArray(draft.alts) && draft.alts.length > 0;
+        applyDraft(draft, 'Rascunho restaurado');
+        if (hasAlts) return;
+        /* rascunho sem cards → completa pela proposta */
+      }
     }
-    if (typeof draft.incluirMicro === 'boolean') setIncluirMicro(draft.incluirMicro);
-    if (typeof draft.incluirString === 'boolean') setIncluirString(draft.incluirString);
-    if (typeof draft.rede220380 === 'boolean') setRede220380(draft.rede220380);
-    if (draftSlug) {
-      setSlugProposta(draftSlug);
-      rememberSlugForV3(draftSlug);
-    }
-    if (Array.isArray(draft.alts) && draft.alts.length) {
-      setAlts(draft.alts as Alt[]);
-      setAberto({});
-    }
-    if (draft.meta && typeof draft.meta === 'object') {
-      setMeta(draft.meta as typeof meta);
-    }
-    if (draft.geradorPayload && typeof draft.geradorPayload === 'object') {
-      setGeradorPayload(draft.geradorPayload as Record<string, unknown>);
-    }
-    if (Array.isArray(draft.auditoriaAlvo)) {
-      setAuditoriaAlvo(draft.auditoriaAlvo as PassoAuditoria[]);
-    }
-    if (Array.isArray(draft.avisosGlobais)) {
-      setAvisosGlobais(draft.avisosGlobais as string[]);
-    }
-    if (draft.params && typeof draft.params === 'object') {
-      setParams(draft.params as Params);
-    }
-    setMsg(
-      Array.isArray(draft.alts) && draft.alts.length
-        ? `Rascunho restaurado · ${draft.alts.length} alt. · margem ±${draft.varianciaAlvoPct ?? '?'}%`
-        : 'Rascunho parcial restaurado (margem/modo)'
-    );
+
+    if (!slugNow) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/propostas/${encodeURIComponent(slugNow)}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const { altsFromPropostaSistemas } = await import('@/lib/v3RestoreFromProposta');
+        const alts = altsFromPropostaSistemas(data?.sistemas || []);
+        if (!alts.length || cancelled) return;
+        const cfg = data?.config || {};
+        const cli = data?.cliente || {};
+        applyDraft(
+          {
+            slugProposta: slugNow,
+            alts,
+            cliente: cli.nome || undefined,
+            cidade: cli.cidade || undefined,
+            consumoMensal: cli.consumoMensal || cfg.consumoMensal,
+            hsp: cfg.hsp,
+            tarifa: cfg.tarifa,
+            pdespesaFixo: cfg.pdespesaFixo,
+            pdespesaVariavel: cfg.pdespesaVariavel,
+            geradorPayload: {
+              orcamentos: alts.map((a) => ({
+                titulo_v3: a.titulo,
+                fornecedor: a.marca_inversor || 'V3',
+                modulos: a.qtd_modulos,
+                pot_modulo: a.potencia_modulo_w,
+                inversores: a.qtd_inversores,
+                pot_inv: a.potencia_inversor_kw,
+                marca_modulo: a.marca_modulo,
+                marca_inversor: a.marca_inversor,
+                precoCusto: a.custo_total,
+                custo_kit: a.custo_total,
+              })),
+            },
+          },
+          'Cards restaurados da proposta'
+        );
+        savePropostaAutoDraft({
+          slugProposta: slugNow,
+          alts,
+          cliente: cli.nome,
+          cidade: cli.cidade,
+          consumoMensal: cli.consumoMensal || cfg.consumoMensal,
+          hsp: cfg.hsp,
+          tarifa: cfg.tarifa,
+        });
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [sharedReady, router.isReady, router.query.slug]);
 
   useEffect(() => {
