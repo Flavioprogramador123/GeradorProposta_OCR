@@ -192,7 +192,7 @@ async function tryClaimRow(
       worker_id: workerId,
       claimed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      message: 'Worker local em execução (scrape 3 CDs + publish)…',
+      message: 'Worker local em execução (scrape SOOLLAR+Fortlev + publish)…',
     })
     .eq('id', id)
     .in('status', allowed)
@@ -256,7 +256,7 @@ export async function claimNextCapturaJob(workerId: string): Promise<CapturaJobR
     status: 'running',
     worker_id: workerId,
     claimed_at: new Date().toISOString(),
-    message: 'Worker local em execução (scrape 3 CDs + publish)…',
+    message: 'Worker local em execução (scrape SOOLLAR+Fortlev + publish)…',
     source: 'config',
   };
   await writeConfigJob(claimed);

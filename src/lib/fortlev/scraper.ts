@@ -57,24 +57,24 @@ function parseProdutosFromText(text: string): FortlevProduto[] {
 function parseProdutosFromHtml(html: string): FortlevProduto[] {
   const out: FortlevProduto[] = [];
   const seen = new Set<string>();
-  // Blocos SSR: código + nome + R$ xx,xx
-  const re =
-    /\b(I[A-Z]{2}\d{5})\b[\s\S]{0,400}?R\$\s*([\d.]+,\d{2})/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html))) {
-    const codigo = m[1].toUpperCase();
+  const plain = html.replace(/<[^>]+>/g, '\n').replace(/&nbsp;/gi, ' ');
+  // Segmenta por código; preço = primeiro R$ xx,xx após o código neste bloco
+  const parts = plain.split(/\b(?=I[A-Z]{2}\d{5}\b)/);
+  for (const part of parts) {
+    const cm = part.match(/^(I[A-Z]{2}\d{5})\b/);
+    if (!cm) continue;
+    const codigo = cm[1].toUpperCase();
     if (seen.has(codigo)) continue;
-    const chunk = m[0].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    const nomeM = chunk.match(new RegExp(`${codigo}\\s+(.+?)\\s+R\\$`, 'i'));
-    const preco = parseMoneyBr(m[2]);
-    if (preco == null) continue;
+    const pm = part.match(/R\$\s*([\d.]+,\d{2})/);
+    if (!pm) continue;
+    const preco = parseMoneyBr(pm[1]);
+    if (preco == null || preco <= 0) continue;
+    const afterCode = part.slice(cm[0].length);
+    const beforePrice = afterCode.split(/R\$/)[0] || '';
+    const nome = beforePrice.replace(/\s+/g, ' ').trim().slice(0, 180);
+    if (!nome || nome.length < 4) continue;
     seen.add(codigo);
-    out.push({
-      codigo,
-      nome: (nomeM?.[1] || codigo).trim().slice(0, 180),
-      preco,
-      estoque: null,
-    });
+    out.push({ codigo, nome, preco, estoque: null });
   }
   return out;
 }

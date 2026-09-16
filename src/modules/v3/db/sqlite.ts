@@ -27,6 +27,9 @@ type Database = import('better-sqlite3').Database;
 let cached: Database | null = null;
 let hydratePromise: Promise<void> | null = null;
 let lastHydratedAt: string | null = null;
+/** Evita reconsultar snapshot a cada request; ainda atualiza sozinho após publish. */
+let lastHydrateCheckMs = 0;
+const HYDRATE_CHECK_TTL_MS = 45_000;
 
 function loadBetterSqlite3(): typeof import('better-sqlite3') {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -72,8 +75,15 @@ export async function ensureV3CatalogHydrated(opts?: { force?: boolean }): Promi
     return { hydrated: false, source: 'local' };
   }
 
-  if (!hydratePromise || opts?.force) {
+  const now = Date.now();
+  const staleCheck =
+    opts?.force ||
+    !hydratePromise ||
+    now - lastHydrateCheckMs >= HYDRATE_CHECK_TTL_MS;
+
+  if (staleCheck) {
     hydratePromise = (async () => {
+      lastHydrateCheckMs = Date.now();
       const { supabase } = await import('@/lib/supabase');
       if (!supabase) {
         console.warn('V3: Supabase indisponível — catálogo serverless vazio');
@@ -100,7 +110,11 @@ export async function ensureV3CatalogHydrated(opts?: { force?: boolean }): Promi
       }
 
       if (cached) {
-        cached.close();
+        try {
+          cached.close();
+        } catch {
+          /* ignore */
+        }
         cached = null;
       }
 
@@ -118,6 +132,7 @@ export async function ensureV3CatalogHydrated(opts?: { force?: boolean }): Promi
       console.log('✅ V3 catálogo hidratado do Supabase', {
         updatedAt: lastHydratedAt,
         source: data.source,
+        note: data.note,
       });
     })();
   }

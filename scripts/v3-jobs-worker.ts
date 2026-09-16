@@ -165,7 +165,7 @@ async function runJob(job: JobRow): Promise<void> {
 
   const { code, log } = await runCapturaForce();
   const ok = code === 0;
-  await finish(ok, ok ? 'Captura OK (scrape 3 CDs + publish)' : `exit ${code}`, {
+  await finish(ok, ok ? 'Captura OK (scrape SOOLLAR+Fortlev + publish)' : `exit ${code}`, {
     exitCode: code,
     workerId,
     tail: log.slice(-1500),
