@@ -65,6 +65,8 @@ interface Alt {
   preco_unit_modulo?: number;
   preco_unit_inversor?: number;
   custo_rs_kwp_modulo?: number | null;
+  /** PIX ÷ Wp do sistema */
+  custo_rs_wp?: number | null;
   qtd_modulos: number;
   qtd_inversores: number;
   potencia_kwp: number;
@@ -74,6 +76,8 @@ interface Alt {
   precos: { custo: number; despesa: number; aVista: number; pix: number };
   comercial?: {
     pcusto_kit?: number;
+    pcusto_kit_liquido?: number;
+    desconto_fortlev_pct?: number;
     frete?: number;
     pcusto: number;
     pdespesa_fixo: number;
@@ -83,9 +87,11 @@ interface Alt {
     total_final: number;
     ppix: number;
     pavista: number;
+    priscado?: number;
     p12x: number;
     p12x_total: number;
     p18x_parcela: number;
+    p18x_total?: number;
     formula: string;
   };
   frete?: number;
@@ -142,13 +148,14 @@ export default function AdminV3PropostaAuto() {
   const router = useRouter();
   const [modo, setModo] = useState<'geracao_mensal' | 'potencia_kwp' | 'consumo_mensal'>('geracao_mensal');
   const [cds, setCds] = useState<CdOption[]>([
-    { id: 1, nome: 'Aeroporto' },
-    { id: 2, nome: 'Matriz' },
-    { id: 3, nome: 'Feira de Santana' },
+    { id: 1, nome: 'Aeroporto', slug_portal: 'cdaeroportogo' },
+    { id: 2, nome: 'Matriz', slug_portal: 'cdgoiania' },
+    { id: 3, nome: 'Feira de Santana', slug_portal: 'cdfeiradesantanaba' },
+    { id: 4, nome: 'Fortlev', slug_portal: 'fortlev' },
   ]);
   const [cdId, setCdId] = useState(3);
   /** CDs / fornecedores marcados para dimensionar (até 6 cards). */
-  const [cdIds, setCdIds] = useState<number[]>([3]);
+  const [cdIds, setCdIds] = useState<number[]>([3, 4]);
   const [cliente, setCliente] = useState('Cliente Padrão');
   const [cidade, setCidade] = useState('Anápolis/GO');
   const [consumoMensal, setConsumoMensal] = useState(600);
@@ -168,6 +175,7 @@ export default function AdminV3PropostaAuto() {
   const [tarifa, setTarifa] = useState(1.17);
   const [pdespesaFixo, setPdespesaFixo] = useState(3000);
   const [pdespesaVariavel, setPdespesaVariavel] = useState(22);
+  const [descontoFortlevCustoPct, setDescontoFortlevCustoPct] = useState(11);
   /** Margem ±% em torno do alvo (configurável; padrão 20). */
   const [varianciaAlvoPct, setVarianciaAlvoPct] = useState(20);
   const [fretePadrao, setFretePadrao] = useState(0);
@@ -268,6 +276,9 @@ export default function AdminV3PropostaAuto() {
         ? { pdespesaVariavel: comercial.pdespesaVariavel }
         : {}),
       ...(comercial.fretePadrao != null ? { fretePadrao: comercial.fretePadrao } : {}),
+      ...(comercial.descontoFortlevCustoPct != null
+        ? { descontoFortlevCustoPct: Number(comercial.descontoFortlevCustoPct) }
+        : {}),
     };
     // Sessão (edits locais) prevalece; admin só semeia se não houver sessão (frete: ver resolve)
     const shared = resolveConfigRapida(adminMerged);
@@ -282,6 +293,11 @@ export default function AdminV3PropostaAuto() {
     }
 
     applyShared(shared);
+    if (adminMerged.descontoFortlevCustoPct != null) {
+      setDescontoFortlevCustoPct(Number(adminMerged.descontoFortlevCustoPct));
+    } else if (admin.descontoFortlevCustoPct != null) {
+      setDescontoFortlevCustoPct(Number(admin.descontoFortlevCustoPct));
+    }
     // Espelha na sessão (sem apagar overrides da 4a)
     saveConfigRapida({
       ...shared,
@@ -658,6 +674,7 @@ export default function AdminV3PropostaAuto() {
         tarifa,
         pdespesaFixo,
         pdespesaVariavel,
+        descontoFortlevCustoPct,
         frete: fretePadrao,
         salvar,
         incluir_micro: incluirMicro,
@@ -696,6 +713,8 @@ export default function AdminV3PropostaAuto() {
         if (data.comercial_config.pdespesaFixo != null) setPdespesaFixo(data.comercial_config.pdespesaFixo);
         if (data.comercial_config.pdespesaVariavel != null)
           setPdespesaVariavel(data.comercial_config.pdespesaVariavel);
+        if (data.comercial_config.descontoFortlevCustoPct != null)
+          setDescontoFortlevCustoPct(Number(data.comercial_config.descontoFortlevCustoPct));
       }
       setMeta({
         modo: data.modo,
@@ -829,8 +848,9 @@ export default function AdminV3PropostaAuto() {
         const kit = a.custo_total;
         const comercial = precificarComercialV2(
           kit,
-          { pdespesaFixo, pdespesaVariavel, hsp, tarifa },
-          frete
+          { pdespesaFixo, pdespesaVariavel, hsp, tarifa, descontoFortlevCustoPct },
+          frete,
+          { aplicarDescontoFortlev: (a.fornecedor || '').toLowerCase() === 'fortlev' }
         );
         return { ...a, frete, comercial };
       })
@@ -927,8 +947,9 @@ export default function AdminV3PropostaAuto() {
       const frete = a.frete ?? fretePadrao;
       const comercial = precificarComercialV2(
         calc.custo_total,
-        { pdespesaFixo, pdespesaVariavel, hsp, tarifa },
-        frete
+        { pdespesaFixo, pdespesaVariavel, hsp, tarifa, descontoFortlevCustoPct },
+        frete,
+        { aplicarDescontoFortlev: (a.fornecedor || '').toLowerCase() === 'fortlev' }
       );
       const tipo: 'micro' | 'string' = isMicro ? 'micro' : 'string';
       const prefixoCd = a.fornecedor || a.cd_nome ? `${a.fornecedor || a.cd_nome} · ` : '';
@@ -1277,7 +1298,7 @@ export default function AdminV3PropostaAuto() {
               </label>
             </div>
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-4 gap-3">
                 <label className="text-sm">
                   <span className="text-xs text-gray-500">Valor Fixo (R$)</span>
                   <input
@@ -1307,6 +1328,19 @@ export default function AdminV3PropostaAuto() {
                     value={fretePadrao}
                     onChange={(e) => setFretePadrao(Number(e.target.value))}
                     className="mt-1 w-full rounded-lg bg-white border border-amber-300 px-3 py-2"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="text-xs text-teal-700 font-medium">Desc. Fortlev custo (%)</span>
+                  <input
+                    type="number"
+                    step={0.5}
+                    min={0}
+                    max={40}
+                    value={descontoFortlevCustoPct}
+                    onChange={(e) => setDescontoFortlevCustoPct(Number(e.target.value))}
+                    className="mt-1 w-full rounded-lg bg-white border border-teal-300 px-3 py-2"
+                    title="Só CD Fortlev: reduz custo do kit (portal kit ≈ avulso com desconto)"
                   />
                 </label>
               </div>
@@ -1764,6 +1798,12 @@ export default function AdminV3PropostaAuto() {
                               <div>
                                 <div className="text-gray-500">kit</div>
                                 <div>{money(a.comercial.pcusto_kit ?? a.custo_total)}</div>
+                                {(a.comercial.desconto_fortlev_pct ?? 0) > 0 ? (
+                                  <div className="text-[10px] text-teal-700 mt-0.5">
+                                    −{a.comercial.desconto_fortlev_pct}% Fortlev →{' '}
+                                    {money(a.comercial.pcusto_kit_liquido ?? a.comercial.pcusto)}
+                                  </div>
+                                ) : null}
                               </div>
                               <div>
                                 <div className="text-gray-500">Frete R$</div>

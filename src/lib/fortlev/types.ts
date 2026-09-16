@@ -1,6 +1,7 @@
 /**
  * Fortlev Solar — credenciais e constantes do portal parceiro.
- * Catálogo: https://fortlevsolar.app/produto-avulso (HTMX + scroll infinito).
+ * Catálogo: https://fortlevsolar.app/produto-avulso
+ * Abas UI (familySelect): ?familia=module | inverter | …
  */
 export const FORTLEV_BASE_URL = (process.env.FORTLEV_BASE_URL || 'https://fortlevsolar.app').replace(
   /\/$/,
@@ -8,6 +9,22 @@ export const FORTLEV_BASE_URL = (process.env.FORTLEV_BASE_URL || 'https://fortle
 );
 export const FORTLEV_LOGIN_URL = `${FORTLEV_BASE_URL}/login`;
 export const FORTLEV_PRODUTO_AVULSO_URL = `${FORTLEV_BASE_URL}/produto-avulso`;
+
+/** Valores de `familySelect` / query `?familia=` no portal. */
+export const FORTLEV_FAMILIAS = [
+  'module',
+  'inverter',
+  'structure',
+  'miscellaneous',
+  'dependency',
+  'battery',
+] as const;
+export type FortlevFamilia = (typeof FORTLEV_FAMILIAS)[number];
+
+export function fortlevProdutoAvulsoUrl(familia?: FortlevFamilia | string | null): string {
+  if (!familia) return FORTLEV_PRODUTO_AVULSO_URL;
+  return `${FORTLEV_PRODUTO_AVULSO_URL}?familia=${encodeURIComponent(familia)}`;
+}
 
 /** CD único no V3 (slug_portal). */
 export const FORTLEV_CD_SLUG = 'fortlev';
@@ -58,6 +75,9 @@ export function getFortlevCredentials() {
     baseUrl: FORTLEV_BASE_URL,
     loginUrl: FORTLEV_LOGIN_URL,
     catalogUrl: FORTLEV_PRODUTO_AVULSO_URL,
+    catalogModuleUrl: fortlevProdutoAvulsoUrl('module'),
+    catalogInverterUrl: fortlevProdutoAvulsoUrl('inverter'),
+    familias: [...FORTLEV_FAMILIAS],
     cdSlug: FORTLEV_CD_SLUG,
     cdNome: FORTLEV_CD_NOME,
   };

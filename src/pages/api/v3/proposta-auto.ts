@@ -52,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               pdespesaFixo: admin.pdespesaFixo,
               pdespesaVariavel: admin.pdespesaVariavel,
               fretePadrao: admin.fretePadrao,
+              descontoFortlevCustoPct: admin.descontoFortlevCustoPct,
               fatorParcelado: admin.fatorParcelado,
               estoqueMinimoSoolar: admin.estoqueMinimoSoolar,
               estoqueMinimoOutros: admin.estoqueMinimoOutros,
@@ -140,6 +141,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             body.pdespesaVariavel != null
               ? Number(body.pdespesaVariavel)
               : admin?.pdespesaVariavel,
+          descontoFortlevCustoPct:
+            body.descontoFortlevCustoPct != null
+              ? Number(body.descontoFortlevCustoPct)
+              : admin?.descontoFortlevCustoPct,
           fatorParcelado:
             body.fatorParcelado != null ? Number(body.fatorParcelado) : admin?.fatorParcelado,
           hsp: body.hsp != null ? Number(body.hsp) : admin?.hsp,

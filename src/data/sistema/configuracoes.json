@@ -6,6 +6,7 @@
   "pdespesaFixo": 2000,
   "hspPadrao": 5.45,
   "pdespesaVariavel": 40,
+  "descontoFortlevCustoPct": 11,
   "textoEconomiaAnual": "A partir de agora, R$ {valorEconomia} por ano deixam de sair da sua conta",
   "textoPayback": "Em {mesesPayback} meses a conta de luz deixa de ser despesa e vira o retorno do seu investimento",
   "textoTIR": "Seu dinheiro rende {percentualTIR}% ao ano com o sol — sem taxa de administração, sem imposto de renda",

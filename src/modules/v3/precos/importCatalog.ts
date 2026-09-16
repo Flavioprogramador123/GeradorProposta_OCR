@@ -208,7 +208,7 @@ export function inferirEquipamentoDoNome(
         sku: skuFromNome('EST-AUTO', nome, codigo),
       };
     }
-    const potencia_kw = parsePotenciaKwDoNome(nome);
+    const potencia_kw = parsePotenciaKwDoNome(nome, codigo);
     return {
       categoria: 'microinversor',
       potencia_w: potencia_kw ? Math.round(potencia_kw * 1000) : null,
@@ -219,7 +219,7 @@ export function inferirEquipamentoDoNome(
   }
 
   if (/\bINVERSOR\b/i.test(upper) || pareceInversorSemPalavra(upper)) {
-    const potencia_kw = parsePotenciaKwDoNome(nome);
+    const potencia_kw = parsePotenciaKwDoNome(nome, codigo);
     return {
       categoria: 'inversor',
       potencia_w: potencia_kw ? Math.round(potencia_kw * 1000) : null,

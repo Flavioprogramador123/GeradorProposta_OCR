@@ -1,15 +1,19 @@
 /**
- * Scraper Fortlev Solar — login + /produto-avulso (HTMX scroll / ?pagina=N).
+ * Scraper Fortlev Solar — login + /produto-avulso?familia=… (HTMX / ?pagina=N).
+ * Abas: module | inverter | structure | miscellaneous | dependency | battery
  */
 import type { Page } from 'playwright';
 import {
   FORTLEV_BASE_URL,
   FORTLEV_DC_FALLBACK,
+  FORTLEV_FAMILIAS,
   FORTLEV_LOGIN_URL,
   FORTLEV_PRODUTO_AVULSO_URL,
   createFortlevLogger,
+  fortlevProdutoAvulsoUrl,
   getFortlevCredentials,
   type FortlevCapturaResult,
+  type FortlevFamilia,
   type FortlevLogger,
   type FortlevProduto,
 } from './types';
@@ -19,9 +23,11 @@ export {
   FORTLEV_BASE_URL,
   FORTLEV_CD_NOME,
   FORTLEV_CD_SLUG,
+  FORTLEV_FAMILIAS,
   FORTLEV_LOGIN_URL,
   FORTLEV_PRODUTO_AVULSO_URL,
   createFortlevLogger,
+  fortlevProdutoAvulsoUrl,
   getFortlevCredentials,
 } from './types';
 export { FORTLEV_BOM_KIT_391003, FORTLEV_KIT_SINTETICO, montarBomKit391003 } from './bom';
@@ -119,10 +125,16 @@ async function scrollCatalogo(page: Page, log: FortlevLogger): Promise<void> {
   }
 }
 
-async function fetchPaginasHtmx(page: Page, log: FortlevLogger): Promise<FortlevProduto[]> {
+async function fetchPaginasHtmx(
+  page: Page,
+  log: FortlevLogger,
+  familia?: FortlevFamilia | string | null
+): Promise<FortlevProduto[]> {
   const byCode = new Map<string, FortlevProduto>();
+  const famQs = familia ? `familia=${encodeURIComponent(familia)}&` : '';
   for (let p = 1; p <= 30; p++) {
-    const res = await page.request.get(`${FORTLEV_PRODUTO_AVULSO_URL}?pagina=${p}`, {
+    const url = `${FORTLEV_PRODUTO_AVULSO_URL}?${famQs}pagina=${p}`;
+    const res = await page.request.get(url, {
       headers: {
         'HX-Request': 'true',
         'HX-Target': 'single-grid',
@@ -130,15 +142,40 @@ async function fetchPaginasHtmx(page: Page, log: FortlevLogger): Promise<Fortlev
       },
     });
     const html = await res.text();
-    const items = parseProdutosFromHtml(html);
+    const items = parseProdutosFromHtml(html).map((it) => ({
+      ...it,
+      familia: familia || it.familia || null,
+    }));
     if (!items.length) {
       if (p > 1) break;
-      log('warn', `Página HTMX ${p} sem itens (status ${res.status()})`);
+      log('warn', `HTMX ${familia || 'all'} pagina=${p} sem itens (status ${res.status()})`);
       break;
     }
     for (const it of items) byCode.set(it.codigo, it);
-    log('data', `HTMX pagina=${p}: +${items.length} (único ${byCode.size})`);
+    log('data', `HTMX familia=${familia || 'all'} pagina=${p}: +${items.length} (único ${byCode.size})`);
   }
+  return Array.from(byCode.values());
+}
+
+async function capturarFamilia(
+  page: Page,
+  log: FortlevLogger,
+  familia: FortlevFamilia
+): Promise<FortlevProduto[]> {
+  const url = fortlevProdutoAvulsoUrl(familia);
+  log('info', `Abrindo ${url}`);
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.waitForTimeout(1500);
+
+  const htmxItems = await fetchPaginasHtmx(page, log, familia);
+  await scrollCatalogo(page, log);
+  const domItems = parseProdutosFromText(await page.evaluate(() => document.body.innerText)).map(
+    (it) => ({ ...it, familia })
+  );
+
+  const byCode = new Map<string, FortlevProduto>();
+  for (const it of [...htmxItems, ...domItems]) byCode.set(it.codigo, it);
+  log('ok', `Familia ${familia}: ${byCode.size} produtos`);
   return Array.from(byCode.values());
 }
 
@@ -187,20 +224,33 @@ export async function capturarFortlevComBrowser(
       };
     }
 
-    log('info', `Abrindo ${FORTLEV_PRODUTO_AVULSO_URL}`);
-    await page.goto(FORTLEV_PRODUTO_AVULSO_URL, { waitUntil: 'networkidle', timeout: 90000 });
-    await page.waitForTimeout(2000);
-
-    const htmxItems = await fetchPaginasHtmx(page, log);
-    await scrollCatalogo(page, log);
-    const domItems = parseProdutosFromText(await page.evaluate(() => document.body.innerText));
-
+    // Abas do portal (familySelect): module + inverter são o núcleo BOM;
+    // structure/miscellaneous/dependency cobrem kit 391003 e acessórios.
+    const familias: FortlevFamilia[] = [
+      'module',
+      'inverter',
+      'structure',
+      'miscellaneous',
+      'dependency',
+    ];
     const byCode = new Map<string, FortlevProduto>();
-    for (const it of [...htmxItems, ...domItems]) byCode.set(it.codigo, it);
+    for (const fam of familias) {
+      const batch = await capturarFamilia(page, log, fam);
+      for (const it of batch) {
+        const prev = byCode.get(it.codigo);
+        // Preferir item da família “própria” se já veio de outra aba genérica
+        if (!prev || (it.familia && !prev.familia) || it.preco > 0) {
+          byCode.set(it.codigo, { ...prev, ...it, familia: it.familia || prev?.familia || fam });
+        }
+      }
+    }
     const items = Array.from(byCode.values());
     log('ok', `Catálogo Fortlev: ${items.length} produtos com preço`, {
       bearerSeen,
       distributionCenterId: distributionCenterId || FORTLEV_DC_FALLBACK,
+      porFamilia: Object.fromEntries(
+        familias.map((f) => [f, items.filter((i) => i.familia === f).length])
+      ),
     });
 
     const bom = montarBomKit391003(items);
@@ -261,6 +311,11 @@ export async function probeFortlevLoginPage(log: FortlevLogger = createFortlevLo
     htmlLength: html.length,
     hasLogin,
     catalogUrl: FORTLEV_PRODUTO_AVULSO_URL,
-    fluxo: ['login', 'produto-avulso (HTMX ?pagina=N + scroll #main)', 'BOM 391003 sintético'],
+    familias: FORTLEV_FAMILIAS,
+    fluxo: [
+      'login',
+      'produto-avulso?familia=module|inverter|… (HTMX ?pagina=N + scroll #main)',
+      'BOM 391003 sintético',
+    ],
   };
 }

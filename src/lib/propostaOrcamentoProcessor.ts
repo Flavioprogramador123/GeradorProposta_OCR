@@ -18,6 +18,8 @@ export interface PropostaConfigInput {
   pdespesaFixo?: number;
   pdespesaVariavel?: number;
   descontoPix?: number;
+  /** % desconto no custo do kit Fortlev (só CD Fortlev). */
+  descontoFortlevCustoPct?: number;
   fatorParcelado?: number;
   fator12x?: number;
   fator18x?: number;
@@ -106,6 +108,7 @@ const CONFIG_PADRAO = {
   pdespesaFixo: 3000,
   pdespesaVariavel: 22,
   descontoPix: 0.1,
+  descontoFortlevCustoPct: 11,
   fatorParcelado: 1.2,
   fator12x: 0.88,
   fator18x: 0.83,
@@ -155,6 +158,12 @@ export function inferDescontoPixFromSistemas(
 export function normalizePropostaConfig(config: PropostaConfigInput = {}) {
   const descontoPixRaw = config.descontoPix ?? CONFIG_PADRAO.descontoPix;
   const descontoPix = descontoPixRaw > 1 ? descontoPixRaw / 100 : descontoPixRaw;
+  const descFortRaw =
+    config.descontoFortlevCustoPct ?? CONFIG_PADRAO.descontoFortlevCustoPct;
+  const descontoFortlevCustoPct = Math.min(
+    40,
+    Math.max(0, Number.isFinite(Number(descFortRaw)) ? Number(descFortRaw) : 0)
+  );
 
   return {
     hsp: config.hsp ?? CONFIG_PADRAO.hsp,
@@ -164,6 +173,7 @@ export function normalizePropostaConfig(config: PropostaConfigInput = {}) {
     pdespesaFixo: config.pdespesaFixo ?? CONFIG_PADRAO.pdespesaFixo,
     pdespesaVariavel: config.pdespesaVariavel ?? CONFIG_PADRAO.pdespesaVariavel,
     descontoPix,
+    descontoFortlevCustoPct,
     fatorParcelado: config.fatorParcelado ?? CONFIG_PADRAO.fatorParcelado,
     fator12x: config.fator12x ?? CONFIG_PADRAO.fator12x,
     fator18x: config.fator18x ?? CONFIG_PADRAO.fator18x,

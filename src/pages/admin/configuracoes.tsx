@@ -351,27 +351,54 @@ export default function Configuracoes() {
               </div>
             </div>
 
-            {/* Catálogo SOOLLAR — manutenção esporádica */}
+            {/* Distribuidores V3 — SOOLLAR e Fortlev */}
             <div className="admin-surface p-4 mb-6">
-              <h2 className="text-sm font-semibold text-slate-700 mb-1">Manutenção · Catálogo SOOLLAR</h2>
-              <p className="text-xs text-slate-500 mb-3">
-                Captura de preços, conferência por CD e CRUD manual de equipamentos (fonte{' '}
-                <code className="text-xs">manual</code>).
+              <h2 className="text-sm font-semibold text-slate-700 mb-1">
+                Catálogos V3 · dois distribuidores
+              </h2>
+              <p className="text-xs text-slate-500 mb-4">
+                SOOLLAR e Fortlev são empresas distintas: cada uma tem portal, captura e preços
+                próprios. O catálogo V3 unifica equipamentos; a escolha do fornecedor fica no
+                orçamento / proposta automática.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/admin/soollar-captura" legacyBehavior>
-                  <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200">
-                    🛰️ Captura
-                  </a>
-                </Link>
+
+              <div className="grid gap-3 sm:grid-cols-2 mb-3">
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3">
+                  <div className="text-sm font-semibold text-indigo-900">SOOLLAR</div>
+                  <p className="text-[11px] text-indigo-800/80 mt-0.5 mb-2 leading-snug">
+                    Portal próprio · 3 CDs (Aeroporto, etc.) · captura MyGateway
+                  </p>
+                  <Link href="/admin/soollar-captura" legacyBehavior>
+                    <a className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-indigo-900 bg-white hover:bg-indigo-100 border border-indigo-200">
+                      Captura SOOLLAR
+                    </a>
+                  </Link>
+                </div>
+
+                <div className="rounded-lg border border-teal-200 bg-teal-50/60 p-3">
+                  <div className="text-sm font-semibold text-teal-900">Fortlev</div>
+                  <p className="text-[11px] text-teal-800/80 mt-0.5 mb-2 leading-snug">
+                    Portal parceiro · 1 CD · produto-avulso (
+                    <code className="text-[10px]">?familia=module|inverter</code>)
+                  </p>
+                  <Link href="/admin/fortlev-captura" legacyBehavior>
+                    <a className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-teal-900 bg-white hover:bg-teal-100 border border-teal-200">
+                      Captura Fortlev
+                    </a>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200/80">
+                <span className="text-[11px] text-slate-500 self-center mr-1">Compartilhado:</span>
                 <Link href="/admin/v3/precos" legacyBehavior>
                   <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200">
-                    💰 Preços por CD
+                    Preços por CD
                   </a>
                 </Link>
                 <Link href="/admin/v3/equipamentos" legacyBehavior>
                   <a className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 border border-stone-200">
-                    🔧 Equipamentos (CRUD)
+                    Equipamentos (CRUD)
                   </a>
                 </Link>
               </div>
@@ -867,7 +894,7 @@ export default function Configuracoes() {
                         PIX = (kit + frete) + pdespesa. Frete da transportadora pode ser ajustado por orçamento;
                         aqui fica só o padrão inicial.
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             pdespesa fixo (R$)
@@ -909,6 +936,26 @@ export default function Configuracoes() {
                             className="w-full px-4 py-3 border border-amber-300 rounded-lg bg-amber-50/40"
                           />
                           <p className="text-sm text-gray-500 mt-1">Sugestão inicial; editável por proposta</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Desconto Fortlev no custo (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={config.descontoFortlevCustoPct ?? 11}
+                            onChange={(e) =>
+                              handleInputChange('descontoFortlevCustoPct', parseFloat(e.target.value))
+                            }
+                            step="0.5"
+                            min="0"
+                            max="40"
+                            className="w-full px-4 py-3 border border-teal-300 rounded-lg bg-teal-50/40"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Só CD Fortlev: reduz o custo do kit (portal kit ≈ mais barato que avulso).
+                            Ex.: 11% aproxima R$ 34.115 → ~R$ 30.400 no exemplo calibrado.
+                          </p>
                         </div>
                       </div>
                     </div>

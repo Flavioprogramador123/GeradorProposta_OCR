@@ -14,9 +14,13 @@ export type ComercialConfig = ReturnType<typeof normalizePropostaConfig>;
 export interface PrecificacaoComercial {
   /** Custo do kit (BOM) sem frete */
   pcusto_kit: number;
+  /** Custo do kit após desconto Fortlev (se aplicável) */
+  pcusto_kit_liquido: number;
+  /** % desconto Fortlev aplicado no kit */
+  desconto_fortlev_pct: number;
   /** Frete digitado pelo usuário (transportadora) — soma no pcusto */
   frete: number;
-  /** Base comercial = kit + frete */
+  /** Base comercial = kit líquido + frete */
   pcusto: number;
   pdespesa_fixo: number;
   pdespesa_variavel_percent: number;
@@ -40,13 +44,23 @@ export function resolveComercialConfig(overrides: PropostaConfigInput = {}): Com
   return normalizePropostaConfig(overrides);
 }
 
+/**
+ * @param pcustoKit custo BOM (preços avulsos)
+ * @param opts.aplicarDescontoFortlev se true, aplica descontoFortlevCustoPct no kit
+ */
 export function precificarComercialV2(
   pcustoKit: number,
   overrides: PropostaConfigInput = {},
-  frete = 0
+  frete = 0,
+  opts?: { aplicarDescontoFortlev?: boolean }
 ): PrecificacaoComercial {
   const config = resolveComercialConfig(overrides);
-  const kit = Math.max(0, Number(pcustoKit) || 0);
+  const kitBruto = Math.max(0, Number(pcustoKit) || 0);
+  const descPct =
+    opts?.aplicarDescontoFortlev && config.descontoFortlevCustoPct > 0
+      ? config.descontoFortlevCustoPct
+      : 0;
+  const kit = Math.round(kitBruto * (1 - descPct / 100) * 100) / 100;
   const freteN = Math.max(0, Number(frete) || 0);
   const custo = kit + freteN;
   const pdespesa_total = calcularPdespesaProposta(custo, config);
@@ -56,7 +70,9 @@ export function precificarComercialV2(
   const precos = calcularPrecosProposta(total_final, config);
 
   return {
-    pcusto_kit: Math.round(kit * 100) / 100,
+    pcusto_kit: Math.round(kitBruto * 100) / 100,
+    pcusto_kit_liquido: kit,
+    desconto_fortlev_pct: descPct,
     frete: Math.round(freteN * 100) / 100,
     pcusto: Math.round(custo * 100) / 100,
     pdespesa_fixo: config.pdespesaFixo,
@@ -73,7 +89,9 @@ export function precificarComercialV2(
     p18x_total: precos.p18x_total,
     fatorParcelado: config.fatorParcelado,
     formula:
-      'pcusto = kit + frete; pdespesa = fixo + pcusto×(var%/100); PIX = pcusto + pdespesa',
+      descPct > 0
+        ? `pcusto = kit×(1−${descPct}% Fortlev) + frete; pdespesa = fixo + pcusto×(var%/100); PIX = pcusto + pdespesa`
+        : 'pcusto = kit + frete; pdespesa = fixo + pcusto×(var%/100); PIX = pcusto + pdespesa',
     fonte: 'v2-propostaOrcamentoProcessor',
   };
 }

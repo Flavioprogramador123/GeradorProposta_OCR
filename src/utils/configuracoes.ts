@@ -66,6 +66,11 @@ interface ConfiguracaoSistema {
   pdespesaFixo: number;
   pdespesaVariavel: number;
   fretePadrao: number;
+  /**
+   * Desconto % sobre o custo do kit Fortlev (portal kit ≈ mais barato que avulso).
+   * Ex.: 11 ≈ aproximar PIX do pedido Fortlev vs soma avulsa no V3.
+   */
+  descontoFortlevCustoPct: number;
 
   // Textos de Marketing (Variáveis)
   textoEconomiaAnual: string;
@@ -136,6 +141,8 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   pdespesaFixo: 3000,
   pdespesaVariavel: 30,
   fretePadrao: 400,
+  /** Calibrado no pedido ~10,88 kWp (nosso PIX vs Fortlev ≈ −11% no kit) */
+  descontoFortlevCustoPct: 11,
 
   textoEconomiaAnual: 'Economia anual de R$ {valorEconomia} na conta de energia',
   textoPayback: 'Investimento se paga em apenas {mesesPayback} meses',
@@ -192,6 +199,7 @@ export function mergeConfiguracoes(
     'pdespesaFixo',
     'pdespesaVariavel',
     'fretePadrao',
+    'descontoFortlevCustoPct',
     'tarifaPadrao',
     'diasMes',
     'placasPorMicro',
@@ -210,6 +218,8 @@ export function mergeConfiguracoes(
     const v = Number(merged[k]);
     merged[k] = Number.isFinite(v) ? v : CONFIG_PADRAO[k];
   }
+  if (merged.descontoFortlevCustoPct < 0) merged.descontoFortlevCustoPct = 0;
+  if (merged.descontoFortlevCustoPct > 40) merged.descontoFortlevCustoPct = 40;
 
   return merged;
 }
@@ -263,6 +273,7 @@ export function extrairDefaultsV3(config: ConfiguracaoSistema) {
     pdespesaFixo: config.pdespesaFixo,
     pdespesaVariavel: config.pdespesaVariavel,
     fretePadrao: config.fretePadrao,
+    descontoFortlevCustoPct: config.descontoFortlevCustoPct,
     fatorParcelado: config.fatorParcelado,
     taxaCartaoMensal: config.taxaCartaoMensal,
     descontoPix:

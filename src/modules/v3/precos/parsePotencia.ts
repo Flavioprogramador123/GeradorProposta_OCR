@@ -1,6 +1,6 @@
 /** Parse de potência kW a partir do nome do catálogo (SOOLLAR / Fortlev). */
 
-export function parsePotenciaKwDoNome(nome: string): number | null {
+export function parsePotenciaKwDoNome(nome: string, sku?: string | null): number | null {
   const u = nome.toUpperCase();
   const kwM = u.match(/(\d+[.,]\d+|\d+)\s*K(?:W)?\b/);
   if (kwM) {
@@ -13,6 +13,22 @@ export function parsePotenciaKwDoNome(nome: string): number | null {
     if (wM) {
       const w = Number(wM[1].replace(',', '.'));
       if (Number.isFinite(w) && w >= 200 && w <= 5000) return Math.round((w / 1000) * 1000) / 1000;
+    }
+  }
+
+  // Modelos Fortlev sem "kW" no texto (BDM-2250 → 2,25 kW)
+  const blob = `${sku || ''} ${nome || ''}`
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/IIN00521|BDM[\s-]?2500/.test(blob)) return 2.5;
+  if (/IIN00349|BDM[\s-]?2250/.test(blob)) return 2.25;
+  if (/IIN00225|FOXESS[^\n]{0,40}\bM1\b|\bM1\b[^\n]{0,20}1000/.test(blob)) return 1;
+  const bdm = blob.match(/\bBDM[\s-]?(\d{4})\b/);
+  if (bdm) {
+    const w = Number(bdm[1]);
+    if (Number.isFinite(w) && w >= 1000 && w <= 5000) {
+      return Math.round((w / 1000) * 100) / 100;
     }
   }
   return null;

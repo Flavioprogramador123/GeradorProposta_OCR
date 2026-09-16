@@ -106,6 +106,8 @@ export interface AlternativaProposta {
   preco_unit_modulo?: number;
   preco_unit_inversor?: number;
   custo_rs_kwp_modulo?: number | null;
+  /** PIX ÷ Wp do sistema (métrica portal Fortlev) */
+  custo_rs_wp?: number | null;
   qtd_modulos: number;
   qtd_inversores: number;
   potencia_kwp: number;
@@ -178,6 +180,20 @@ function sortInversoresPreferencia(a: InvRow, b: InvRow): number {
   return a.potencia_kw - b.potencia_kw;
 }
 
+/** Fortlev: menor R$/kW do inversor (preço÷kW), depois mais kW. */
+function sortInversoresPorCustoKw(a: InvRow, b: InvRow): number {
+  const ca = a.potencia_kw > 0 ? a.preco_custo / a.potencia_kw : 1e12;
+  const cb = b.potencia_kw > 0 ? b.preco_custo / b.potencia_kw : 1e12;
+  if (Math.abs(ca - cb) > 1) return ca - cb;
+  return b.potencia_kw - a.potencia_kw;
+}
+
+function rsWpDoSistema(ppix: number, potenciaKwp: number): number | null {
+  const wp = potenciaKwp * 1000;
+  if (!(ppix > 0) || !(wp > 0)) return null;
+  return Math.round((ppix / wp) * 10000) / 10000;
+}
+
 function listModulosComPreco(cdId: number): ModRow[] {
   const db = getV3Db();
   const { moduloW: minW } = getPotenciaMinimos();
@@ -220,7 +236,7 @@ function listInversoresComPreco(cdId: number): InvRow[] {
       const kw =
         r.potencia_kw != null && r.potencia_kw > 0
           ? r.potencia_kw
-          : parsePotenciaKwDoNome(r.nome || '') || 0;
+          : parsePotenciaKwDoNome(r.nome || '', r.sku_interno) || 0;
       const mppt = mpptDoEquipamento(r.nome || '', r.sku_interno) || 0;
       return { ...r, potencia_kw: kw, mppt };
     })
@@ -256,7 +272,7 @@ function findInversor(cdId: number, sku: string, fallback: InvRow[]): InvRow | n
     const kw =
       row.potencia_kw != null && row.potencia_kw > 0
         ? row.potencia_kw
-        : parsePotenciaKwDoNome(row.nome || '') || 0;
+        : parsePotenciaKwDoNome(row.nome || '', row.sku_interno) || 0;
     const mppt = mpptDoEquipamento(row.nome || '', row.sku_interno) || 0;
     return { ...row, potencia_kw: kw, mppt };
   }
@@ -343,8 +359,9 @@ function modsProximosAoKwp(
 }
 
 /**
- * Micros candidatos para o módulo: prioriza DC/AC ok e mais MPPTs
- * (ex.: NEP 6 MPPT antes do Foxess M1 2 MPPT).
+ * Micros candidatos para o módulo: prioriza menor R$/Wp conectável
+ * (preço_micro ÷ (placas×Wp)), depois mais MPPTs, depois mais kW.
+ * Evita escolher Foxess M1 (2 MPPT) quando NEP 6 MPPT é bem mais barato por Wp.
  */
 function escolherMicrosParaModulo(
   mod: ModRow,
@@ -360,9 +377,11 @@ function escolherMicrosParaModulo(
     const ratio = m.potencia_kw > 0 && kwpMod > 0 ? (placas * kwpMod) / m.potencia_kw : 99;
     const ok = ratio <= lim.teto + 0.05;
     const mppt = m.mppt > 0 ? m.mppt : mpptDoEquipamento(m.nome, m.sku_interno) || placas;
-    // score menor = melhor: ok primeiro, depois mais MPPT, depois mais kW
-    const score = (ok ? 0 : 1000) - mppt * 10 - m.potencia_kw;
-    return { m, score, ok };
+    const wattsConect = Math.max(1, placas * mod.potencia_w);
+    const rsPorWp = m.preco_custo / wattsConect;
+    // score menor = melhor: DC/AC ok → R$/Wp → mais MPPT → mais kW
+    const score = (ok ? 0 : 1000) + rsPorWp * 100 - mppt * 0.01 - m.potencia_kw * 0.001;
+    return { m, score, ok, rsPorWp, mppt };
   });
   scored.sort((a, b) => a.score - b.score);
   const out: InvRow[] = [];
@@ -436,9 +455,14 @@ function montarAltFromKit(opts: {
       { sku_interno: inv.sku_interno, quantidade: qtdInv },
     ],
   });
+  const isFortlev = (opts.fornecedor || '').toLowerCase() === 'fortlev';
   const precos = precificarCusto(calc.custo_total, params);
-  const comercial = precificarComercialV2(calc.custo_total, opts.comercial, opts.frete);
+  const comercial = precificarComercialV2(calc.custo_total, opts.comercial, opts.frete, {
+    aplicarDescontoFortlev: isFortlev,
+  });
   const cob = consumoRef && consumoRef > 0 ? Math.round((ger / consumoRef) * 100) : null;
+  const potencia_kwp = Math.round(pot * 1000) / 1000;
+  const custo_rs_wp = rsWpDoSistema(comercial.ppix, potencia_kwp);
   const tituloBase =
     opts.titulo ||
     `${isMicro ? 'Micro' : 'String'} ${inv.marca || ''} ${qtdMod}×${mod.potencia_w}W`.replace(/\s+/g, ' ').trim();
@@ -525,7 +549,8 @@ function montarAltFromKit(opts: {
     custo_rs_kwp_modulo: Math.round((mod.preco_custo / (mod.potencia_w / 1000)) * 100) / 100,
     qtd_modulos: qtdMod,
     qtd_inversores: qtdInv,
-    potencia_kwp: Math.round(pot * 1000) / 1000,
+    potencia_kwp,
+    custo_rs_wp,
     geracao_mensal_kwh: Math.round(ger),
     cobertura_pct: cob,
     custo_total: calc.custo_total,
@@ -581,27 +606,25 @@ function chaveAlt(a: AlternativaProposta): string {
   return `${a.cd_id || 0}|${a.tipo}|${a.sku_modulo}|${a.sku_inversor}|${a.qtd_modulos}`;
 }
 
-/** Manuais primeiro; autos diversificados por CD e PIX (dentro da faixa). */
+/** Manuais primeiro; autos diversificados por CD e R$/Wp (dentro da faixa). */
 function selecionarAlternativasDiversas(
   manuais: AlternativaProposta[],
   autos: AlternativaProposta[],
   maxAlt: number
 ): AlternativaProposta[] {
   const slotsAuto = Math.max(0, Math.max(maxAlt, manuais.length) - manuais.length);
-  const dentro = autos
-    .filter((a) => !a.fora_faixa)
-    .sort(
-      (a, b) =>
-        Math.abs(a.desvio_faixa_pct ?? 999) - Math.abs(b.desvio_faixa_pct ?? 999) ||
-        a.comercial.ppix - b.comercial.ppix
+  const byRsWp = (a: AlternativaProposta, b: AlternativaProposta) => {
+    const ra = a.custo_rs_wp ?? (a.comercial.ppix / Math.max(a.potencia_kwp * 1000, 1));
+    const rb = b.custo_rs_wp ?? (b.comercial.ppix / Math.max(b.potencia_kwp * 1000, 1));
+    return (
+      ra - rb ||
+      a.comercial.ppix - b.comercial.ppix ||
+      Math.abs(a.desvio_faixa_pct ?? 999) - Math.abs(b.desvio_faixa_pct ?? 999)
     );
-  const fora = autos
-    .filter((a) => a.fora_faixa)
-    .sort(
-      (a, b) =>
-        Math.abs(a.desvio_faixa_pct ?? 999) - Math.abs(b.desvio_faixa_pct ?? 999) ||
-        a.comercial.ppix - b.comercial.ppix
-    );
+  };
+  // Dentro da faixa: menor R$/Wp (métrica Fortlev/portal), depois PIX, depois desvio
+  const dentro = autos.filter((a) => !a.fora_faixa).sort(byRsWp);
+  const fora = autos.filter((a) => a.fora_faixa).sort(byRsWp);
 
   const pool = [...dentro, ...fora];
   const byCd = new Map<number, AlternativaProposta[]>();
@@ -718,15 +741,24 @@ function dimensionarMicro(
 
 /**
  * Ordena candidatos de inversor para um kWp alvo (soft → hard → faixa kW → teto → maior).
+ * @param porCusto Fortlev: dentro de cada banda, menor R$/kW primeiro.
  */
-function listarInversoresParaKwp(potKwp: number, strings: InvRow[]): InvRow[] {
+function listarInversoresParaKwp(
+  potKwp: number,
+  strings: InvRow[],
+  opts?: { porCusto?: boolean }
+): InvRow[] {
   if (!strings.length) return [];
   const lim = getDcAcLimits();
-  const ordenados = [...strings].sort(sortInversoresPreferencia);
+  const porCusto = Boolean(opts?.porCusto);
+  const ordenados = [...strings].sort(
+    porCusto ? sortInversoresPorCustoKw : sortInversoresPreferencia
+  );
   const seen = new Set<string>();
   const out: InvRow[] = [];
   const push = (list: InvRow[]) => {
-    for (const i of list) {
+    const ordered = porCusto ? [...list].sort(sortInversoresPorCustoKw) : list;
+    for (const i of ordered) {
       if (seen.has(i.sku_interno)) continue;
       seen.add(i.sku_interno);
       out.push(i);
@@ -737,12 +769,20 @@ function listarInversoresParaKwp(potKwp: number, strings: InvRow[]): InvRow[] {
   const { minKw, maxKw } = faixaKwInversorParaKwp(potKwp);
   push(ordenados.filter((i) => i.potencia_kw >= minKw && i.potencia_kw <= maxKw));
   push(ordenados.filter((i) => i.potencia_kw >= potKwp / lim.teto));
-  push([...ordenados].sort((a, b) => b.potencia_kw - a.potencia_kw));
+  push(
+    porCusto
+      ? [...ordenados].sort(sortInversoresPorCustoKw)
+      : [...ordenados].sort((a, b) => b.potencia_kw - a.potencia_kw)
+  );
   return out;
 }
 
-function escolherInversorParaKwp(potKwp: number, strings: InvRow[]): InvRow | null {
-  return listarInversoresParaKwp(potKwp, strings)[0] || null;
+function escolherInversorParaKwp(
+  potKwp: number,
+  strings: InvRow[],
+  opts?: { porCusto?: boolean }
+): InvRow | null {
+  return listarInversoresParaKwp(potKwp, strings, opts)[0] || null;
 }
 
 /**
@@ -757,19 +797,29 @@ function dimensionarString(
   geracaoMin: number,
   geracaoMax: number,
   varianciaPct: number,
-  optsKwp?: { alvoKwp: number; kwpMin: number; kwpMax: number }
+  optsKwp?: { alvoKwp: number; kwpMin: number; kwpMax: number },
+  optsSel?: { porCusto?: boolean }
 ): { qtdMod: number; inv: InvRow; pot: number; ger: number; avisos?: string[] } | null {
   const pool = strings.filter((s) => !isInversorHibrido(s));
   const lista = pool.length ? pool : strings;
   if (!lista.length) return null;
 
   const lim = getDcAcLimits();
+  const porCusto = Boolean(optsSel?.porCusto);
   const { baixo, alto } = fatoresVarianciaAlvo(varianciaPct);
   const alvoKwp =
     optsKwp && optsKwp.alvoKwp > 0 ? optsKwp.alvoKwp : kwpFromGeracao(alvoGeracao, params, false);
-  const candidatos = listarInversoresParaKwp(alvoKwp, lista);
+  const candidatos = listarInversoresParaKwp(alvoKwp, lista, { porCusto });
 
-  type Cand = { qtdMod: number; inv: InvRow; pot: number; ger: number; avisos: string[]; score: number };
+  type Cand = {
+    qtdMod: number;
+    inv: InvRow;
+    pot: number;
+    ger: number;
+    avisos: string[];
+    score: number;
+    custoEst: number;
+  };
   let melhorDentro: Cand | null = null;
   let melhorQualquer: Cand | null = null;
 
@@ -853,8 +903,17 @@ function dimensionarString(
     }
 
     const score = optsKwp ? Math.abs(pot - alvoKwp) : Math.abs(ger - alvoGeracao);
-    const cand: Cand = { qtdMod, inv, pot, ger, avisos: avisosDim, score };
-    if (!melhorQualquer || score < melhorQualquer.score) melhorQualquer = cand;
+    const custoEst = qtdMod * mod.preco_custo + inv.preco_custo;
+    const cand: Cand = { qtdMod, inv, pot, ger, avisos: avisosDim, score, custoEst };
+    const melhorQue = (cur: Cand | null, novo: Cand) => {
+      if (!cur) return true;
+      if (porCusto) {
+        if (Math.abs(novo.custoEst - cur.custoEst) > 50) return novo.custoEst < cur.custoEst;
+        return novo.score < cur.score;
+      }
+      return novo.score < cur.score;
+    };
+    if (melhorQue(melhorQualquer, cand)) melhorQualquer = cand;
 
     const dentroKwp =
       optsKwp &&
@@ -863,9 +922,10 @@ function dimensionarString(
     const dentroGer =
       !optsKwp && geracaoDentroDaFaixa(ger, geracaoMin, geracaoMax, varianciaPct);
     if (dentroKwp || dentroGer) {
-      if (!melhorDentro || score < melhorDentro.score) {
+      if (melhorQue(melhorDentro, cand)) {
         melhorDentro = cand;
-        break;
+        // SOOLLAR: para no 1º encaixe. Fortlev (porCusto): varre todos e fica com o mais barato.
+        if (!porCusto) break;
       }
     }
   }
@@ -1290,7 +1350,12 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
             : [[...modulos].sort((a, b) => b.potencia_w - a.potencia_w)[0]].filter(Boolean);
 
           for (const mod of modsMicro) {
-            const microsCand = escolherMicrosParaModulo(mod, micros, params, 3);
+            const microsCand = escolherMicrosParaModulo(
+              mod,
+              micros,
+              params,
+              meta.fornecedor === 'Fortlev' ? 2 : 3
+            );
             for (const micro of microsCand) {
               const mpptLabel =
                 micro.mppt > 0
@@ -1391,7 +1456,8 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
                 0,
                 modoPotencia
                   ? { alvoKwp: alvoKitKwp, kwpMin: workKwpMin, kwpMax: workKwpMax }
-                  : undefined
+                  : undefined,
+                { porCusto: meta.fornecedor === 'Fortlev' }
               );
               if (!d) continue;
               if (d.avisos?.length) avisos.push(...d.avisos.map((a) => `${meta.fornecedor}: ${a}`));
@@ -1503,6 +1569,7 @@ export function montarPropostaAuto(input: PropostaAutoInput): {
     comercial_config: {
       pdespesaFixo: comercialCfg.pdespesaFixo,
       pdespesaVariavel: comercialCfg.pdespesaVariavel,
+      descontoFortlevCustoPct: comercialCfg.descontoFortlevCustoPct,
       fatorParcelado: comercialCfg.fatorParcelado,
       hsp: params.hsp,
       tarifa: params.tarifa,
