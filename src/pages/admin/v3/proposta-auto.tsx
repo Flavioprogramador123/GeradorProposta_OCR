@@ -793,7 +793,9 @@ export default function AdminV3PropostaAuto() {
       const orcamentos = alts.map((a, i) => {
           const base = orcsAll[i] || {};
           const kit = a.custo_total;
-          const freteAlt = a.frete ?? fretePadrao;
+          const isFortlevAlt = (a.fornecedor || '').toLowerCase() === 'fortlev';
+          const freteAlt =
+            a.frete != null ? a.frete : isFortlevAlt ? 0 : fretePadrao;
           const pcusto = a.comercial?.pcusto ?? kit + freteAlt;
           return {
             ...base,
@@ -944,12 +946,13 @@ export default function AdminV3PropostaAuto() {
       const consumoRef = meta?.consumoRef ?? consumoMensal;
       const cobertura_pct =
         consumoRef && consumoRef > 0 ? Math.round((geracao_mensal_kwh / consumoRef) * 100) : null;
-      const frete = a.frete ?? fretePadrao;
+      const isFortlevAlt = (a.fornecedor || '').toLowerCase() === 'fortlev';
+      const frete = a.frete != null ? a.frete : isFortlevAlt ? 0 : fretePadrao;
       const comercial = precificarComercialV2(
         calc.custo_total,
         { pdespesaFixo, pdespesaVariavel, hsp, tarifa, descontoFortlevCustoPct },
         frete,
-        { aplicarDescontoFortlev: (a.fornecedor || '').toLowerCase() === 'fortlev' }
+        { aplicarDescontoFortlev: isFortlevAlt }
       );
       const tipo: 'micro' | 'string' = isMicro ? 'micro' : 'string';
       const prefixoCd = a.fornecedor || a.cd_nome ? `${a.fornecedor || a.cd_nome} · ` : '';
@@ -1621,9 +1624,9 @@ export default function AdminV3PropostaAuto() {
               const invsPrincipaisCard = catalogoHelpers.invsPrincipaisDoCd(cardCd);
               const invsHibridosCard = catalogoHelpers.invsHibridosDoCd(cardCd);
               const cdLabel =
-                a.fornecedor ||
                 a.cd_nome ||
                 cds.find((c) => c.id === cardCd)?.nome ||
+                a.fornecedor ||
                 `CD ${cardCd}`;
               return (
                 <article
@@ -1641,11 +1644,12 @@ export default function AdminV3PropostaAuto() {
                         <span className="text-xs uppercase tracking-wide text-gray-500">
                           Alt {idx + 1} · {a.tipo}
                         </span>
-                        {(a.fornecedor || a.cd_nome) && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800">
-                            {a.fornecedor || a.cd_nome}
-                          </span>
-                        )}
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800"
+                          title={a.fornecedor ? `Fornecedor: ${a.fornecedor}` : undefined}
+                        >
+                          {cdLabel}
+                        </span>
                         {a.origem === 'manual_3a' && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
                             por kits
@@ -1729,8 +1733,14 @@ export default function AdminV3PropostaAuto() {
                         PIX comercial · {open ? 'recolher' : 'expandir'}
                       </div>
                       {a.comercial && (
-                        <div className="text-[10px] text-gray-500 mt-0.5">
-                          (legado {money(a.precos.pix)})
+                        <div className="text-[10px] text-gray-500 mt-0.5 tabular-nums">
+                          pcusto {money(a.comercial.pcusto)}
+                          {(a.comercial.desconto_fortlev_pct ?? 0) > 0 ? ' (−Fortlev)' : ''}
+                          {(a.comercial.frete ?? 0) > 0
+                            ? ` +frete`
+                            : (a.fornecedor || '').toLowerCase() === 'fortlev'
+                              ? ' · frete embutido'
+                              : ''}
                         </div>
                       )}
                       {(() => {
@@ -1806,20 +1816,38 @@ export default function AdminV3PropostaAuto() {
                                 ) : null}
                               </div>
                               <div>
-                                <div className="text-gray-500">Frete R$</div>
+                                <div className="text-gray-500">
+                                  Frete R$
+                                  {(a.fornecedor || '').toLowerCase() === 'fortlev' ? (
+                                    <span className="text-teal-700"> · embutido</span>
+                                  ) : null}
+                                </div>
                                 <input
                                   type="number"
                                   min={0}
                                   step={50}
-                                  value={a.frete ?? a.comercial.frete ?? 0}
+                                  value={
+                                    a.frete ??
+                                    a.comercial.frete ??
+                                    ((a.fornecedor || '').toLowerCase() === 'fortlev' ? 0 : fretePadrao)
+                                  }
                                   onChange={(e) => atualizarFreteAlt(idx, Number(e.target.value))}
                                   onClick={(e) => e.stopPropagation()}
                                   className="mt-0.5 w-full rounded bg-white border border-amber-300 px-2 py-1 text-amber-800"
-                                  title="Frete da transportadora — soma ao kit antes da pdespesa"
+                                  title={
+                                    (a.fornecedor || '').toLowerCase() === 'fortlev'
+                                      ? 'Fortlev: frete já no preço do kit — deixe 0 (só preencha se for frete extra)'
+                                      : 'Frete da transportadora — soma ao kit antes da pdespesa'
+                                  }
                                 />
                               </div>
                               <div>
-                                <div className="text-gray-500">pcusto (kit+frete)</div>
+                                <div className="text-gray-500">
+                                  pcusto
+                                  {(a.fornecedor || '').toLowerCase() === 'fortlev'
+                                    ? ' (kit−desc.)'
+                                    : ' (kit+frete)'}
+                                </div>
                                 <div>{money(a.comercial.pcusto)}</div>
                               </div>
                               <div>
@@ -1845,22 +1873,40 @@ export default function AdminV3PropostaAuto() {
                         ) : (
                           <p className="text-amber-700 text-xs">Sem bloco comercial — redimensionar.</p>
                         )}
-                        <div className="mt-3 pt-3 border-t border-gray-200 grid sm:grid-cols-4 gap-2 font-mono text-[11px] text-gray-500">
+                        <div className="mt-3 pt-3 border-t border-gray-200 grid sm:grid-cols-4 gap-2 font-mono text-[11px] text-gray-600">
                           <div>
-                            <div>legado custo</div>
-                            <div>{money(a.precos.custo)}</div>
+                            <div className="text-gray-500">kit bruto</div>
+                            <div>{money(a.comercial?.pcusto_kit ?? a.custo_total)}</div>
                           </div>
                           <div>
-                            <div>+ {params?.percentualDespesa ?? '?'}%</div>
-                            <div>{money(a.precos.despesa)}</div>
+                            <div className="text-gray-500">
+                              {(a.comercial?.desconto_fortlev_pct ?? 0) > 0
+                                ? `kit −${a.comercial?.desconto_fortlev_pct}%`
+                                : 'kit líquido'}
+                            </div>
+                            <div>
+                              {money(
+                                a.comercial?.pcusto_kit_liquido ??
+                                  a.comercial?.pcusto_kit ??
+                                  a.custo_total
+                              )}
+                            </div>
                           </div>
                           <div>
-                            <div>à vista simp.</div>
-                            <div>{money(a.precos.aVista)}</div>
+                            <div className="text-gray-500">
+                              frete
+                              {(a.fornecedor || '').toLowerCase() === 'fortlev' &&
+                              !(a.comercial?.frete ?? a.frete)
+                                ? ' (embutido)'
+                                : ''}
+                            </div>
+                            <div>{money(a.comercial?.frete ?? a.frete ?? 0)}</div>
                           </div>
                           <div>
-                            <div>PIX simp. −{params?.descontoPix ?? '?'}%</div>
-                            <div>{money(a.precos.pix)}</div>
+                            <div className="text-gray-500 font-semibold">= pcusto</div>
+                            <div className="font-semibold text-gray-800">
+                              {money(a.comercial?.pcusto ?? a.custo_total)}
+                            </div>
                           </div>
                         </div>
                         {a.auditoria?.economia_mensal_estimada != null && (

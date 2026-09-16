@@ -1,12 +1,25 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.21** (15/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.22** (16/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.21** - 15/09/2026 ✅ **ATUAL**
+### **v2.4.22** - 16/09/2026 ✅ **ATUAL**
+**☀️ Fortlev no kit automático — R$/Wp, desconto e frete embutido:**
+- ✅ Ranking Fortlev por **R$/Wp** (micro 6 MPPT preferido vs 2 MPPT)
+- ✅ Config **`descontoFortlevCustoPct`** (padrão 11%) no kit Fortlev antes da pdespesa
+- ✅ **Frete Fortlev = 0** (já no preço do portal); SOOLLAR segue kit+frete
+- ✅ Card: badge = **CD**; sob PIX mostra **pcusto** (não o PIX simplificado legado)
+- ✅ Parse BDM-2250/2500 (potência + MPPT)
+- ✅ Docs: `FORTLEV_PRECIFICACAO.md` + curva `src/data/fortlev/` + amostras `docs/fortlev/`
+
+**📦:** `propostaAuto.ts`, `bridge/comercial.ts`, `proposta-auto.tsx`, `configuracoes.*`, `parsePotencia.ts`, `docs/FORTLEV_PRECIFICACAO.md`
+
+---
+
+### **v2.4.21** - 15/09/2026
 **📡 Vercel aciona scraping no PC (F:/Postgres) + publish:**
 - ✅ Botões **Probe (sky)** e **Scraping live (teal)** na Vercel enfileiram job remoto
 - ✅ Fila Supabase (`pieng_captura_jobs` ou fallback `configuracoes.v3_captura_job`)

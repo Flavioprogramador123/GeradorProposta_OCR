@@ -69,6 +69,15 @@ export function precificarComercialV2(
   const total_final = Math.round((custo + pdespesa_total) * 100) / 100;
   const precos = calcularPrecosProposta(total_final, config);
 
+  const formulaPcusto =
+    descPct > 0 && freteN === 0
+      ? `pcusto = kit×(1−${descPct}% Fortlev) · frete embutido no kit`
+      : descPct > 0
+        ? `pcusto = kit×(1−${descPct}% Fortlev) + frete`
+        : freteN === 0
+          ? 'pcusto = kit'
+          : 'pcusto = kit + frete';
+
   return {
     pcusto_kit: Math.round(kitBruto * 100) / 100,
     pcusto_kit_liquido: kit,
@@ -88,10 +97,7 @@ export function precificarComercialV2(
     p18x_parcela: precos.p18x_parcela,
     p18x_total: precos.p18x_total,
     fatorParcelado: config.fatorParcelado,
-    formula:
-      descPct > 0
-        ? `pcusto = kit×(1−${descPct}% Fortlev) + frete; pdespesa = fixo + pcusto×(var%/100); PIX = pcusto + pdespesa`
-        : 'pcusto = kit + frete; pdespesa = fixo + pcusto×(var%/100); PIX = pcusto + pdespesa',
+    formula: `${formulaPcusto}; pdespesa = fixo + pcusto×(var%/100); PIX = pcusto + pdespesa`,
     fonte: 'v2-propostaOrcamentoProcessor',
   };
 }

@@ -1,0 +1,49 @@
+cliente:
+  nome: "Airton Ximenes"
+  cidade: "Anápolis"
+  consumo_mensal: 2500
+  tipo_imovel: "Residencial"
+  hsp: null
+  eficiencia_micro_inversor: null
+  tarifa: null
+
+consolidado_orcamentos_distribuidores:
+  fortlev_solar:
+    - orcamento:
+        arquivo_origem: "pedido-6aaac5bad33edd6ea09aacc4.pdf" #[cite: 59]
+        preco_custo: 31969.15 #[cite: 59]
+        inversores:
+          - quantidade: 6 #[cite: 59]
+            marca: "NEP" #[cite: 59]
+            potencia_unitaria: "2.5KW" #[cite: 59]
+        modulos:
+          - quantidade: 35 #[cite: 59]
+            marca: "JINKO" #[cite: 59]
+            potencia_unitaria: "630W" #[cite: 59]
+    - orcamento:
+        arquivo_origem: "pedido-6aaac5e4bd1c5a16a070cebe (1).pdf" #[cite: 60]
+        preco_custo: 29381.22 #[cite: 60]
+        inversores:
+          - quantidade: 1 #[cite: 60]
+            marca: "LIVOLTEK" #[cite: 60]
+            potencia_unitaria: "20KW" #[cite: 60]
+        modulos:
+          - quantidade: 35 #[cite: 60]
+            marca: "JINKO" #[cite: 60]
+            potencia_unitaria: "630W" #[cite: 60]
+    - orcamento:
+        arquivo_origem: "pedido-6aaac5e4bd1c5a16a070cebe.pdf" #[cite: 61]
+        preco_custo: 29458.90 #[cite: 61]
+        inversores:
+          - quantidade: 2 #[cite: 61]
+            marca: "FOXESS" #[cite: 61]
+            potencia_unitaria: "6KW" #[cite: 61]
+        modulos:
+          - quantidade: 35 #[cite: 61]
+            marca: "JINKO" #[cite: 61]
+            potencia_unitaria: "630W" #[cite: 61]
+
+
+
+
+            

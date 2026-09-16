@@ -74,6 +74,10 @@ A captura injeta um item sintético `391003` com a soma dessas peças para casar
 - `src/pages/api/admin/fortlev/captura.ts`
 - `src/pages/admin/fortlev-captura.tsx`
 
+## Precificação kit automático
+
+Ver [`docs/FORTLEV_PRECIFICACAO.md`](FORTLEV_PRECIFICACAO.md) — desconto 11%, frete embutido, ranking R$/Wp, curva portal e amostras em `docs/fortlev/`.
+
 ## Nota estoque
 
 Os cards de produto-avulso **não mostram** quantidade. Na gravação V3 usamos estoque assumido `999` para o preço ficar válido (`valido_estoque`).

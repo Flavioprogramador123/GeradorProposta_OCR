@@ -456,8 +456,10 @@ function montarAltFromKit(opts: {
     ],
   });
   const isFortlev = (opts.fornecedor || '').toLowerCase() === 'fortlev';
+  // Fortlev: frete já vem no preço do portal — não soma fretePadrao de novo
+  const freteEfetivo = isFortlev ? 0 : Math.max(0, Number(opts.frete) || 0);
   const precos = precificarCusto(calc.custo_total, params);
-  const comercial = precificarComercialV2(calc.custo_total, opts.comercial, opts.frete, {
+  const comercial = precificarComercialV2(calc.custo_total, opts.comercial, freteEfetivo, {
     aplicarDescontoFortlev: isFortlev,
   });
   const cob = consumoRef && consumoRef > 0 ? Math.round((ger / consumoRef) * 100) : null;
@@ -554,7 +556,7 @@ function montarAltFromKit(opts: {
     geracao_mensal_kwh: Math.round(ger),
     cobertura_pct: cob,
     custo_total: calc.custo_total,
-    frete: opts.frete,
+    frete: freteEfetivo,
     precos,
     precos_simplificado_4a: precos,
     comercial,

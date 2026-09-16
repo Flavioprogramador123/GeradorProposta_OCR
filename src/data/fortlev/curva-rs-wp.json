@@ -1,0 +1,520 @@
+{
+  "meta": {
+    "gerado_em": "2026-09-16T17:23:34.782Z",
+    "premissa": "Telhado fibro madeira 200mm · Anápolis · preços portal Fortlev (lista/PIX)",
+    "n_pontos_curva": 12,
+    "n_exclusoes_desconto_vendedor": 1,
+    "regra_2205": "Usar 1,51 R$/Wp string (portal). 1,33 = desconto vendedor → fora da curva."
+  },
+  "pontos_curva": [
+    {
+      "kwp": 5.04,
+      "tipo": "micro",
+      "lista": 7774.92,
+      "pix": 7619.43,
+      "rs_wp": 1.51,
+      "overload_pct": 12,
+      "fonte": "portal",
+      "n_mod_630": 8,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.5118,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 5.04,
+      "tipo": "string",
+      "lista": 7993.41,
+      "pix": 7833.54,
+      "rs_wp": 1.55,
+      "overload_pct": 68,
+      "fonte": "portal",
+      "n_mod_630": 8,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.5543,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 10.08,
+      "tipo": "string",
+      "lista": 14386.31,
+      "pix": 14098.59,
+      "rs_wp": 1.4,
+      "overload_pct": 68,
+      "fonte": "portal",
+      "n_mod_630": 16,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.3987,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 10.08,
+      "tipo": "micro",
+      "lista": 15195.21,
+      "pix": 14891.31,
+      "rs_wp": 1.48,
+      "overload_pct": 34.4,
+      "fonte": "portal",
+      "n_mod_630": 16,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.4773,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 15.12,
+      "tipo": "string",
+      "lista": 22136.89,
+      "pix": 21694.15,
+      "rs_wp": 1.43,
+      "overload_pct": 51.2,
+      "fonte": "portal",
+      "n_mod_630": 24,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.4348,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 15.12,
+      "tipo": "micro",
+      "lista": 22243.54,
+      "pix": 21798.67,
+      "rs_wp": 1.44,
+      "overload_pct": 51.2,
+      "fonte": "portal",
+      "n_mod_630": 24,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.4417,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 22.05,
+      "tipo": "string",
+      "lista": 33916.28,
+      "pix": 33237.95,
+      "rs_wp": 1.51,
+      "overload_pct": 47,
+      "fonte": "portal · referência comercial",
+      "n_mod_630": 35,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.5074,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 22.05,
+      "tipo": "micro",
+      "lista": 34244.76,
+      "pix": 33559.86,
+      "rs_wp": 1.52,
+      "overload_pct": 8.89,
+      "fonte": "portal · referência comercial",
+      "n_mod_630": 35,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.522,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 30.24,
+      "tipo": "string",
+      "lista": 44230.19,
+      "pix": 43345.59,
+      "rs_wp": 1.43,
+      "overload_pct": 51.2,
+      "fonte": "portal",
+      "n_mod_630": 48,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.4334,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 30.24,
+      "tipo": "micro",
+      "lista": 46649.55,
+      "pix": 45716.56,
+      "rs_wp": 1.51,
+      "overload_pct": 12,
+      "fonte": "portal",
+      "n_mod_630": 48,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.5118,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 39.69,
+      "tipo": "string",
+      "lista": 55878.4,
+      "pix": 54760.84,
+      "rs_wp": 1.38,
+      "overload_pct": 47,
+      "fonte": "portal",
+      "n_mod_630": 63,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.3797,
+      "exclusao_curva": false
+    },
+    {
+      "kwp": 39.69,
+      "tipo": "micro",
+      "lista": 58479.91,
+      "pix": 57310.31,
+      "rs_wp": 1.44,
+      "overload_pct": 44.33,
+      "fonte": "portal",
+      "n_mod_630": 63,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.4439,
+      "exclusao_curva": false
+    }
+  ],
+  "exclusoes_desconto_vendedor": [
+    {
+      "kwp": 22.05,
+      "tipo": "string",
+      "lista": 29980.83,
+      "pix": 29381.22,
+      "rs_wp": 1.33,
+      "overload_pct": null,
+      "fonte": "EXCEÇÃO · desconto vendedor (fora da curva)",
+      "n_mod_630": 35,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.3325,
+      "exclusao_curva": true
+    }
+  ],
+  "pedido_1088_ref": {
+    "kwp": 10.88,
+    "tipo": "micro",
+    "lista": 16877.44,
+    "pix": 16539.89,
+    "rs_wp": 1.5202,
+    "overload_pct": null,
+    "fonte": "pedido-260916095758403",
+    "n_mod_630": 17,
+    "desc_lista_pix_pct": 2
+  },
+  "desconto_lista_para_pix": {
+    "media_pct": 2,
+    "min_pct": 2,
+    "max_pct": 2,
+    "nota": "Quase sempre ~2% (lista→PIX). Não confundir com desconto kit vs avulso do V3."
+  },
+  "banda_2205_kwp": {
+    "string_referencia": {
+      "kwp": 22.05,
+      "tipo": "string",
+      "lista": 33916.28,
+      "pix": 33237.95,
+      "rs_wp": 1.51,
+      "overload_pct": 47,
+      "fonte": "portal · referência comercial",
+      "n_mod_630": 35,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.5074,
+      "exclusao_curva": false
+    },
+    "micro": {
+      "kwp": 22.05,
+      "tipo": "micro",
+      "lista": 34244.76,
+      "pix": 33559.86,
+      "rs_wp": 1.52,
+      "overload_pct": 8.89,
+      "fonte": "portal · referência comercial",
+      "n_mod_630": 35,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.522,
+      "exclusao_curva": false
+    },
+    "desconto_vendedor_excluido": {
+      "kwp": 22.05,
+      "tipo": "string",
+      "lista": 29980.83,
+      "pix": 29381.22,
+      "rs_wp": 1.33,
+      "overload_pct": null,
+      "fonte": "EXCEÇÃO · desconto vendedor (fora da curva)",
+      "n_mod_630": 35,
+      "desc_lista_pix_pct": 2,
+      "rs_wp_calc": 1.3325,
+      "exclusao_curva": true
+    },
+    "nota": "Referência comercial 22,05 = R$ 1,51/Wp (string). O 1,33 foi desconto extra do vendedor e não entra na curva."
+  },
+  "pares_micro_vs_string": [
+    {
+      "kwp": 5.04,
+      "pix_micro": 7619.43,
+      "pix_string_melhor": 7833.54,
+      "pix_string_pior": 7833.54,
+      "rs_wp_string_melhor": 1.55,
+      "rs_wp_string_pior": 1.55,
+      "n_kits_string": 1,
+      "delta_micro_menos_string_melhor": -214.11,
+      "delta_pct": -2.73,
+      "vencedor": "micro",
+      "rs_wp_micro": 1.51
+    },
+    {
+      "kwp": 10.08,
+      "pix_micro": 14891.31,
+      "pix_string_melhor": 14098.59,
+      "pix_string_pior": 14098.59,
+      "rs_wp_string_melhor": 1.4,
+      "rs_wp_string_pior": 1.4,
+      "n_kits_string": 1,
+      "delta_micro_menos_string_melhor": 792.72,
+      "delta_pct": 5.62,
+      "vencedor": "string",
+      "rs_wp_micro": 1.48
+    },
+    {
+      "kwp": 15.12,
+      "pix_micro": 21798.67,
+      "pix_string_melhor": 21694.15,
+      "pix_string_pior": 21694.15,
+      "rs_wp_string_melhor": 1.43,
+      "rs_wp_string_pior": 1.43,
+      "n_kits_string": 1,
+      "delta_micro_menos_string_melhor": 104.52,
+      "delta_pct": 0.48,
+      "vencedor": "string",
+      "rs_wp_micro": 1.44
+    },
+    {
+      "kwp": 22.05,
+      "pix_micro": 33559.86,
+      "pix_string_melhor": 33237.95,
+      "pix_string_pior": 33237.95,
+      "rs_wp_string_melhor": 1.51,
+      "rs_wp_string_pior": 1.51,
+      "n_kits_string": 1,
+      "delta_micro_menos_string_melhor": 321.91,
+      "delta_pct": 0.97,
+      "vencedor": "string",
+      "rs_wp_micro": 1.52
+    },
+    {
+      "kwp": 30.24,
+      "pix_micro": 45716.56,
+      "pix_string_melhor": 43345.59,
+      "pix_string_pior": 43345.59,
+      "rs_wp_string_melhor": 1.43,
+      "rs_wp_string_pior": 1.43,
+      "n_kits_string": 1,
+      "delta_micro_menos_string_melhor": 2370.97,
+      "delta_pct": 5.47,
+      "vencedor": "string",
+      "rs_wp_micro": 1.51
+    },
+    {
+      "kwp": 39.69,
+      "pix_micro": 57310.31,
+      "pix_string_melhor": 54760.84,
+      "pix_string_pior": 54760.84,
+      "rs_wp_string_melhor": 1.38,
+      "rs_wp_string_pior": 1.38,
+      "n_kits_string": 1,
+      "delta_micro_menos_string_melhor": 2549.47,
+      "delta_pct": 4.66,
+      "vencedor": "string",
+      "rs_wp_micro": 1.44
+    }
+  ],
+  "curvas": {
+    "micro": {
+      "tipo": "micro",
+      "n": 6,
+      "hiperbola": {
+        "formula": "R$/Wp ≈ a + b/kWp",
+        "a": 1.4701519486459629,
+        "b": 0.16921913474125844,
+        "r2": 0.09187778245219169
+      },
+      "linear": {
+        "formula": "R$/Wp ≈ a + b·kWp",
+        "a": 1.4992866121935888,
+        "b": -0.0007831752017798535,
+        "r2": 0.07904475429392688
+      },
+      "previsoes": [
+        {
+          "kwp": 5.04,
+          "rs_wp_previsto": 1.5037,
+          "pix_previsto": 7578.65
+        },
+        {
+          "kwp": 10.08,
+          "rs_wp_previsto": 1.4869,
+          "pix_previsto": 14987.95
+        },
+        {
+          "kwp": 15.12,
+          "rs_wp_previsto": 1.4813,
+          "pix_previsto": 22397.26
+        },
+        {
+          "kwp": 22.05,
+          "rs_wp_previsto": 1.4778,
+          "pix_previsto": 32585.49
+        },
+        {
+          "kwp": 30.24,
+          "rs_wp_previsto": 1.4757,
+          "pix_previsto": 44625.17
+        },
+        {
+          "kwp": 39.69,
+          "rs_wp_previsto": 1.4744,
+          "pix_previsto": 58518.94
+        }
+      ]
+    },
+    "string_todos": {
+      "tipo": "string",
+      "n": 6,
+      "hiperbola": {
+        "formula": "R$/Wp ≈ a + b/kWp",
+        "a": 1.3985188713467815,
+        "b": 0.6609011308613164,
+        "r2": 0.42001314006066026
+      },
+      "linear": {
+        "formula": "R$/Wp ≈ a + b·kWp",
+        "a": 1.5071574481458203,
+        "b": -0.0028059621082876917,
+        "r2": 0.30408648994631526
+      },
+      "previsoes": [
+        {
+          "kwp": 5.04,
+          "rs_wp_previsto": 1.5297,
+          "pix_previsto": 7709.69
+        },
+        {
+          "kwp": 10.08,
+          "rs_wp_previsto": 1.4641,
+          "pix_previsto": 14758.13
+        },
+        {
+          "kwp": 15.12,
+          "rs_wp_previsto": 1.4422,
+          "pix_previsto": 21806.06
+        },
+        {
+          "kwp": 22.05,
+          "rs_wp_previsto": 1.4285,
+          "pix_previsto": 31498.43
+        },
+        {
+          "kwp": 30.24,
+          "rs_wp_previsto": 1.4204,
+          "pix_previsto": 42952.9
+        },
+        {
+          "kwp": 39.69,
+          "rs_wp_previsto": 1.4152,
+          "pix_previsto": 56169.29
+        }
+      ]
+    },
+    "string_piso_melhor_rs_wp": {
+      "tipo": "string",
+      "n": 6,
+      "hiperbola": {
+        "formula": "R$/Wp ≈ a + b/kWp",
+        "a": 1.3985188713467815,
+        "b": 0.6609011308613164,
+        "r2": 0.42001314006066026
+      },
+      "linear": {
+        "formula": "R$/Wp ≈ a + b·kWp",
+        "a": 1.5071574481458203,
+        "b": -0.0028059621082876917,
+        "r2": 0.30408648994631526
+      },
+      "previsoes": [
+        {
+          "kwp": 5.04,
+          "rs_wp_previsto": 1.5297,
+          "pix_previsto": 7709.69
+        },
+        {
+          "kwp": 10.08,
+          "rs_wp_previsto": 1.4641,
+          "pix_previsto": 14758.13
+        },
+        {
+          "kwp": 15.12,
+          "rs_wp_previsto": 1.4422,
+          "pix_previsto": 21806.06
+        },
+        {
+          "kwp": 22.05,
+          "rs_wp_previsto": 1.4285,
+          "pix_previsto": 31498.43
+        },
+        {
+          "kwp": 30.24,
+          "rs_wp_previsto": 1.4204,
+          "pix_previsto": 42952.9
+        },
+        {
+          "kwp": 39.69,
+          "rs_wp_previsto": 1.4152,
+          "pix_previsto": 56169.29
+        }
+      ]
+    },
+    "string_teto_pior_rs_wp": {
+      "tipo": "string",
+      "n": 6,
+      "hiperbola": {
+        "formula": "R$/Wp ≈ a + b/kWp",
+        "a": 1.3985188713467815,
+        "b": 0.6609011308613164,
+        "r2": 0.42001314006066026
+      },
+      "linear": {
+        "formula": "R$/Wp ≈ a + b·kWp",
+        "a": 1.5071574481458203,
+        "b": -0.0028059621082876917,
+        "r2": 0.30408648994631526
+      },
+      "previsoes": [
+        {
+          "kwp": 5.04,
+          "rs_wp_previsto": 1.5297,
+          "pix_previsto": 7709.69
+        },
+        {
+          "kwp": 10.08,
+          "rs_wp_previsto": 1.4641,
+          "pix_previsto": 14758.13
+        },
+        {
+          "kwp": 15.12,
+          "rs_wp_previsto": 1.4422,
+          "pix_previsto": 21806.06
+        },
+        {
+          "kwp": 22.05,
+          "rs_wp_previsto": 1.4285,
+          "pix_previsto": 31498.43
+        },
+        {
+          "kwp": 30.24,
+          "rs_wp_previsto": 1.4204,
+          "pix_previsto": 42952.9
+        },
+        {
+          "kwp": 39.69,
+          "rs_wp_previsto": 1.4152,
+          "pix_previsto": 56169.29
+        }
+      ]
+    }
+  },
+  "recomendacao_auto": {
+    "rs_wp_referencia_2205": 1.51,
+    "preferir": "Rankear por R$/Wp. Em 22 kWp mirar ~1,51 (string portal), não 1,33. Micro ~1,52 quase empata com string referência.",
+    "descontoFortlevCustoPct": "−11% continua para avulso→kit. Não misturar com desconto comercial pontual do vendedor."
+  }
+}
