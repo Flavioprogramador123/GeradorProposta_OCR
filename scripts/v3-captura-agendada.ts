@@ -60,7 +60,7 @@ async function main() {
       singleSession: true,
       onLog: (level, message) => console.log(`[${level}] ${message}`),
     });
-    const lines = (result.results || []).map((r: Record<string, unknown>) => {
+    const lines = ((result.results || []) as Array<Record<string, unknown>>).map((r) => {
       if (r.error) return `${r.fonte}/${r.cd || ''}: ERRO ${r.error}`;
       if (r.warning) return `${r.fonte}/${r.cd || ''}: ${r.warning}`;
       return `${r.fonte}/${r.cd || ''}: ${r.matched ?? 0} match · ${r.validos ?? 0} válidos`;
@@ -71,6 +71,31 @@ async function main() {
     if (divs.length) {
       console.warn(formatDivergenciasResumo(divs));
       msg += ` | ⚠ ${divs.length} divergência(s) preço entre CDs`;
+    }
+
+    /**
+     * Nenhum CD trouxe dado útil = captura falhou. Sem isso o script saía com 0,
+     * o worker marcava o job como 'done' e o publish subia o catálogo VELHO
+     * como se fosse captura nova (falso positivo silencioso).
+     */
+    const resultados = (result.results || []) as Array<Record<string, unknown>>;
+    const comDados = resultados.filter(
+      (r) => Number(r.matched ?? 0) > 0 || Number(r.validos ?? 0) > 0
+    );
+    const nadaCapturado =
+      resultados.length > 0 &&
+      comDados.length === 0 &&
+      resultados.every((r) => Boolean(r.error) || Boolean(r.warning));
+
+    if (nadaCapturado) {
+      const failMsg = `${msg} | ❌ nenhum CD retornou dados — publish ignorado`;
+      console.error('❌ Captura sem dados:', failMsg);
+      saveCapturaAgenda({
+        lastRunAt: new Date().toISOString(),
+        lastRunOk: false,
+        lastRunMsg: failMsg.slice(0, 500),
+      });
+      process.exit(1);
     }
 
     let publishPart = '';

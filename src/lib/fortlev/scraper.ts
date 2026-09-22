@@ -30,6 +30,7 @@ export {
   fortlevProdutoAvulsoUrl,
   getFortlevCredentials,
 } from './types';
+export type { FortlevLogLine } from './types';
 export { FORTLEV_BOM_KIT_391003, FORTLEV_KIT_SINTETICO, montarBomKit391003 } from './bom';
 
 function parseMoneyBr(raw: string): number | null {
@@ -92,7 +93,14 @@ async function loginFortlev(page: Page, log: FortlevLogger): Promise<boolean> {
     return false;
   }
   log('info', `Login ${FORTLEV_LOGIN_URL}`);
-  await page.goto(FORTLEV_LOGIN_URL, { waitUntil: 'networkidle', timeout: 60000 });
+  // `networkidle` não estabiliza nesta SPA (conexões de longa duração) → 60s de timeout.
+  // Mesmo padrão resiliente já usado no scraper SOOLLAR: cai para domcontentloaded.
+  await page
+    .goto(FORTLEV_LOGIN_URL, { waitUntil: 'networkidle', timeout: 60000 })
+    .catch(async (e) => {
+      log('warn', `networkidle não estabilizou (${(e as Error).message.split('\n')[0]}) — usando domcontentloaded`);
+      await page.goto(FORTLEV_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    });
   const email = page.locator('input[type="email"], input[name="email"]').first();
   const senha = page.locator('input[type="password"]').first();
   await email.waitFor({ timeout: 20000 });
@@ -164,7 +172,10 @@ async function capturarFamilia(
 ): Promise<FortlevProduto[]> {
   const url = fortlevProdutoAvulsoUrl(familia);
   log('info', `Abrindo ${url}`);
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 }).catch(async (e) => {
+    log('warn', `networkidle não estabilizou (${(e as Error).message.split('\n')[0]}) — usando domcontentloaded`);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  });
   await page.waitForTimeout(1500);
 
   const htmxItems = await fetchPaginasHtmx(page, log, familia);

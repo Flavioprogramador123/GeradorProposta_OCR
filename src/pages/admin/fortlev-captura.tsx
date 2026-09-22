@@ -13,6 +13,7 @@ interface LogLine {
 
 interface StatusResp {
   configured: boolean;
+  serverless?: boolean;
   hasUser: boolean;
   hasPassword: boolean;
   baseUrl: string;
@@ -237,13 +238,22 @@ export default function FortlevCapturaPage() {
             </button>
             <button
               type="button"
-              disabled={running || !status?.configured}
+              disabled={running || (!status?.configured && !status?.serverless)}
               onClick={() => void run('capturar')}
               className="px-4 py-2 rounded-lg bg-teal-700 text-white text-sm font-medium disabled:opacity-50"
             >
               {running ? 'Capturando…' : 'Capturar produto-avulso'}
             </button>
           </div>
+
+          {status?.serverless && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              Nuvem (Vercel): Playwright não roda aqui. O botão enfileira um job{' '}
+              <code>fortlev_scrape</code> no Supabase e o worker do PC
+              (<code>npm run v3:jobs:worker</code>) executa a captura e publica. O log abaixo
+              confirma o enfileiramento — o progresso detalhado fica no PC.
+            </div>
+          )}
 
           <div className="rounded-xl bg-slate-900 text-slate-100 p-4 font-mono text-xs h-80 overflow-y-auto">
             {logs.length === 0 && (

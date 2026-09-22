@@ -9,6 +9,7 @@
     "lint": "next lint",
     "v3:captura": "npx --yes tsx scripts/v3-captura-agendada.ts",
     "v3:captura:force": "npx --yes tsx scripts/v3-captura-agendada.ts --force",
+    "v3:captura:fortlev": "npx --yes tsx scripts/v3-captura-fortlev.ts",
     "v3:jobs:enqueue": "npx --yes tsx scripts/v3-jobs-worker.ts --enqueue",
     "v3:jobs:worker": "npx --yes tsx scripts/v3-jobs-worker.ts",
     "v3:jobs:worker:once": "npx --yes tsx scripts/v3-jobs-worker.ts --once",

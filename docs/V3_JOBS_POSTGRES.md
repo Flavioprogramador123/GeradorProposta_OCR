@@ -1,6 +1,6 @@
 # PIENG Jobs — disparo local via Postgres (Tailscale) + Vercel via Supabase
 
-Atualizado: **2026-09-15**
+Atualizado: **2026-09-22**
 
 ## Ideia
 
@@ -31,7 +31,11 @@ npm install
 npm start
 ```
 
-http://127.0.0.1:3099 · http://100.104.172.12:3099
+http://127.0.0.1:3099 · http://100.93.167.45:3099
+
+> IP Tailscale do PC (`cca-tecnica-1`) confirmado em 2026-09-22. Se mudar de
+> novo, checar com `tailscale status` no PC — o IP não é fixo entre
+> reinstalações/reset do Tailscale.
 
 ## 2) Worker no logon (recomendado)
 

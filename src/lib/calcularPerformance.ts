@@ -4,9 +4,9 @@
  */
 
 export interface InversorEquipamento {
-  modulos: number;
-  inversores: number;
-  pot_inv: number;
+  modulos?: number;
+  inversores?: number;
+  pot_inv?: number;
   marca_inversor?: string;
   bonusMicroAtivo?: boolean;
   bonusMicroManual?: boolean;
@@ -14,18 +14,19 @@ export interface InversorEquipamento {
 
 export function isMicroInversor(orc: InversorEquipamento): boolean {
   const marca = (orc.marca_inversor || '').toLowerCase().trim();
-  if (!marca || marca === 'string') {
-    // placeholder legado — inferir só por quantidade/potência
-  } else {
+  if (marca && marca !== 'string') {
     if (/micro/.test(marca)) return true;
     const marcasMicro = ['hoymiles', 'apsystems', 'enphase', 'tsun', 'deye', 'growatt ne'];
     if (marcasMicro.some((m) => marca.includes(m))) return true;
   }
+  const modulos = orc.modulos ?? 0;
+  const inversores = orc.inversores ?? 0;
+  const potInv = orc.pot_inv ?? 0;
   // 1 micro por ~2–4 módulos (ex.: 12 mód / 3×2.25 kW)
-  if (orc.modulos > 0 && orc.inversores >= orc.modulos * 0.8) return true;
-  if (orc.pot_inv > 0 && orc.pot_inv < 1) return true;
+  if (modulos > 0 && inversores >= modulos * 0.8) return true;
+  if (potInv > 0 && potInv < 1) return true;
   // micros residenciais típicos ≤2.5 kW com vários aparelhos
-  if (orc.pot_inv > 0 && orc.pot_inv <= 2.5 && orc.inversores >= 2) return true;
+  if (potInv > 0 && potInv <= 2.5 && inversores >= 2) return true;
   return false;
 }
 
