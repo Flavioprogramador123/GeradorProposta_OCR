@@ -5,7 +5,12 @@ import { getVariantConfig, type ClientType, type ComercialSubType, type VariantC
 import { loadVariantCss, generateCssTag } from './cssLoader';
 import { injectPdfSupport } from './propostaPdf';
 import { injectPropostaAnalytics } from './propostaAnalytics';
-import { getFormasPagamentoModalScript, tagEconomiaPix } from './tabelaJurosCartao';
+import {
+  buildTabelaCartao,
+  buildTabelaCartaoFromParcelaPercent,
+  getFormasPagamentoModalScript,
+  tagEconomiaPix,
+} from './tabelaJurosCartao';
 import { formatBRL } from './formatBRL';
 import { getSolarDataByCidade, resolveSolarCidadeKey } from './solarProjection';
 import { generateProjecaoGeracaoClienteHtml } from './chartGenerator';
@@ -18,12 +23,59 @@ import {
   type TextosMarketingResolvidos,
 } from './textosMarketingVariaveis';
 
-function injectFormasPagamento(html: string, taxaCartaoMensal?: number): string {
-  const snippet = getFormasPagamentoModalScript(taxaCartaoMensal);
+function injectFormasPagamento(html: string, entrada?: unknown): string {
+  const snippet = getFormasPagamentoModalScript(entrada as never);
   if (html.includes('</body>')) {
     return html.replace('</body>', `${snippet}\n</body>`);
   }
   return html + snippet;
+}
+
+/**
+ * Tabela de cartão que vai para o modal do cliente.
+ * Prioridade: juros por parcela salvos na proposta → config (Ton/PagSeguro).
+ */
+function resolveTabelaCartao(html: string, data: unknown): unknown {
+  const d = (data || {}) as {
+    cartao?: {
+      jurosParcelaPercent?: Record<string, number>;
+      maxParcelas?: number;
+      taxaCartaoMensal?: number;
+    };
+    jurosParcelaPercent?: Record<string, number>;
+    config?: {
+      jurosParcelaPercent?: Record<string, number>;
+      adquirente?: string;
+      prazoRecebimento?: string;
+      faixaFaturamento?: number;
+      taxaMensalPagSeguro?: number;
+      tonTotais?: Record<string, number> | null;
+      taxaCartaoMensal?: number;
+    };
+    taxaCartaoMensal?: number;
+  };
+
+  const juros =
+    d.cartao?.jurosParcelaPercent ??
+    d.jurosParcelaPercent ??
+    d.config?.jurosParcelaPercent ??
+    null;
+
+  if (juros && Object.keys(juros).length) {
+    return buildTabelaCartaoFromParcelaPercent(
+      juros as Record<number, number>,
+      d.cartao?.taxaCartaoMensal ?? d.taxaCartaoMensal
+    );
+  }
+
+  return buildTabelaCartao({
+    adquirente: d.config?.adquirente,
+    prazoRecebimento: d.config?.prazoRecebimento,
+    faixaFaturamento: d.config?.faixaFaturamento,
+    tonTotais: d.config?.tonTotais ?? null,
+    taxaMensalPagSeguro: d.config?.taxaMensalPagSeguro,
+    taxaMensalFallback: d.config?.taxaCartaoMensal ?? d.taxaCartaoMensal,
+  });
 }
 
 interface ClienteData {
@@ -340,6 +392,8 @@ interface Sistema {
   p18x_parcela: number;
   p12x_total?: number;
   p18x_total?: number;
+  p21x_parcela?: number;
+  p21x_total?: number;
   geracaoMensal: number;
   cobertura: number;
   economiaMensal: number;
@@ -386,9 +440,31 @@ interface PropostaData {
     textoTIR?: string;
     textoValorizacaoImovel?: string;
     textoSustentabilidade?: string;
+    /** Maquininha vigente (Ton/PagSeguro) — proposta reproduzível */
+    adquirente?: string;
+    prazoRecebimento?: string | null;
+    faixaFaturamento?: number | null;
+    taxaMensalPagSeguro?: number | null;
+    taxaCartaoMensal?: number;
+    jurosParcelaPercent?: Record<string, number> | null;
+    tonTotais?: Record<string, number> | null;
+    maxParcelasCartao?: number;
+    [key: string]: unknown;
   };
+  /** Tabela de cartão resolvida, gravada junto da proposta */
+  cartao?: {
+    adquirente?: string;
+    prazoRecebimento?: string | null;
+    faixaFaturamento?: number | null;
+    jurosParcelaPercent?: Record<string, number> | null;
+    maxParcelas?: number;
+    taxaCartaoMensal?: number;
+  };
+  /** Slug público da proposta (PDF/links) */
+  slug?: string;
   analise?: {
     economiaTarifa?: string;
+    [key: string]: unknown;
   };
   /** Textos de marketing já processados (config + tokens da proposta) */
   marketing?: TextosMarketingResolvidos;
@@ -536,7 +612,7 @@ export class TemplateEnginePadrao {
     return injectPropostaAnalytics(
       injectFormasPagamento(
         injectPdfSupport(html, data.cliente?.nome, (data as PropostaData & { slug?: string }).slug),
-        (data as PropostaData & { taxaCartaoMensal?: number }).taxaCartaoMensal
+        resolveTabelaCartao(html, data)
       ),
       (data as PropostaData & { slug?: string }).slug
     );
@@ -894,6 +970,8 @@ export class TemplateEnginePadrao {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     const cardUnico = sistemas.length === 1;
+    // Maior parcelamento da maquininha vigente (Ton = 21×, fallback PagSeguro = 18×)
+    const maxParcelas = data?.cartao?.maxParcelas ?? data?.config?.maxParcelasCartao ?? 18;
 
     return sistemas.map((sistema, index) => {
       const paybackAtual = Number(sistema.paybackMeses) || 999;
@@ -941,8 +1019,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p12x)}
                 </div>
                 <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  ${formatBRL(sistema.p18x_parcela)}
+                  <strong>${maxParcelas}× cartão</strong><br>
+                  ${formatBRL(maxParcelas >= 21 && sistema.p21x_parcela ? sistema.p21x_parcela : sistema.p18x_parcela)}
                 </div>
               </div>
 
@@ -961,6 +1039,8 @@ export class TemplateEnginePadrao {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     const cardUnico = sistemas.length === 1;
+    // Maior parcelamento da maquininha vigente (Ton = 21×, fallback PagSeguro = 18×)
+    const maxParcelas = data?.cartao?.maxParcelas ?? data?.config?.maxParcelasCartao ?? 18;
 
     return sistemas.map((sistema, index) => {
       const paybackAtual = Number(sistema.paybackMeses) || 999;
@@ -1010,8 +1090,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p12x)}
                 </div>
                 <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  ${formatBRL(sistema.p18x_parcela)}
+                  <strong>${maxParcelas}× cartão</strong><br>
+                  ${formatBRL(maxParcelas >= 21 && sistema.p21x_parcela ? sistema.p21x_parcela : sistema.p18x_parcela)}
                 </div>
               </div>
 

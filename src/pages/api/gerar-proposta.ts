@@ -3,7 +3,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { generateTemplateHtmlPadrao, generateTemplateHtmlResultados } from '@/lib/templateEngine';
 import { pythonCalculator } from '@/lib/python-calculator';
-import { calcularPrecosDePix, buildMultiplicadoresFromTaxa, tagEconomiaPix } from '@/lib/tabelaJurosCartao';
+import { calcularPrecosDePixComTabela, buildTabelaCartao, buildMultiplicadoresFromTaxa, tagEconomiaPix, type TabelaCartao } from '@/lib/tabelaJurosCartao';
+import { resolverTonTotaisServer } from '@/lib/maquininha/tonTotaisServer';
+import { parseTabelaTon } from '@/lib/maquininha/tonTabela';
 import { formatBRL } from '@/lib/formatBRL';
 import { getBonusMicroAtivo } from '@/lib/calcularPerformance';
 import { resolverTextosMarketing } from '@/lib/textosMarketingVariaveis';
@@ -186,7 +188,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 🔧 NOVO: Validar dados com Python Calculator (opcional, não deve quebrar se falhar)
-    let validationResults = [];
+    let validationResults: any[] = [];
     try {
       validationResults = await validarDadosComPython(orcamentos, cliente);
       console.log('🐍 Validação Python:', validationResults.length, 'resultados');
@@ -194,12 +196,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.warn('⚠️ Validação Python não disponível, continuando sem validação:', validationError);
     }
 
-    // PIX = base; à vista = total 12× cartão; 12×/18× pela taxa mensal
+    // PIX = base; à vista = total 12× cartão; parcelas pela tabela da maquininha
     const taxaCartaoMensal =
       Number(config?.taxaCartaoMensal ?? configSistema.taxaCartaoMensal ?? 1.51) || 1.51;
+    const prazoRecebimento =
+      config?.prazoRecebimento ?? configSistema.prazoRecebimento ?? 'umDiaUtil';
+    const faixaFaturamento =
+      config?.faixaFaturamento ?? configSistema.faixaFaturamento ?? 0;
+    const tonTotaisRecebidos =
+      config?.tonTotais ?? configSistema.tonTotais ?? (await resolverTonTotaisServer(prazoRecebimento, faixaFaturamento));
+    const tonTotais = Array.isArray(tonTotaisRecebidos)
+      ? parseTabelaTon(tonTotaisRecebidos, prazoRecebimento, faixaFaturamento)
+      : tonTotaisRecebidos;
+    const tabelaCartao: TabelaCartao = buildTabelaCartao({
+      adquirente: config?.adquirente ?? configSistema.adquirente,
+      prazoRecebimento,
+      faixaFaturamento,
+      tonTotais: tonTotais ?? null,
+      taxaMensalPagSeguro: config?.taxaMensalPagSeguro ?? configSistema.taxaMensalPagSeguro,
+      taxaMensalFallback: taxaCartaoMensal,
+    });
     const calcularPrecos = (totalFinal: number) => {
       const markup = config?.fatorParcelado ?? configSistema.fatorParcelado ?? 1.20;
-      return calcularPrecosDePix(totalFinal, markup, taxaCartaoMensal);
+      return calcularPrecosDePixComTabela(totalFinal, tabelaCartao, markup);
     };
 
      // Calcular performance usando configurações dinâmicas (+ bônus micro se ativo)
@@ -507,6 +526,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const templateData = {
         slug,
         taxaCartaoMensal,
+        cartao: {
+          adquirente: tabelaCartao.adquirente,
+          prazoRecebimento,
+          faixaFaturamento,
+          jurosParcelaPercent: tabelaCartao.jurosParcelaPercent,
+          maxParcelas: tabelaCartao.maxParcelas,
+          taxaCartaoMensal: tabelaCartao.taxaMensal12x,
+        },
+        config: {
+          adquirente: tabelaCartao.adquirente,
+          prazoRecebimento,
+          faixaFaturamento,
+          taxaMensalPagSeguro: config?.taxaMensalPagSeguro ?? configSistema.taxaMensalPagSeguro,
+          tonTotais: tabelaCartao.jurosParcelaPercent,
+          jurosParcelaPercent: tabelaCartao.jurosParcelaPercent,
+        },
         cliente: {
           nome: cliente.nome,
           cidade: cliente.cidade,
@@ -537,6 +572,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           priscado: sistema.priscado,
           p12x: sistema.p12x,
           p18x_parcela: sistema.p18x_parcela,
+          p21x_parcela: sistema.p21x_parcela,
+          p21x_total: sistema.p21x_total,
 
           // Formatados para Next.js
           precoRiscado: formatBRL(sistema.priscado),
@@ -592,15 +629,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dataGeracao: dataAtual,
         dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         performanceRate: config.performanceRate || configSistema.performanceRate || 0.78,
-        config: {
-          performanceRate: config.performanceRate || configSistema.performanceRate || 0.78,
-          hsp: config.hsp || configSistema.hspPadrao || 5.21,
-          textoEconomiaAnual: configSistema.textoEconomiaAnual,
-          textoPayback: configSistema.textoPayback,
-          textoTIR: configSistema.textoTIR,
-          textoValorizacaoImovel: configSistema.textoValorizacaoImovel,
-          textoSustentabilidade: configSistema.textoSustentabilidade,
-        },
       };
 
       // Textos de marketing (config ativa + tokens do melhor sistema)
@@ -709,7 +737,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           preco12x: formatBRL(sistema.p12x),
           preco18x: formatBRL(sistema.p18x_parcela),
           geracao: `${(sistema.geracaoMensal || 0).toFixed(0)} kWh`,
-          cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Número inteiro arredondado
           coberturaFormatada: `${Math.round(parseFloat(sistema.cobertura) || 0)}%`, // Formatado para exibição
           economia: `R$ ${(sistema.economiaMensal || 0).toFixed(2)}`,
           payback: `${(sistema.paybackMeses || 0).toFixed(1)} meses`,
@@ -739,7 +766,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           potTotal: sistema.potTotal || 0,
           nome: sistema.nome || `Sistema ${String(index + 1).padStart(2, '0')}`,
           distribuidora: sistema.distribuidora || 'Fornecedor',
-          fornecedor: sistema.distribuidora || sistema.fornecedor || 'Fornecedor', // Alias
+          distribuicao: sistema.distribuidora || sistema.fornecedor || 'Fornecedor', // Alias
           // Campos financeiros adicionais (para compatibilidade)
           pavista: sistema.pavista || sistema.ppix || 0,
           priscado: sistema.priscado || sistema.pavista || sistema.ppix || 0,
@@ -747,12 +774,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p12x_total: sistema.p12x_total || (sistema.p12x || 0) * 12,
           p18x_parcela: sistema.p18x_parcela || 0,
           p18x_total: sistema.p18x_total || (sistema.p18x_parcela || 0) * 18,
-           // Campos técnicos (valores numéricos)
-           geracaoMensal: sistema.geracaoMensal || 0,
-           cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Valor numérico inteiro arredondado
-           economiaMensal: sistema.economiaMensal || 0,
+          p21x_parcela: sistema.p21x_parcela || 0,
+          p21x_total: sistema.p21x_total || (sistema.p21x_parcela || 0) * 21,
+          // Campos técnicos (valores numéricos)
+          geracaoMensal: sistema.geracaoMensal || 0,
+          cobertura: Math.round(parseFloat(sistema.cobertura) || 0), // ✅ Valor numérico inteiro arredondado
+          economiaMensal: sistema.economiaMensal || 0,
           paybackMeses: sistema.paybackMeses || 0,
-          tirAnual: sistema.tirAnual || 0
+          tirAnual: sistema.tirAnual || 0,
         }));
       })(),
       analise: (() => {
@@ -834,19 +863,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         consumoMensal: config.consumoMensal || cliente.consumo_mensal || 600,
         metodo: config.metodo || 'variavel',
         descontoPix: (() => {
-          const sample = calcularPrecosDePix(
+          const sample = calcularPrecosDePixComTabela(
             10000,
-            config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.2,
-            taxaCartaoMensal
+            tabelaCartao,
+            config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.2
           );
           return sample.economiaPercent;
         })(),
         fatorParcelado: config.fatorParcelado ?? configSistema.fatorParcelado ?? 1.20,
         taxaCartaoMensal,
-        fator12x: 1 / buildMultiplicadoresFromTaxa(taxaCartaoMensal)[12],
-        fator18x: 1 / buildMultiplicadoresFromTaxa(taxaCartaoMensal)[18],
+        fator12x: 1 / (tabelaCartao.jurosParcelaPercent[12] != null
+          ? 1 + tabelaCartao.jurosParcelaPercent[12] / 100
+          : buildMultiplicadoresFromTaxa(taxaCartaoMensal)[12]),
+        fator18x: 1 / (tabelaCartao.jurosParcelaPercent[18] != null
+          ? 1 + tabelaCartao.jurosParcelaPercent[18] / 100
+          : buildMultiplicadoresFromTaxa(taxaCartaoMensal)[18]),
+        // Maquininha (tabela Ton + fallback PagSeguro) — mantém a proposta reproduzível
+        adquirente: tabelaCartao.adquirente,
+        prazoRecebimento,
+        faixaFaturamento,
+        taxaMensalPagSeguro: config?.taxaMensalPagSeguro ?? configSistema.taxaMensalPagSeguro,
+        tonTotais: tabelaCartao.jurosParcelaPercent,
+        jurosParcelaPercent: tabelaCartao.jurosParcelaPercent,
+        maxParcelasCartao: tabelaCartao.maxParcelas,
         bonusMicroPercent: config.bonusMicroPercent ?? configSistema.bonusMicroPercent ?? 5,
-        precificacao: 'pix_base_tabela_cartao_v1',
+        precificacao: 'pix_base_tabela_cartao_v2',
         textoEconomiaAnual: configSistema.textoEconomiaAnual,
         textoPayback: configSistema.textoPayback,
         textoTIR: configSistema.textoTIR,
@@ -854,6 +895,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         textoSustentabilidade: configSistema.textoSustentabilidade,
       },
       taxaCartaoMensal,
+      cartao: {
+        adquirente: tabelaCartao.adquirente,
+        prazoRecebimento,
+        faixaFaturamento,
+        jurosParcelaPercent: tabelaCartao.jurosParcelaPercent,
+        maxParcelas: tabelaCartao.maxParcelas,
+        taxaCartaoMensal: tabelaCartao.taxaMensal12x,
+      },
       marketing: (() => {
         const melhor = (sistemas as any[]).find((s: any) => s.isRecommended) || sistemas[0] || {};
         const econMensal = Number(melhor.economiaMensal) || 0;
