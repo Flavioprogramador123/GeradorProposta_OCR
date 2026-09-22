@@ -13,10 +13,14 @@ import { AdminThemePicker } from '@/components/AdminThemePicker';
 import {
   TAXA_CARTAO_MENSAL_REF,
   PARCELAS_REFERENCIA_AVISTA,
-  buildMultiplicadoresFromTaxa,
-  calcularPrecosDePix,
+  buildTabelaCartao,
+  calcularParcelamentoCartao,
+  calcularPrecosDePixComTabela,
+  opcoesSeletorCartao,
   normalizeTaxaCartaoMensal,
 } from '@/lib/tabelaJurosCartao';
+import { FAIXAS_TON } from '@/lib/maquininha/tonTabela';
+import { TAXA_MENSAL_PAGSEGURO_PADRAO } from '@/lib/maquininha/taxaAdapter';
 import {
   CAMPOS_MARKETING_VARIAVEIS,
   encontrarVariacaoAtiva,
@@ -133,13 +137,37 @@ export default function Configuracoes() {
   const taxaMensal = normalizeTaxaCartaoMensal(
     config.taxaCartaoMensal ?? TAXA_CARTAO_MENSAL_REF
   );
-  const mults = useMemo(() => buildMultiplicadoresFromTaxa(taxaMensal), [taxaMensal]);
-  const samplePrecos = useMemo(
-    () => calcularPrecosDePix(10000, config.fatorParcelado || 1.2, taxaMensal),
-    [config.fatorParcelado, taxaMensal]
+  /** Tabela vigente: Ton (tontaxa.json) ou PagSeguro (taxa manual) */
+  const tabelaCartao = useMemo(
+    () =>
+      buildTabelaCartao({
+        adquirente: config.adquirente,
+        tonTotais: config.tonTotais ?? null,
+        prazoRecebimento: config.prazoRecebimento,
+        faixaFaturamento: config.faixaFaturamento,
+        taxaMensalPagSeguro: config.taxaMensalPagSeguro,
+        taxaMensalFallback: config.taxaCartaoMensal,
+      }),
+    [
+      config.adquirente,
+      config.tonTotais,
+      config.prazoRecebimento,
+      config.faixaFaturamento,
+      config.taxaMensalPagSeguro,
+      config.taxaCartaoMensal,
+    ]
   );
-  const mult12 = mults[12];
-  const mult18 = mults[18];
+  const samplePrecos = useMemo(
+    () => calcularPrecosDePixComTabela(10000, tabelaCartao, config.fatorParcelado || 1.2),
+    [tabelaCartao, config.fatorParcelado]
+  );
+  const mult12 = samplePrecos.multiplicador12;
+  const mult18 = samplePrecos.multiplicador18;
+  const mult21 = samplePrecos.multiplicador21;
+  const linhasTabela = useMemo(
+    () => opcoesSeletorCartao(tabelaCartao).map((n) => calcularParcelamentoCartao(10000, n, tabelaCartao)),
+    [tabelaCartao]
+  );
 
   // Carregar configurações salvas
   useEffect(() => {
@@ -161,10 +189,19 @@ export default function Configuracoes() {
     setLoading(true);
     try {
       const taxa = normalizeTaxaCartaoMensal(config.taxaCartaoMensal);
-      const m = buildMultiplicadoresFromTaxa(taxa);
-      const sample = calcularPrecosDePix(10000, config.fatorParcelado || 1.2, taxa);
-      const f12 = 1 / m[12];
-      const f18 = 1 / m[18];
+      // Fatores derivados da tabela vigente (Ton/PagSeguro), não da taxa manual
+      const tabela = buildTabelaCartao({
+        adquirente: config.adquirente,
+        tonTotais: config.tonTotais ?? null,
+        prazoRecebimento: config.prazoRecebimento,
+        faixaFaturamento: config.faixaFaturamento,
+        taxaMensalPagSeguro: config.taxaMensalPagSeguro,
+        taxaMensalFallback: taxa,
+      });
+      const sample = calcularPrecosDePixComTabela(10000, tabela, config.fatorParcelado || 1.2);
+      const f12 = 1 / sample.multiplicador12;
+      const f18 = 1 / sample.multiplicador18;
+      const f21 = 1 / sample.multiplicador21;
       const payload: ConfiguracaoSistema = {
         ...config,
         taxaCartaoMensal: taxa,
@@ -966,34 +1003,90 @@ export default function Configuracoes() {
                       </h3>
                       <p className="text-sm text-gray-500 mb-4">
                         Premissa: <strong>PIX = menor valor</strong>; “à vista” = total embutido em{' '}
-                        {PARCELAS_REFERENCIA_AVISTA}×. A simulação original usava{' '}
-                        <strong>Taxa {TAXA_CARTAO_MENSAL_REF.toFixed(2).replace('.', ',')}% a.m.</strong> na
-                        maquininha. Se a taxa mudar (ex.: 1,49%), altere abaixo — a tabela 2×–18× recalcula na
-                        hora.
+                        {PARCELAS_REFERENCIA_AVISTA}×. As parcelas vêm da{' '}
+                        <strong>tabela da maquininha</strong> (`tontaxa.json`, prazo × faixa). Sem a Ton,
+                        vale a taxa manual do PagSeguro.
                       </p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mb-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Taxa mensal maquininha (% a.m.)
+                            Maquininha vigente
+                          </label>
+                          <select
+                            value={config.adquirente ?? 'ton'}
+                            onChange={(e) => handleInputChange('adquirente', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                          >
+                            <option value="ton">Ton (tabela tontaxa.json)</option>
+                            <option value="pagseguro">PagSeguro (taxa manual)</option>
+                          </select>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {tabelaCartao.adquirente === 'ton'
+                              ? 'Tabela da Ton aplicada nas parcelas.'
+                              : config.adquirente === 'pagseguro'
+                                ? 'Usando a taxa do PagSeguro abaixo.'
+                                : '⚠️ Tabela da Ton indisponível — caindo no PagSeguro.'}
+                          </p>
+                        </div>
+                        {config.adquirente === 'ton' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Prazo de recebimento
+                              </label>
+                              <select
+                                value={config.prazoRecebimento ?? 'umDiaUtil'}
+                                onChange={(e) => handleInputChange('prazoRecebimento', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                              >
+                                <option value="umDiaUtil">1 dia útil</option>
+                                <option value="naHora">Na hora</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Faixa de faturamento mensal
+                              </label>
+                              <select
+                                value={config.faixaFaturamento ?? 0}
+                                onChange={(e) =>
+                                  handleInputChange('faixaFaturamento', Number(e.target.value))
+                                }
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                              >
+                                {FAIXAS_TON.map((f) => (
+                                  <option key={f.indice} value={f.indice}>
+                                    {f.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Suba a faixa quando o faturamento passar do teto atual.
+                              </p>
+                            </div>
+                          </>
+                        )}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Taxa mensal PagSeguro (% a.m.) — reserva
                           </label>
                           <input
                             type="number"
-                            value={config.taxaCartaoMensal ?? TAXA_CARTAO_MENSAL_REF}
+                            value={config.taxaMensalPagSeguro ?? TAXA_MENSAL_PAGSEGURO_PADRAO}
                             onChange={(e) =>
                               handleInputChange(
-                                'taxaCartaoMensal',
+                                'taxaMensalPagSeguro',
                                 normalizeTaxaCartaoMensal(parseFloat(e.target.value))
                               )
                             }
                             step="0.01"
                             min="0.1"
                             max="10"
-                            className="w-full px-4 py-3 border border-amber-400 rounded-lg bg-amber-50/50"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                           />
                           <p className="text-sm text-gray-500 mt-1">
-                            Calibração de referência: {TAXA_CARTAO_MENSAL_REF.toFixed(2).replace('.', ',')}%
-                            (prints da máquina). 1× (MDR) permanece fixo.
+                            Entra em cena se a Ton for trocada ou apresentar problema.
                           </p>
                         </div>
                         <div>
@@ -1044,29 +1137,28 @@ export default function Configuracoes() {
                                 </span>
                               </td>
                             </tr>
-                            <tr className="border-b border-emerald-100">
-                              <td className="py-2 pr-4 font-medium">12× no cartão</td>
-                              <td className="py-2 pr-4 font-mono">{mult12.toFixed(6)}</td>
-                              <td className="py-2">
-                                {PARCELAS_REFERENCIA_AVISTA}× R${' '}
-                                {samplePrecos.p12x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="py-2 pr-4 font-medium">18× no cartão</td>
-                              <td className="py-2 pr-4 font-mono">{mult18.toFixed(6)}</td>
-                              <td className="py-2">
-                                18× R${' '}
-                                {samplePrecos.p18x_parcela.toLocaleString('pt-BR', {
-                                  minimumFractionDigits: 2,
-                                })}
-                              </td>
-                            </tr>
+                            {linhasTabela
+                              .filter((l) => l.parcelas !== PARCELAS_REFERENCIA_AVISTA)
+                              .map((l) => (
+                                <tr key={l.parcelas} className="border-b border-emerald-100">
+                                  <td className="py-2 pr-4 font-medium">{l.parcelas}× no cartão</td>
+                                  <td className="py-2 pr-4 font-mono">{l.multiplicador.toFixed(6)}</td>
+                                  <td className="py-2">
+                                    {l.parcelas}× R${' '}
+                                    {l.parcela.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    <span className="text-gray-500 text-xs ml-1">
+                                      (total R${' '}
+                                      {l.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
                           </tbody>
                         </table>
                         <p className="text-xs text-emerald-800 mt-3">
-                          Taxa vigente {taxaMensal.toFixed(2).replace('.', ',')}% a.m. · Economia PIX vs à
-                          vista: ~{samplePrecos.economiaPercent}% · Modal da proposta: entrada + 2×–18×
+                          Fonte: {tabelaCartao.adquirente === 'ton' ? 'Ton' : 'PagSeguro'} ·{' '}
+                          {tabelaCartao.maxParcelas}× máx · 18× {mult18.toFixed(6)} · 21×{' '}
+                          {mult21.toFixed(6)} · Economia PIX vs à vista: ~{samplePrecos.economiaPercent}%
                         </p>
                       </div>
                     </div>

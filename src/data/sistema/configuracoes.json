@@ -92,5 +92,9 @@
   "dcAcMax": 1.5,
   "dcAcTolPp": 0.05,
   "moduloPotenciaMinW": 500,
-  "inversorPotenciaMinKw": 1
+  "inversorPotenciaMinKw": 1,
+  "adquirente": "ton",
+  "prazoRecebimento": "umDiaUtil",
+  "faixaFaturamento": 0,
+  "taxaMensalPagSeguro": 1.3
 }

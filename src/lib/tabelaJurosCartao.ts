@@ -1,21 +1,29 @@
 /**
  * Tabela de juros do cartão — multiplicadores sobre o valor PIX (base).
  *
- * Calibração: simulação maquininha R$ 10.000 com taxa mensal exibida **1,51%**
- * (totais 1×–18×). 1× não exibe a taxa mensal (MDR à vista fixo na calibração).
+ * Fonte da verdade: **`tontaxa.json`** (tabela da maquininha Ton), via
+ * `resolverTaxaCartao()` em `@/lib/maquininha/taxaAdapter`.
  *
- * Se a taxa da máquina mudar (ex.: 1,49%), use `buildMultiplicadoresFromTaxa(1.49)`
- * ou passe `taxaCartaoMensal` em `calcularPrecosDePix` / modal.
+ * Modelo:
+ * - `jurosParcelaPercent` = juros **total** (%) por parcela, direto da tabela
+ *   (ex.: 18× → 18,72% na faixa até R$ 20 mil com recebimento em 1 dia útil)
+ * - Total do cartão = PIX × (1 + jurosTotal/100); parcela = total ÷ N
+ * - "À vista" = total do cartão em 12× (âncora do card) — regra comercial PIENG
+ * - Sem tabela: cai para juros simples `taxaMensal × N` (fallback PagSeguro)
  *
- * Total = valor financiado × multiplicador; parcela = total ÷ n.
+ * ⚠️ Nada aqui deve ir para o cliente como "taxa": só valores finais e a tag
+ * de economia no PIX (`RESTRICOES_CLIENTE.md`).
  */
 
-/** Taxa mensal da simulação original (rótulo da maquininha). */
+import { resolverTaxaCartao, type TaxaCartaoInput } from '@/lib/maquininha/taxaAdapter';
+import { jurosParcelaMensal, maxParcelasTon, type LinhasTon } from '@/lib/maquininha/tonTabela';
+
+/** Taxa mensal da maquininha usada quando não há tabela (fallback legado). */
 export const TAXA_CARTAO_MENSAL_REF = 1.51;
 
 /**
- * Multiplicadores calibrados em TAXA_CARTAO_MENSAL_REF (PIX R$ 10.000).
- * Fonte: prints da maquininha (1×–18×).
+ * Fallback: multiplicadores calibrados na taxa de referência (PIX R$ 10.000).
+ * Só usado em caminhos legados/síncronos — o cálculo oficial vem da tabela da Ton.
  */
 export const MULTIPLICADOR_CARTAO_REF: Record<number, number> = {
   1: 1.030822,
@@ -38,40 +46,122 @@ export const MULTIPLICADOR_CARTAO_REF: Record<number, number> = {
   18: 1.179384,
 };
 
-/** Alias estável = tabela na taxa de referência (1,51%). */
+/** Alias estável = fallback calibrado (1,51%). */
 export const MULTIPLICADOR_CARTAO = MULTIPLICADOR_CARTAO_REF;
 
 /** Limites técnicos da tabela de multiplicadores (cálculo) */
 export const PARCELAS_CARTAO_MIN = 2;
-export const PARCELAS_CARTAO_MAX = 18;
+export const PARCELAS_CARTAO_MAX = 21;
+export const PARCELAS_CARTAO_MAX_LEGADO = 18;
 /** Opções exibidas no modal (mobile-friendly) */
-export const PARCELAS_CARTAO_EXIBIDAS = [3, 6, 10, 12, 18] as const;
+export const PARCELAS_CARTAO_EXIBIDAS = [3, 6, 10, 12, 18, 21] as const;
 /** Referência comercial no card (à vista = total 12×) */
 export const PARCELAS_REFERENCIA_AVISTA = 12;
 
-function roundMult(value: number): number {
+export interface TabelaCartao {
+  /** Juros % sobre o PIX, por parcela (1 = MDR à vista) */
+  jurosParcelaPercent: LinhasTon;
+  /** Maior parcela disponível (21 na Ton) */
+  maxParcelas: number;
+  /** Taxa mensal na condição de referência (12×), para rótulos internos */
+  taxaMensal12x: number;
+  adquirente: string;
+}
+
+const TABELA_FALLBACK_SIMPLES: TabelaCartao = (() => {
+  const jurosParcelaPercent: LinhasTon = {};
+  for (let n = 1; n <= PARCELAS_CARTAO_MAX_LEGADO; n++) {
+    jurosParcelaPercent[n] =
+      n === 1
+        ? (MULTIPLICADOR_CARTAO_REF[1] - 1) * 100
+        : (MULTIPLICADOR_CARTAO_REF[n] - 1) * 100;
+  }
+  return {
+    jurosParcelaPercent,
+    maxParcelas: PARCELAS_CARTAO_MAX_LEGADO,
+    taxaMensal12x: TAXA_CARTAO_MENSAL_REF,
+    adquirente: 'fallback-calibrado',
+  };
+})();
+
+function round6(value: number): number {
   return Math.round(value * 1e6) / 1e6;
 }
 
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/** Tabela de multiplicadores derivada de juros totais. */
+export function buildMultiplicadoresFromTotais(totais: LinhasTon): Record<number, number> {
+  const out: Record<number, number> = {};
+  for (let n = 1; n <= maxParcelasTon(totais); n++) {
+    const total = totais[n];
+    if (total == null) continue;
+    out[n] = round6(1 + Number(total) / 100);
+  }
+  return out;
+}
+
 /**
- * Regenera multiplicadores a partir da taxa mensal da maquininha.
- * Escala a parcela de juros da calibração: 1 + (mRef−1)×(taxa/1,51).
- * 1× permanece o MDR calibrado (na tela original não vinha “Taxa 1,51%”).
+ * Tabela oficial (Ton/PagSeguro) a partir de um objeto de configuração.
+ * Use nas rotas de API e no admin.
+ */
+export function buildTabelaCartao(input: TaxaCartaoInput = {}): TabelaCartao {
+  const taxa = resolverTaxaCartao(input);
+  if (taxa.jurosParcelaPercent) {
+    return {
+      jurosParcelaPercent: taxa.jurosParcelaPercent,
+      maxParcelas: taxa.maxParcelas,
+      taxaMensal12x: taxa.taxaMensal12x,
+      adquirente: taxa.adquirente,
+    };
+  }
+  // Fallback: juros simples sobre a taxa mensal (PagSeguro / tabela ausente)
+  const jurosParcelaPercent: LinhasTon = {};
+  for (let n = 1; n <= PARCELAS_CARTAO_MAX_LEGADO; n++) {
+    jurosParcelaPercent[n] =
+      n === 1 ? taxa.jurosTotal12x / PARCELAS_REFERENCIA_AVISTA : taxa.taxaMensal12x * n;
+  }
+  return {
+    jurosParcelaPercent,
+    maxParcelas: PARCELAS_CARTAO_MAX_LEGADO,
+    taxaMensal12x: taxa.taxaMensal12x,
+    adquirente: taxa.adquirente,
+  };
+}
+
+/**
+ * Tabela a partir dos juros por parcela (formato persistido na proposta).
+ * Mantém propostas antigas (geradas com o multiplicador calibrado) estáveis.
+ */
+export function buildTabelaCartaoFromParcelaPercent(
+  totais: LinhasTon,
+  fallbackTaxaMensal: number = TAXA_CARTAO_MENSAL_REF
+): TabelaCartao {
+  return {
+    jurosParcelaPercent: totais,
+    maxParcelas: maxParcelasTon(totais),
+    taxaMensal12x:
+      totais[PARCELAS_REFERENCIA_AVISTA] != null
+        ? jurosParcelaMensal(totais[PARCELAS_REFERENCIA_AVISTA], PARCELAS_REFERENCIA_AVISTA)
+        : fallbackTaxaMensal,
+    adquirente: 'proposta',
+  };
+}
+
+/**
+ * Regenera multiplicadores a partir da taxa mensal (% a.m.) — juros simples.
+ * @deprecated Use `buildTabelaCartao` (tabela da Ton). Mantido para compatibilidade.
  */
 export function buildMultiplicadoresFromTaxa(
-  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
+  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF,
+  maxParcelas: number = PARCELAS_CARTAO_MAX_LEGADO
 ): Record<number, number> {
-  const taxa = Number(taxaMensalPercent);
-  const safe = Number.isFinite(taxa) && taxa > 0 ? taxa : TAXA_CARTAO_MENSAL_REF;
-  const ratio = safe / TAXA_CARTAO_MENSAL_REF;
+  const taxa = normalizeTaxaCartaoMensal(taxaMensalPercent);
   const out: Record<number, number> = {};
-  for (let n = 1; n <= 18; n++) {
-    const mRef = MULTIPLICADOR_CARTAO_REF[n];
-    if (n === 1) {
-      out[1] = mRef;
-    } else {
-      out[n] = roundMult(1 + (mRef - 1) * ratio);
-    }
+  for (let n = 1; n <= maxParcelas; n++) {
+    out[n] = round6(1 + (taxa * n) / 100);
   }
   return out;
 }
@@ -82,30 +172,27 @@ export function normalizeTaxaCartaoMensal(raw: unknown): number {
   return Math.round(n * 10000) / 10000;
 }
 
+/** Multiplicador de N parcelas na tabela informada (padrão: fallback calibrado). */
 export function getMultiplicadorCartao(
   parcelas: number,
-  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
+  tabela: TabelaCartao = TABELA_FALLBACK_SIMPLES
 ): number {
   const n = Math.round(parcelas);
-  if (n < 1 || n > PARCELAS_CARTAO_MAX) {
-    throw new Error(`Parcelas inválidas: ${parcelas}. Use 1–${PARCELAS_CARTAO_MAX}.`);
+  if (n < 1 || n > tabela.maxParcelas) {
+    throw new Error(`Parcelas inválidas: ${parcelas}. Use 1–${tabela.maxParcelas}.`);
   }
-  return buildMultiplicadoresFromTaxa(taxaMensalPercent)[n];
+  const total = tabela.jurosParcelaPercent[n];
+  if (total != null) return round6(1 + total / 100);
+  return round6(1 + (tabela.taxaMensal12x * n) / 100);
 }
 
-export function roundMoney(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
+export { roundMoney };
 
 /**
  * % do card = juros embutidos no multiplicador 12× (âncora = PIX).
- * Ex.: mult 1,1179 → ~11,79% → arredonda 12%; mult 1,10 → 10%.
- * Se a taxa da máquina cair, o % do card cai junto.
+ * Só para a tag "ECONOMIA DE X% NO PIX" — nunca expor a fórmula ao cliente.
  */
-export function percentualEconomiaPix(
-  ppix: number,
-  pavista: number
-): number {
+export function percentualEconomiaPix(ppix: number, pavista: number): number {
   const pix = Math.max(0, Number(ppix) || 0);
   const vista = Math.max(0, Number(pavista) || 0);
   if (vista <= 0 || pix <= 0) return 0;
@@ -129,26 +216,16 @@ export interface ParcelaCartaoResult {
 export function calcularParcelamentoCartao(
   valorFinanciado: number,
   parcelas: number,
-  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
+  tabela: TabelaCartao = TABELA_FALLBACK_SIMPLES
 ): ParcelaCartaoResult {
   const base = Math.max(0, Number(valorFinanciado) || 0);
-  const multiplicador = getMultiplicadorCartao(parcelas, taxaMensalPercent);
+  const multiplicador = getMultiplicadorCartao(parcelas, tabela);
   const total = roundMoney(base * multiplicador);
   const parcela = roundMoney(total / parcelas);
   return { parcelas, multiplicador, total, parcela };
 }
 
-/**
- * Precificação comercial a partir do PIX (menor valor).
- * - à vista = total do cartão em 12× (âncora do card)
- * - 12× / 18× = tabela (taxa mensal configurável)
- * - promoção (riscado) = PIX × markup
- */
-export function calcularPrecosDePix(
-  pix: number,
-  markupPromocao = 1.2,
-  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
-): {
+export interface PrecosDePix {
   ppix: number;
   pavista: number;
   priscado: number;
@@ -156,15 +233,34 @@ export function calcularPrecosDePix(
   p12x_total: number;
   p18x_parcela: number;
   p18x_total: number;
+  p21x_parcela: number;
+  p21x_total: number;
   economiaPercent: number;
   taxaCartaoMensal: number;
   multiplicador12: number;
+  /** Multiplicador do "à vista" (12×) — âncora do card */
+  multiplicadorAvista: number;
   multiplicador18: number;
-} {
-  const taxa = normalizeTaxaCartaoMensal(taxaMensalPercent);
+  multiplicador21: number;
+  adquirente: string;
+}
+
+/**
+ * Precificação comercial a partir do PIX (menor valor).
+ * - à vista = total do cartão em 12× (âncora do card)
+ * - 12× / 18× / 21× = tabela da maquininha
+ * - promoção (riscado) = PIX × markup
+ */
+export function calcularPrecosDePixComTabela(
+  pix: number,
+  tabela: TabelaCartao,
+  markupPromocao = 1.2
+): PrecosDePix {
   const ppix = roundMoney(Math.max(0, Number(pix) || 0));
-  const ref12 = calcularParcelamentoCartao(ppix, PARCELAS_REFERENCIA_AVISTA, taxa);
-  const ref18 = calcularParcelamentoCartao(ppix, 18, taxa);
+  const ref12 = calcularParcelamentoCartao(ppix, PARCELAS_REFERENCIA_AVISTA, tabela);
+  const ref18 = calcularParcelamentoCartao(ppix, 18, tabela);
+  const n21 = tabela.maxParcelas >= 21 ? 21 : tabela.maxParcelas;
+  const ref21 = calcularParcelamentoCartao(ppix, n21, tabela);
   const pavista = ref12.total;
   const economiaPercent = percentualEconomiaPix(ppix, pavista);
 
@@ -176,32 +272,97 @@ export function calcularPrecosDePix(
     p12x_total: ref12.total,
     p18x_parcela: ref18.parcela,
     p18x_total: ref18.total,
+    p21x_parcela: ref21.parcela,
+    p21x_total: ref21.total,
     economiaPercent,
-    taxaCartaoMensal: taxa,
+    taxaCartaoMensal: tabela.taxaMensal12x,
     multiplicador12: ref12.multiplicador,
+    multiplicadorAvista: ref12.multiplicador,
     multiplicador18: ref18.multiplicador,
+    multiplicador21: ref21.multiplicador,
+    adquirente: tabela.adquirente,
   };
 }
 
-/** Lista as parcelas exibidas no modal (3×, 6×, 10×, 12×, 18×). */
+/**
+ * Compatibilidade: mesma saída de antes, agora aceitando tabela **ou** taxa mensal.
+ * - `TabelaCartao` → usa a tabela real (Ton)
+ * - `number` → juros simples a partir da taxa mensal (fallback PagSeguro)
+ */
+export function calcularPrecosDePix(
+  pix: number,
+  markupPromocao = 1.2,
+  tabelaOuTaxa: TabelaCartao | number = TABELA_FALLBACK_SIMPLES
+): PrecosDePix {
+  const tabela: TabelaCartao =
+    typeof tabelaOuTaxa === 'number' ? buildTabelaCartao({ taxaMensalPagSeguro: tabelaOuTaxa }) : tabelaOuTaxa;
+  return calcularPrecosDePixComTabela(pix, tabela, markupPromocao);
+}
+
+/** Calcula as condições para uma lista de parcelas (modal do cliente). */
+export function listarParcelasDeTabela(
+  valorFinanciado: number,
+  parcelas: readonly number[],
+  tabela: TabelaCartao = TABELA_FALLBACK_SIMPLES
+): ParcelaCartaoResult[] {
+  return parcelas.map((n) => calcularParcelamentoCartao(valorFinanciado, n, tabela));
+}
+
+/** Lista as parcelas exibidas no modal (3×, 6×, 10×, 12×, 18×, 21×). */
 export function listarParcelasCartao(
   valorFinanciado: number,
-  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
+  tabela: TabelaCartao = TABELA_FALLBACK_SIMPLES
 ): ParcelaCartaoResult[] {
-  return PARCELAS_CARTAO_EXIBIDAS.map((n) =>
-    calcularParcelamentoCartao(valorFinanciado, n, taxaMensalPercent)
+  return parcelasDisponiveis(tabela)
+    .filter((n) => (PARCELAS_CARTAO_EXIBIDAS as readonly number[]).includes(n))
+    .map((n) => calcularParcelamentoCartao(valorFinanciado, n, tabela));
+}
+
+/** Parcelas existentes na tabela (exclui 1×), em ordem crescente. */
+export function parcelasDisponiveis(tabela: TabelaCartao): number[] {
+  return Object.keys(tabela.jurosParcelaPercent)
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n >= PARCELAS_CARTAO_MIN && n <= tabela.maxParcelas)
+    .sort((a, b) => a - b);
+}
+
+/**
+ * Opções do seletor do modal: as "redondas" de `PARCELAS_CARTAO_EXIBIDAS` que
+ * existem na tabela, mais o teto (ex.: 21×).
+ */
+export function opcoesSeletorCartao(tabela: TabelaCartao): number[] {
+  const disponiveis = new Set(parcelasDisponiveis(tabela));
+  const opcoes = (PARCELAS_CARTAO_EXIBIDAS as readonly number[]).filter((n) =>
+    disponiveis.has(n)
+  );
+  const teto = tabela.maxParcelas;
+  if (disponiveis.has(teto) && !opcoes.includes(teto)) opcoes.push(teto);
+  return opcoes.length ? opcoes : [...PARCELAS_CARTAO_EXIBIDAS];
+}
+
+/** Condições completas de parcelamento (para tabela/grade de opções). */
+export function condicoesCartao(
+  valorFinanciado: number,
+  tabela: TabelaCartao = TABELA_FALLBACK_SIMPLES
+): ParcelaCartaoResult[] {
+  return parcelasDisponiveis(tabela).map((n) =>
+    calcularParcelamentoCartao(valorFinanciado, n, tabela)
   );
 }
 
-/** Script + modal injetados na proposta HTML (cliente). */
-export function getFormasPagamentoModalScript(
-  taxaMensalPercent: number = TAXA_CARTAO_MENSAL_REF
-): string {
-  const taxa = normalizeTaxaCartaoMensal(taxaMensalPercent);
-  const tabelaJson = JSON.stringify(buildMultiplicadoresFromTaxa(taxa));
-  const opcoesJson = JSON.stringify([...PARCELAS_CARTAO_EXIBIDAS]);
-  const opcoesLabel = PARCELAS_CARTAO_EXIBIDAS.map((n) => `${n}×`).join(', ');
+/**
+ * Script + modal injetados na proposta HTML (cliente).
+ * Recebe a tabela da maquininha (juros totais por parcela) já resolvida.
+ */
+export function getFormasPagamentoModalScriptComTabela(tabela: TabelaCartao): string {
+  const multiplicadores = buildMultiplicadoresFromTotais(tabela.jurosParcelaPercent);
+  const tabelaJson = JSON.stringify(multiplicadores);
+  const parcelasJson = JSON.stringify(condicoesCartao(0, tabela).map((c) => c.parcelas));
+  const opcoesSeletor = opcoesSeletorCartao(tabela);
+  const opcoesJson = JSON.stringify(opcoesSeletor);
+  const opcoesLabel = opcoesSeletor.map((n) => `${n}×`).join(', ');
   const ref = PARCELAS_REFERENCIA_AVISTA;
+  const maiorParcela = tabela.maxParcelas;
   return `
 <style>
   .pieng-pay-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.55);padding:16px}
@@ -243,7 +404,8 @@ export function getFormasPagamentoModalScript(
         <thead><tr><th>Valor parcela</th><th>Total</th></tr></thead>
         <tbody id="pieng-pay-tbody"></tbody>
       </table>
-      <p class="pieng-pay-hint">PIX é a condição à vista mais vantajosa. Cartão em ${opcoesLabel}.</p>
+      <p class="pieng-pay-hint">PIX é a condição à vista mais vantajosa. Cartão em ${opcoesLabel}.
+      <button type="button" id="pieng-pay-ver-todas" style="border:0;background:none;color:#0f766e;text-decoration:underline;cursor:pointer;font-size:12px;padding:0">Ver todas as ${maiorParcela} opções</button></p>
     </div>
   </div>
 </div>
@@ -251,6 +413,7 @@ export function getFormasPagamentoModalScript(
 (function(){
   var MULT = ${tabelaJson};
   var OPCOES = ${opcoesJson};
+  var PARCELAS_TODAS = ${parcelasJson};
   var REF = ${ref};
   var modal = document.getElementById('pieng-pay-modal');
   var entradaEl = document.getElementById('pieng-pay-entrada');
@@ -258,7 +421,9 @@ export function getFormasPagamentoModalScript(
   var resultEl = document.getElementById('pieng-pay-result');
   var tbody = document.getElementById('pieng-pay-tbody');
   var pixBox = document.getElementById('pieng-pay-pix-box');
+  var verTodas = document.getElementById('pieng-pay-ver-todas');
   var pixAtual = 0;
+  var mostrarTodas = false;
   function money(v){
     return (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   }
@@ -268,12 +433,15 @@ export function getFormasPagamentoModalScript(
     var parcela = Math.round((total / n) * 100) / 100;
     return {total: total, parcela: parcela};
   }
+  function parcelasVisiveis(){
+    return mostrarTodas ? PARCELAS_TODAS : OPCOES;
+  }
   function render(){
     var entrada = Math.max(0, Number(entradaEl.value)||0);
     if (entrada > pixAtual) { entrada = pixAtual; entradaEl.value = String(pixAtual); }
     var financiado = Math.max(0, pixAtual - entrada);
     var n = Number(parcelasEl.value)||REF;
-    if (OPCOES.indexOf(n) < 0) n = REF;
+    if (OPCOES.indexOf(n) < 0 && PARCELAS_TODAS.indexOf(n) < 0) n = REF;
     var sel = calc(financiado, n);
     pixBox.innerHTML = '<div><strong>Valor PIX:</strong> '+money(pixAtual)+'</div>'+
       '<div><strong>Entrada:</strong> '+money(entrada)+'</div>'+
@@ -283,9 +451,10 @@ export function getFormasPagamentoModalScript(
       : '<div><strong>'+n+'× de '+money(sel.parcela)+'</strong></div>'+
         '<div>Total no cartão: <strong>'+money(sel.total)+'</strong></div>'+
         '<div>Total geral (entrada + cartão): <strong>'+money(entrada + sel.total)+'</strong></div>';
+    var lista = parcelasVisiveis();
     var html = '';
-    for (var i=0;i<OPCOES.length;i++){
-      var p = OPCOES[i];
+    for (var i=0;i<lista.length;i++){
+      var p = lista[i];
       var r = calc(financiado, p);
       html += '<tr class="'+(p===n?'is-active':'')+'"><td>'+p+'× '+money(r.parcela)+'</td><td>'+money(r.total)+'</td></tr>';
     }
@@ -303,9 +472,11 @@ export function getFormasPagamentoModalScript(
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden','true');
   }
-  if (parcelasEl && !parcelasEl.options.length){
-    for (var i=0;i<OPCOES.length;i++){
-      var p = OPCOES[i];
+  function preencherOpcoes(){
+    var lista = OPCOES;
+    parcelasEl.innerHTML = '';
+    for (var i=0;i<lista.length;i++){
+      var p = lista[i];
       var opt = document.createElement('option');
       opt.value = String(p);
       opt.textContent = p+'×';
@@ -313,6 +484,7 @@ export function getFormasPagamentoModalScript(
       parcelasEl.appendChild(opt);
     }
   }
+  preencherOpcoes();
   document.addEventListener('click', function(e){
     var btn = e.target && e.target.closest ? e.target.closest('[data-pieng-pay]') : null;
     if (btn){
@@ -324,7 +496,42 @@ export function getFormasPagamentoModalScript(
   modal && modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
   entradaEl && entradaEl.addEventListener('input', render);
   parcelasEl && parcelasEl.addEventListener('change', render);
+  verTodas && verTodas.addEventListener('click', function(){
+    mostrarTodas = !mostrarTodas;
+    verTodas.textContent = mostrarTodas ? 'Ver apenas as principais' : 'Ver todas as ${maiorParcela} opções';
+    preencherOpcoes();
+    render();
+  });
   window.__piengAbrirFormasPagamento = openModal;
 })();
 </script>`;
+}
+
+/**
+ * Compatibilidade: aceita a tabela, o `jurosParcelaPercent` cru, um objeto de
+ * configuração (Ton/PagSeguro) ou uma taxa mensal.
+ */
+export function getFormasPagamentoModalScript(
+  entrada: TabelaCartao | LinhasTon | TaxaCartaoInput | number = TABELA_FALLBACK_SIMPLES
+): string {
+  if (typeof entrada === 'number') {
+    return getFormasPagamentoModalScriptComTabela(
+      buildTabelaCartao({ taxaMensalPagSeguro: entrada })
+    );
+  }
+  if (entrada && typeof entrada === 'object' && 'jurosParcelaPercent' in entrada) {
+    return getFormasPagamentoModalScriptComTabela(entrada as TabelaCartao);
+  }
+  // `jurosParcelaPercent` cru ({ 1: 3.14, ..., 21: 20.64 })
+  if (entrada && typeof entrada === 'object' && !('maxParcelas' in entrada)) {
+    const obj = entrada as Record<string, unknown>;
+    const keys = Object.keys(obj).map(Number).filter((n) => Number.isFinite(n));
+    const pareceJuros = keys.length > 0 && keys.every((n) => Number(obj[String(n)]) < 100);
+    if (pareceJuros) {
+      const totais: LinhasTon = {};
+      for (const n of keys) totais[n] = Number(obj[String(n)]);
+      return getFormasPagamentoModalScriptComTabela(buildTabelaCartaoFromParcelaPercent(totais));
+    }
+  }
+  return getFormasPagamentoModalScriptComTabela(buildTabelaCartao(entrada as TaxaCartaoInput));
 }

@@ -23,16 +23,61 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { getVariantConfig, type ClientType, type ComercialSubType, type VariantConfig } from './variantConfig';
-import { getFormasPagamentoModalScript, tagEconomiaPix } from './tabelaJurosCartao';
+import {
+  buildTabelaCartao,
+  buildTabelaCartaoFromParcelaPercent,
+  getFormasPagamentoModalScript,
+  tagEconomiaPix,
+} from './tabelaJurosCartao';
 import { formatBRL } from './formatBRL';
 import { injectPropostaAnalytics } from './propostaAnalytics';
 
-function injectFormasPagamento(html: string, taxaCartaoMensal?: number): string {
-  const snippet = getFormasPagamentoModalScript(taxaCartaoMensal);
+function injectFormasPagamento(html: string, entrada?: unknown): string {
+  const snippet = getFormasPagamentoModalScript(entrada as never);
   if (html.includes('</body>')) {
     return html.replace('</body>', `${snippet}\n</body>`);
   }
   return html + snippet;
+}
+
+/** Tabela de cartão do modal: proposta salva → config (Ton/PagSeguro). */
+function resolveTabelaCartao(data: unknown): unknown {
+  const d = (data || {}) as {
+    cartao?: { jurosParcelaPercent?: Record<string, number>; taxaCartaoMensal?: number };
+    jurosParcelaPercent?: Record<string, number>;
+    taxaCartaoMensal?: number;
+    config?: {
+      jurosParcelaPercent?: Record<string, number>;
+      adquirente?: string;
+      prazoRecebimento?: string;
+      faixaFaturamento?: number;
+      taxaMensalPagSeguro?: number;
+      tonTotais?: Record<string, number> | null;
+      taxaCartaoMensal?: number;
+    };
+  };
+
+  const juros =
+    d.cartao?.jurosParcelaPercent ??
+    d.jurosParcelaPercent ??
+    d.config?.jurosParcelaPercent ??
+    null;
+
+  if (juros && Object.keys(juros).length) {
+    return buildTabelaCartaoFromParcelaPercent(
+      juros as Record<number, number>,
+      d.cartao?.taxaCartaoMensal ?? d.taxaCartaoMensal
+    );
+  }
+
+  return buildTabelaCartao({
+    adquirente: d.config?.adquirente,
+    prazoRecebimento: d.config?.prazoRecebimento,
+    faixaFaturamento: d.config?.faixaFaturamento,
+    tonTotais: d.config?.tonTotais ?? null,
+    taxaMensalPagSeguro: d.config?.taxaMensalPagSeguro,
+    taxaMensalFallback: d.config?.taxaCartaoMensal ?? d.taxaCartaoMensal,
+  });
 }
 
 interface ClienteData {
@@ -516,11 +561,7 @@ export class TemplateEnginePadrao {
     }
 
     return injectPropostaAnalytics(
-      injectFormasPagamento(
-        html,
-        (data as { taxaCartaoMensal?: number; config?: { taxaCartaoMensal?: number } }).taxaCartaoMensal ??
-          (data as { config?: { taxaCartaoMensal?: number } }).config?.taxaCartaoMensal
-      ),
+      injectFormasPagamento(html, resolveTabelaCartao(data)),
       (data as { slug?: string }).slug
     );
   }

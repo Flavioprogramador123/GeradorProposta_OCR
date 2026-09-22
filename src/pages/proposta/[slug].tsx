@@ -461,6 +461,7 @@ export default function PropostaPage({ proposta, htmlContent, useHtmlDirect, slu
                 (proposta as { performanceRate?: number })?.performanceRate ??
                 0.78
               }
+              jurosParcelaPercent={proposta?.cartao?.jurosParcelaPercent}
             />
           ))}
         </section>

@@ -1,0 +1,178 @@
+[
+    {
+      "Modalidade": "Débito",
+      "Todas as faixas Na Hora": "2,28%",
+      "Até R$20mil 1 dia útil": "1,36%",
+      "R$20mil até R$40mil 1 dia útil": "0,84%",
+      "R$40mil até R$80mil 1 dia útil": "0,78%",
+      "Acima de R$80mil 1 dia útil": "0,74%"
+    },
+    {
+      "Modalidade": "Crédito à vista",
+      "Todas as faixas Na Hora": "5,48%",
+      "Até R$20mil 1 dia útil": "3,14%",
+      "R$20mil até R$40mil 1 dia útil": "2,88%",
+      "R$40mil até R$80mil 1 dia útil": "2,78%",
+      "Acima de R$80mil 1 dia útil": "2,68%"
+    },
+    {
+      "Modalidade": "Parcelado em 2x",
+      "Todas as faixas Na Hora": "10,88%",
+      "Até R$20mil 1 dia útil": "5,38%",
+      "R$20mil até R$40mil 1 dia útil": "4,21%",
+      "R$40mil até R$80mil 1 dia útil": "4,07%",
+      "Acima de R$80mil 1 dia útil": "3,93%"
+    },
+    {
+      "Modalidade": "Parcelado em 3x",
+      "Todas as faixas Na Hora": "11,98%",
+      "Até R$20mil 1 dia útil": "6,11%",
+      "R$20mil até R$40mil 1 dia útil": "4,82%",
+      "R$40mil até R$80mil 1 dia útil": "4,64%",
+      "Acima de R$80mil 1 dia útil": "4,45%"
+    },
+    {
+      "Modalidade": "Parcelado em 4x",
+      "Todas as faixas Na Hora": "12,58%",
+      "Até R$20mil 1 dia útil": "6,84%",
+      "R$20mil até R$40mil 1 dia útil": "5,43%",
+      "R$40mil até R$80mil 1 dia útil": "5,20%",
+      "Acima de R$80mil 1 dia útil": "4,97%"
+    },
+    {
+      "Modalidade": "Parcelado em 5x",
+      "Todas as faixas Na Hora": "13,28%",
+      "Até R$20mil 1 dia útil": "7,56%",
+      "R$20mil até R$40mil 1 dia útil": "6,04%",
+      "R$40mil até R$80mil 1 dia útil": "5,76%",
+      "Acima de R$80mil 1 dia útil": "5,48%"
+    },
+    {
+      "Modalidade": "Parcelado em 6x",
+      "Todas as faixas Na Hora": "13,98%",
+      "Até R$20mil 1 dia útil": "8,27%",
+      "R$20mil até R$40mil 1 dia útil": "6,63%",
+      "R$40mil até R$80mil 1 dia útil": "6,31%",
+      "Acima de R$80mil 1 dia útil": "5,98%"
+    },
+    {
+      "Modalidade": "Parcelado em 7x",
+      "Todas as faixas Na Hora": "14,98%",
+      "Até R$20mil 1 dia útil": "8,98%",
+      "R$20mil até R$40mil 1 dia útil": "7,23%",
+      "R$40mil até R$80mil 1 dia útil": "6,86%",
+      "Acima de R$80mil 1 dia útil": "6,50%"
+    },
+    {
+      "Modalidade": "Parcelado em 8x",
+      "Todas as faixas Na Hora": "15,58%",
+      "Até R$20mil 1 dia útil": "9,68%",
+      "R$20mil até R$40mil 1 dia útil": "7,81%",
+      "R$40mil até R$80mil 1 dia útil": "7,41%",
+      "Acima de R$80mil 1 dia útil": "6,98%"
+    },
+    {
+      "Modalidade": "Parcelado em 9x",
+      "Todas as faixas Na Hora": "16,18%",
+      "Até R$20mil 1 dia útil": "10,37%",
+      "R$20mil até R$40mil 1 dia útil": "8,40%",
+      "R$40mil até R$80mil 1 dia útil": "7,95%",
+      "Acima de R$80mil 1 dia útil": "7,50%"
+    },
+    {
+      "Modalidade": "Parcelado em 10x",
+      "Todas as faixas Na Hora": "16,88%",
+      "Até R$20mil 1 dia útil": "11,05%",
+      "R$20mil até R$40mil 1 dia útil": "8,97%",
+      "R$40mil até R$80mil 1 dia útil": "8,48%",
+      "Acima de R$80mil 1 dia útil": "7,98%"
+    },
+    {
+      "Modalidade": "Parcelado em 11x",
+      "Todas as faixas Na Hora": "17,88%",
+      "Até R$20mil 1 dia útil": "11,73%",
+      "R$20mil até R$40mil 1 dia útil": "9,55%",
+      "R$40mil até R$80mil 1 dia útil": "9,02%",
+      "Acima de R$80mil 1 dia útil": "8,48%"
+    },
+    {
+      "Modalidade": "Parcelado em 12x",
+      "Todas as faixas Na Hora": "18,28%",
+      "Até R$20mil 1 dia útil": "12,39%",
+      "R$20mil até R$40mil 1 dia útil": "10,11%",
+      "R$40mil até R$80mil 1 dia útil": "9,55%",
+      "Acima de R$80mil 1 dia útil": "8,98%"
+    },
+    {
+      "Modalidade": "Parcelado em 13x",
+      "Todas as faixas Na Hora": "21,28%",
+      "Até R$20mil 1 dia útil": "15,39%",
+      "R$20mil até R$40mil 1 dia útil": "13,11%",
+      "R$40mil até R$80mil 1 dia útil": "12,55%",
+      "Acima de R$80mil 1 dia útil": "11,98%"
+    },
+    {
+      "Modalidade": "Parcelado em 14x",
+      "Todas as faixas Na Hora": "22,13%",
+      "Até R$20mil 1 dia útil": "16,01%",
+      "R$20mil até R$40mil 1 dia útil": "13,63%",
+      "R$40mil até R$80mil 1 dia útil": "13,05%",
+      "Acima de R$80mil 1 dia útil": "12,46%"
+    },
+    {
+      "Modalidade": "Parcelado em 15x",
+      "Todas as faixas Na Hora": "23,02%",
+      "Até R$20mil 1 dia útil": "16,65%",
+      "R$20mil até R$40mil 1 dia útil": "14,18%",
+      "R$40mil até R$80mil 1 dia útil": "13,57%",
+      "Acima de R$80mil 1 dia útil": "12,96%"
+    },
+    {
+      "Modalidade": "Parcelado em 16x",
+      "Todas as faixas Na Hora": "23,94%",
+      "Até R$20mil 1 dia útil": "17,31%",
+      "R$20mil até R$40mil 1 dia útil": "14,75%",
+      "R$40mil até R$80mil 1 dia útil": "14,12%",
+      "Acima de R$80mil 1 dia útil": "13,48%"
+    },
+    {
+      "Modalidade": "Parcelado em 17x",
+      "Todas as faixas Na Hora": "24,89%",
+      "Até R$20mil 1 dia útil": "18,00%",
+      "R$20mil até R$40mil 1 dia útil": "15,34%",
+      "R$40mil até R$80mil 1 dia útil": "14,68%",
+      "Acima de R$80mil 1 dia útil": "14,01%"
+    },
+    {
+      "Modalidade": "Parcelado em 18x",
+      "Todas as faixas Na Hora": "25,89%",
+      "Até R$20mil 1 dia útil": "18,72%",
+      "R$20mil até R$40mil 1 dia útil": "15,95%",
+      "R$40mil até R$80mil 1 dia útil": "15,27%",
+      "Acima de R$80mil 1 dia útil": "14,58%"
+    },
+    {
+      "Modalidade": "Parcelado em 19x",
+      "Todas as faixas Na Hora": "26,53%",
+      "Até R$20mil 1 dia útil": "19,36%",
+      "R$20mil até R$40mil 1 dia útil": "16,59%",
+      "R$40mil até R$80mil 1 dia útil": "15,91%",
+      "Acima de R$80mil 1 dia útil": "15,22%"
+    },
+    {
+      "Modalidade": "Parcelado em 20x",
+      "Todas as faixas Na Hora": "27,17%",
+      "Até R$20mil 1 dia útil": "20,00%",
+      "R$20mil até R$40mil 1 dia útil": "17,23%",
+      "R$40mil até R$80mil 1 dia útil": "16,55%",
+      "Acima de R$80mil 1 dia útil": "15,86%"
+    },
+    {
+      "Modalidade": "Parcelado em 21x",
+      "Todas as faixas Na Hora": "27,81%",
+      "Até R$20mil 1 dia útil": "20,64%",
+      "R$20mil até R$40mil 1 dia útil": "17,87%",
+      "R$40mil até R$80mil 1 dia útil": "17,19%",
+      "Acima de R$80mil 1 dia útil": "16,50%"
+    }
+  ]

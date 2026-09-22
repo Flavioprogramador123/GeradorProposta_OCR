@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatBRL } from '@/lib/formatBRL';
-import { tagEconomiaPix } from '@/lib/tabelaJurosCartao';
+import { tagEconomiaPix, type TabelaCartao } from '@/lib/tabelaJurosCartao';
 import { FormasPagamentoModal } from '@/components/FormasPagamentoModal';
 import {
   buildPerformanceMensalView,
@@ -36,6 +36,13 @@ interface SystemCardProps {
   performanceRate?: number;
   /** Proposta com um único sistema — sem badge de “recomendado” */
   modoUnico?: boolean;
+  /**
+   * Tabela da maquininha vigente (Ton/PagSeguro) para o modal de pagamento.
+   * Sem ela o modal usa o fallback calibrado.
+   */
+  cartao?: TabelaCartao;
+  /** Juros % total por parcela (alternativa a `cartao`) */
+  jurosParcelaPercent?: Record<number, number> | null;
 }
 
 export const SystemCard: React.FC<SystemCardProps> = ({
@@ -59,6 +66,8 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   tarifaEnergia,
   performanceRate,
   modoUnico = false,
+  cartao,
+  jurosParcelaPercent,
 }) => {
   const [payOpen, setPayOpen] = useState(false);
 
@@ -158,7 +167,13 @@ export const SystemCard: React.FC<SystemCardProps> = ({
         </div>
       </div>
 
-      <FormasPagamentoModal open={payOpen} pix={precoPixDecimal} onClose={() => setPayOpen(false)} />
+      <FormasPagamentoModal
+        open={payOpen}
+        pix={precoPixDecimal}
+        onClose={() => setPayOpen(false)}
+        tabela={cartao}
+        jurosParcelaPercent={jurosParcelaPercent}
+      />
     </div>
   );
 };

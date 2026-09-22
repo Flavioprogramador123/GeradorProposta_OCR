@@ -3,6 +3,12 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = [...(config.externals || []), 'better-sqlite3'];
+    } else {
+      // completarTonTotais() em src/utils/configuracoes.ts faz um import()
+      // dinâmico de tonTotaisServer.ts (fs) guardado por `typeof window`.
+      // O webpack ainda resolve esse import() ao montar o bundle do client,
+      // então o fallback abaixo evita o "Module not found: Can't resolve 'fs'".
+      config.resolve.fallback = { ...config.resolve.fallback, fs: false, path: false };
     }
     return config;
   },

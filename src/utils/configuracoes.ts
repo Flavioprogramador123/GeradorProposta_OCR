@@ -1,7 +1,19 @@
 import {
   TAXA_CARTAO_MENSAL_REF,
   calcularPrecosDePix,
+  buildTabelaCartao,
 } from '@/lib/tabelaJurosCartao';
+import {
+  FAIXA_TON_PADRAO,
+  PRAZO_RECEBIMENTO_PADRAO,
+  type LinhasTon,
+  type PrazoRecebimento,
+} from '@/lib/maquininha/tonTabela';
+import {
+  ADQUIRENTE_PADRAO,
+  TAXA_MENSAL_PAGSEGURO_PADRAO,
+  type Adquirente,
+} from '@/lib/maquininha/taxaAdapter';
 
 interface ConfiguracaoSistema {
   // Parâmetros Técnicos
@@ -53,7 +65,7 @@ interface ConfiguracaoSistema {
   jurosParcela12x: number;
   jurosParcela18x: number;
   descontoPix: number;
-  /** Taxa mensal da maquininha (% a.m.) — calibração 1,51%; altera regenera 2×–18× */
+  /** Taxa mensal da maquininha (% a.m.) — fallback/PagSeguro; a Ton vem do `tontaxa.json` */
   taxaCartaoMensal: number;
   taxaCartao12x: number;
   taxaCartao18x: number;
@@ -61,6 +73,18 @@ interface ConfiguracaoSistema {
   fatorParcelado: number;
   fator12x: number;
   fator18x: number;
+
+  // Maquininha (tabela Ton + fallback PagSeguro)
+  /** Adquirente vigente: `ton` (tabela) ou `pagseguro` (taxa manual) */
+  adquirente: Adquirente | string;
+  /** Prazo de recebimento da Ton: `naHora` ou `umDiaUtil` */
+  prazoRecebimento: PrazoRecebimento | string;
+  /** Faixa de faturamento mensal: 0 = até R$20 mil … 3 = acima de R$80 mil */
+  faixaFaturamento: number;
+  /** Taxa mensal por parcela do PagSeguro (fallback quando a Ton falha) */
+  taxaMensalPagSeguro: number;
+  /** Tabela da Ton resolvida (prazo × faixa) — juros % total por parcela */
+  tonTotais?: LinhasTon | null;
 
   // Despesa PIENG (Gerador / V3)
   pdespesaFixo: number;
@@ -127,8 +151,8 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
 
   jurosParcela12x: 2.5,
   jurosParcela18x: 3.2,
-  /** Economia PIX vs à vista (âncora 12×) — espelhada da tabela (~10,55%) */
-  descontoPix: 11.79, // ≈ (1,117943 − 1)×100 — sincronizado ao salvar taxaCartaoMensal
+  /** Economia PIX vs à vista (âncora 12×) — sincronizada ao salvar a tabela */
+  descontoPix: 11.79,
   taxaCartaoMensal: 1.51,
   /** Derivados da maquininha na taxa vigente */
   taxaCartao12x: 10.6,
@@ -137,6 +161,13 @@ const CONFIG_PADRAO: ConfiguracaoSistema = {
   fatorParcelado: 1.2,
   fator12x: 1 / 1.117943,
   fator18x: 1 / 1.179384,
+
+  // Maquininha
+  adquirente: ADQUIRENTE_PADRAO,
+  prazoRecebimento: PRAZO_RECEBIMENTO_PADRAO,
+  faixaFaturamento: FAIXA_TON_PADRAO,
+  taxaMensalPagSeguro: TAXA_MENSAL_PAGSEGURO_PADRAO,
+  tonTotais: null,
 
   pdespesaFixo: 3000,
   pdespesaVariavel: 30,
@@ -195,7 +226,22 @@ export function mergeConfiguracoes(
     hspPorEstado: { ...HSP_POR_ESTADO_PADRAO, ...hspMap },
   };
 
-  for (const k of [
+  // Maquininha: faixa/prazo/adquirente normalizados; tabela da Ton completada
+  merged.faixaFaturamento = Number.isFinite(Number(merged.faixaFaturamento))
+    ? Math.min(Math.max(0, Math.trunc(Number(merged.faixaFaturamento))), 3)
+    : FAIXA_TON_PADRAO;
+  merged.prazoRecebimento =
+    merged.prazoRecebimento === 'naHora' || merged.prazoRecebimento === 'umDiaUtil'
+      ? merged.prazoRecebimento
+      : PRAZO_RECEBIMENTO_PADRAO;
+  merged.adquirente =
+    merged.adquirente === 'ton' || merged.adquirente === 'pagseguro'
+      ? merged.adquirente
+      : ADQUIRENTE_PADRAO;
+  merged.taxaMensalPagSeguro = Number.isFinite(Number(merged.taxaMensalPagSeguro))
+    ? Number(merged.taxaMensalPagSeguro)
+    : TAXA_MENSAL_PAGSEGURO_PADRAO;
+  merged.tonTotais = resolverTonTotais(merged);  for (const k of [
     'pdespesaFixo',
     'pdespesaVariavel',
     'fretePadrao',
@@ -224,6 +270,33 @@ export function mergeConfiguracoes(
   return merged;
 }
 
+/**
+ * Lê o `tontaxa.json` do filesystem (servidor) no prazo × faixa vigentes.
+ * Se a tabela vier persistida na config (produção sem arquivo), usa-a.
+ */
+function resolverTonTotais(config: ConfiguracaoSistema): LinhasTon | null {
+  if (config.tonTotais && Object.keys(config.tonTotais).length) return config.tonTotais;
+  return null;
+}
+
+/**
+ * Completa `tonTotais` a partir do arquivo `tontaxa.json` (só no servidor).
+ * A leitura do `fs` vive em `@/lib/maquininha/tonTotaisServer`, que nenhuma
+ * página do cliente importa — por isso o bundle do browser não puxa `fs`.
+ */
+async function completarTonTotais(config: ConfiguracaoSistema): Promise<ConfiguracaoSistema> {
+  if (config.tonTotais && Object.keys(config.tonTotais).length) return config;
+  if (typeof window !== 'undefined') return config; // browser usa /tontaxa.json
+  try {
+    const { resolverTonTotaisServer } = await import('@/lib/maquininha/tonTotaisServer');
+    const totais = await resolverTonTotaisServer(config.prazoRecebimento, config.faixaFaturamento);
+    if (totais) config.tonTotais = totais;
+  } catch {
+    // sem arquivo/ambiente — segue com fallback PagSeguro
+  }
+  return config;
+}
+
 // Função para carregar configurações do sistema
 export async function carregarConfiguracoes(): Promise<ConfiguracaoSistema> {
   try {
@@ -241,7 +314,8 @@ export async function carregarConfiguracoes(): Promise<ConfiguracaoSistema> {
       try {
         const configData = await fs.readFile(configPath, 'utf8');
         const config = JSON.parse(configData);
-        return mergeConfiguracoes(config);
+        // merge normaliza a maquininha; completarTonTotais lê o tontaxa.json
+        return await completarTonTotais(mergeConfiguracoes(config));
       } catch {
         // Arquivo não existe, usar padrão
       }
@@ -252,7 +326,6 @@ export async function carregarConfiguracoes(): Promise<ConfiguracaoSistema> {
 
   return { ...CONFIG_PADRAO };
 }
-
 /** Extrato usado pelo V3 (proposta automática / motor) */
 export function extrairDefaultsV3(config: ConfiguracaoSistema) {
   return {
@@ -276,11 +349,29 @@ export function extrairDefaultsV3(config: ConfiguracaoSistema) {
     descontoFortlevCustoPct: config.descontoFortlevCustoPct,
     fatorParcelado: config.fatorParcelado,
     taxaCartaoMensal: config.taxaCartaoMensal,
+    // Maquininha (Ton + fallback PagSeguro) — consumido pelo motor de preços
+    adquirente: config.adquirente,
+    prazoRecebimento: config.prazoRecebimento,
+    faixaFaturamento: config.faixaFaturamento,
+    taxaMensalPagSeguro: config.taxaMensalPagSeguro,
+    tonTotais: config.tonTotais,
     descontoPix:
       typeof config.descontoPix === 'number' && config.descontoPix <= 1
         ? config.descontoPix * 100
         : config.descontoPix,
   };
+}
+
+/** Tabela de cartão vigente (Ton com fallback PagSeguro). */
+export function tabelaCartaoDaConfig(config: ConfiguracaoSistema) {
+  return buildTabelaCartao({
+    adquirente: config.adquirente,
+    prazoRecebimento: config.prazoRecebimento,
+    faixaFaturamento: config.faixaFaturamento,
+    tonTotais: config.tonTotais,
+    taxaMensalPagSeguro: config.taxaMensalPagSeguro,
+    taxaMensalFallback: config.taxaCartaoMensal,
+  });
 }
 
 // Função para calcular preço com desconto PIX
@@ -289,18 +380,20 @@ export function calcularPrecoPixComDesconto(precoBase: number, config: Configura
   return precoBase * (1 - desc);
 }
 
-// Função para calcular parcelas (usa taxa mensal da maquininha)
+// Função para calcular parcelas (usa a tabela da maquininha vigente)
 export function calcularParcelas(precoBase: number, config: ConfiguracaoSistema) {
   const precos = calcularPrecosDePix(
     precoBase,
     config.fatorParcelado || 1.2,
-    config.taxaCartaoMensal ?? TAXA_CARTAO_MENSAL_REF
+    tabelaCartaoDaConfig(config)
   );
   return {
     parcela12x: precos.p12x,
     parcela18x: precos.p18x_parcela,
+    parcela21x: precos.p21x_parcela,
     valor12x: precos.p12x_total,
     valor18x: precos.p18x_total,
+    valor21x: precos.p21x_total,
   };
 }
 
