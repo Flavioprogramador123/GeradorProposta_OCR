@@ -394,6 +394,8 @@ interface Sistema {
   p18x_parcela: number;
   p12x_total?: number;
   p18x_total?: number;
+  p21x_parcela?: number;
+  p21x_total?: number;
   geracaoMensal: number;
   cobertura: number;
   economiaMensal: number;
@@ -765,6 +767,11 @@ export class TemplateEnginePadrao {
     const cardUnico = sistemas.length === 1;
 
     return sistemas.map((sistema, index) => {
+      // Maior parcelamento da maquininha vigente: p21x = p18x quando a Ton não
+      // chega a 21× (fallback PagSeguro), então o maior parcelamento real vira 18×.
+      const maxParcelas =
+        sistema.p21x_parcela && sistema.p21x_parcela !== sistema.p18x_parcela ? 21 : 18;
+      const precoMaxParcelas = maxParcelas === 21 ? sistema.p21x_parcela : sistema.p18x_parcela;
       const paybackAtual = Number(sistema.paybackMeses) || 999;
       const isRecommended = !cardUnico && paybackAtual === melhorPayback;
       const recommendedClass = isRecommended ? 'recommended' : cardUnico ? 'card-unico-featured' : '';
@@ -810,8 +817,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p12x)}
                 </div>
                 <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  ${formatBRL(sistema.p18x_parcela)}
+                  <strong>${maxParcelas}× cartão</strong><br>
+                  ${formatBRL(precoMaxParcelas)}
                 </div>
               </div>
 
@@ -837,6 +844,11 @@ export class TemplateEnginePadrao {
     const cardUnico = sistemas.length === 1;
 
     return sistemas.map((sistema, index) => {
+      // Maior parcelamento da maquininha vigente: p21x = p18x quando a Ton não
+      // chega a 21× (fallback PagSeguro), então o maior parcelamento real vira 18×.
+      const maxParcelas =
+        sistema.p21x_parcela && sistema.p21x_parcela !== sistema.p18x_parcela ? 21 : 18;
+      const precoMaxParcelas = maxParcelas === 21 ? sistema.p21x_parcela : sistema.p18x_parcela;
       const paybackAtual = Number(sistema.paybackMeses) || 999;
       const isRecommended = !cardUnico && paybackAtual === melhorPayback;
       const recommendedClass = isRecommended ? 'recommended' : cardUnico ? 'card-unico-featured' : '';
@@ -887,8 +899,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p12x)}
                 </div>
                 <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  ${formatBRL(sistema.p18x_parcela)}
+                  <strong>${maxParcelas}× cartão</strong><br>
+                  ${formatBRL(precoMaxParcelas)}
                 </div>
               </div>
 

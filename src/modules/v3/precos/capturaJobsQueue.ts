@@ -109,12 +109,18 @@ export async function listCapturaJobs(limit = 12): Promise<CapturaJobRow[]> {
   return cfg ? [cfg] : [];
 }
 
-/** Enfileira scrape+publish. Não duplica se já houver pending/running. */
+/** Tipos de job aceitos pelo worker local. */
+export const CAPTURA_JOB_TYPES = ['soollar_scrape', 'fortlev_scrape'] as const;
+export type CapturaJobType = (typeof CAPTURA_JOB_TYPES)[number];
+
+/** Enfileira scrape+publish. Não duplica se já houver pending/running do mesmo job_type. */
 export async function enqueueCapturaJob(opts?: {
   requestedBy?: string;
+  jobType?: CapturaJobType | string;
   payload?: Record<string, unknown>;
 }): Promise<{ created: boolean; job: CapturaJobRow }> {
   const requestedBy = String(opts?.requestedBy || 'vercel-ui').slice(0, 80);
+  const jobType = String(opts?.jobType || 'soollar_scrape').slice(0, 60);
   const payload = {
     fonte: 'scrape',
     headless: true,
@@ -129,6 +135,7 @@ export async function enqueueCapturaJob(opts?: {
     .select(
       'id,status,job_type,payload,requested_by,worker_id,message,created_at,claimed_at,finished_at'
     )
+    .eq('job_type', jobType)
     .in('status', ['pending', 'running'])
     .order('created_at', { ascending: true })
     .limit(1);
@@ -140,11 +147,14 @@ export async function enqueueCapturaJob(opts?: {
     const { data, error } = await sb
       .from('pieng_captura_jobs')
       .insert({
-        job_type: 'soollar_scrape',
+        job_type: jobType,
         status: 'pending',
         requested_by: requestedBy,
         payload,
-        message: 'Enfileirado via Vercel — aguardando worker no PC (F:/Postgres + Playwright)',
+        message:
+          jobType === 'fortlev_scrape'
+            ? 'Enfileirado via Vercel — aguardando worker no PC (F:/Postgres + Playwright) para Captura Fortlev'
+            : 'Enfileirado via Vercel — aguardando worker no PC (F:/Postgres + Playwright)',
       })
       .select(
         'id,status,job_type,payload,requested_by,worker_id,message,created_at,claimed_at,finished_at'
@@ -165,7 +175,7 @@ export async function enqueueCapturaJob(opts?: {
   const job: CapturaJobRow = {
     id: `cfg-${Date.now()}`,
     status: 'pending',
-    job_type: 'soollar_scrape',
+    job_type: jobType,
     payload,
     requested_by: requestedBy,
     worker_id: null,

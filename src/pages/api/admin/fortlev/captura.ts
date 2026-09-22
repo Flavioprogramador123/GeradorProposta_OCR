@@ -50,6 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     return res.status(200).json({
       configured: creds.configured,
+      serverless: isServerlessFs(),
       hasUser: Boolean(creds.user),
       hasPassword: Boolean(creds.password),
       baseUrl: creds.baseUrl,
@@ -72,6 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'BOM sintético ≈ kit 391003 (grampos + junção + suporte/prisioneiro M10x250)',
         'Trilho / cabo / MC4 continuam nas regras SOOLLAR já existentes',
         'Grava no CD V3 slug=fortlev (estoque assumido 999 — portal não mostra qty nos cards)',
+        isServerlessFs()
+          ? 'Na Vercel: "Capturar produto-avulso" enfileira job_type=fortlev_scrape → worker no PC (npm run v3:jobs:worker) roda + publica'
+          : 'No PC: roda Playwright direto neste endpoint',
       ],
     });
   }
@@ -81,12 +85,104 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (isServerlessFs()) {
-    return res.status(503).json({
-      ok: false,
-      serverless: true,
-      message:
-        'Captura Fortlev roda só no PC (Playwright). Use localhost ou worker local — não enfileiramos Fortlev na Vercel ainda.',
-    });
+    // Vercel não roda Playwright → enfileira no Supabase; worker no PC captura + publica
+    const action = String(req.body?.action || req.query.action || 'capturar');
+    const stream = req.body?.stream !== false;
+
+    if (action === 'probe') {
+      const payload = {
+        ok: false,
+        queued: false,
+        serverless: true,
+        message:
+          'Probe (login Playwright) roda só no PC. Da nuvem use "Capturar produto-avulso": o job vai para o worker local.',
+      };
+      if (stream) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        });
+        writeSse(res, {
+          type: 'log',
+          line: {
+            ts: new Date().toISOString(),
+            level: 'warn',
+            message: payload.message,
+          },
+        });
+        writeSse(res, { type: 'done', ...payload });
+        return res.end();
+      }
+      return res.status(200).json(payload);
+    }
+
+    try {
+      const { enqueueCapturaJob } = await import('@/modules/v3/precos/capturaJobsQueue');
+      const { created, job } = await enqueueCapturaJob({
+        requestedBy: `vercel-fortlev-${action}`.slice(0, 80),
+        jobType: 'fortlev_scrape',
+        payload: {
+          fonte: 'scrape',
+          cds: ['fortlev'],
+          headless: true,
+          publicar: true,
+          singleSession: true,
+          action,
+        },
+      });
+      const payload = {
+        ok: true,
+        queued: true,
+        created,
+        job,
+        serverless: true,
+        message: created
+          ? 'Enfileirado via Vercel. O PC vai rodar Captura Fortlev (produto-avulso + BOM 391003) e publicar no Supabase.'
+          : 'Já havia job Fortlev pending/running no PC — aguarde concluir.',
+      };
+      if (stream) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        });
+        writeSse(res, {
+          type: 'log',
+          line: {
+            ts: new Date().toISOString(),
+            level: 'ok',
+            message: payload.message,
+            data: { jobId: job.id, status: job.status, jobType: job.job_type },
+          },
+        });
+        writeSse(res, { type: 'done', ...payload });
+        return res.end();
+      }
+      return res.status(created ? 202 : 200).json(payload);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const payload = {
+        ok: false,
+        serverless: true,
+        message: /pieng_captura_jobs|schema cache|does not exist|Could not find the table/i.test(msg)
+          ? 'Execute sql/8_pieng_captura_jobs.sql no Supabase para habilitar o disparo remoto.'
+          : `Fila de captura falhou: ${msg}`,
+      };
+      if (stream) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+        });
+        writeSse(res, { type: 'error', ...payload });
+        writeSse(res, { type: 'done', ...payload });
+        return res.end();
+      }
+      return res.status(503).json(payload);
+    }
   }
 
   const action = (req.body?.action || req.query.action || 'probe') as string;

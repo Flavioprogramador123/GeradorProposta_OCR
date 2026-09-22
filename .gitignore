@@ -114,3 +114,7 @@ claude.code
 .env.local
 .env.production
 .env.development
+
+# Scripts obsoletos/descartáveis (debug de scraping) — não versionar.
+# Apagar a pasta quando não precisar mais consultar.
+/scripts/obsoletos/

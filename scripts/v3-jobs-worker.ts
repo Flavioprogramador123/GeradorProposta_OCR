@@ -6,6 +6,10 @@
  *   npm run v3:jobs:worker -- --once --dry-run
  *   npm run v3:jobs:enqueue
  *
+ * job_type:
+ *   soollar_scrape → npm run v3:captura:force    (3 CDs SOOLLAR + Fortlev + publish)
+ *   fortlev_scrape → npm run v3:captura:fortlev  (Fortlev-only + publish)
+ *
  * Env (opcional):
  *   PIENG_JOBS_DATABASE_URL=postgresql://pieng_saas:...@127.0.0.1:5432/pieng_saas
  *   NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY  (fila Vercel)
@@ -85,10 +89,33 @@ async function finishPg(c: Client, id: string, ok: boolean, message: string, res
   );
 }
 
+/** Falha do Supabase (rede/URL errada/sem env) nunca pode travar a fila local do Postgres. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label}: timeout ${ms}ms`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
+
+const SUPABASE_TIMEOUT_MS = Number(process.env.PIENG_JOBS_SUPABASE_TIMEOUT_MS || 20000);
+
 async function claimNextSupabase(): Promise<JobRow | null> {
   try {
     const { claimNextCapturaJob } = await import('../src/modules/v3/precos/capturaJobsQueue');
-    const job = await claimNextCapturaJob(workerId);
+    const job = await withTimeout(
+      claimNextCapturaJob(workerId),
+      SUPABASE_TIMEOUT_MS,
+      'supabase claim'
+    );
     if (!job) return null;
     return {
       id: job.id,
@@ -102,20 +129,39 @@ async function claimNextSupabase(): Promise<JobRow | null> {
     if (/pieng_captura_jobs|schema cache|does not exist|não configurado/i.test(msg)) {
       return null;
     }
-    throw e;
+    // Loga e segue para a fila local (antes: throw, e a fila Postgres nunca era lida)
+    console.warn(`[jobs] fila Supabase indisponível, caindo para Postgres: ${msg}`);
+    return null;
   }
 }
 
 async function finishSupabase(id: string, ok: boolean, message: string, result?: unknown) {
-  const { finishCapturaJob } = await import('../src/modules/v3/precos/capturaJobsQueue');
-  await finishCapturaJob(id, ok, message, result);
+  try {
+    const { finishCapturaJob } = await import('../src/modules/v3/precos/capturaJobsQueue');
+    await withTimeout(
+      finishCapturaJob(id, ok, message, result),
+      SUPABASE_TIMEOUT_MS,
+      'supabase finish'
+    );
+  } catch (e) {
+    // Job fica 'running' no Supabase e é reclamado como stale depois (45 min)
+    console.error(
+      `[jobs] não consegui gravar status no Supabase: ${e instanceof Error ? e.message : e}`
+    );
+  }
 }
 
-function runCapturaForce(): Promise<{ code: number; log: string }> {
+/** job_type → script npm que roda a captura certa no PC. */
+const CAPTURA_SCRIPTS: Record<string, string> = {
+  soollar_scrape: 'v3:captura:force',
+  fortlev_scrape: 'v3:captura:fortlev',
+};
+
+function runCaptura(npmScript: string): Promise<{ code: number; log: string }> {
   const root = process.cwd();
   const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   return new Promise((resolve) => {
-    const child = spawn(npmCmd, ['run', 'v3:captura:force'], {
+    const child = spawn(npmCmd, ['run', npmScript], {
       cwd: root,
       env: process.env,
       shell: true,
@@ -152,7 +198,8 @@ async function runJob(job: JobRow): Promise<void> {
     }
   };
 
-  if (job.job_type !== 'soollar_scrape') {
+  const npmScript = CAPTURA_SCRIPTS[job.job_type];
+  if (!npmScript) {
     await finish(false, `job_type desconhecido: ${job.job_type}`);
     return;
   }
@@ -163,9 +210,10 @@ async function runJob(job: JobRow): Promise<void> {
     return;
   }
 
-  const { code, log } = await runCapturaForce();
+  const { code, log } = await runCaptura(npmScript);
   const ok = code === 0;
-  await finish(ok, ok ? 'Captura OK (scrape SOOLLAR+Fortlev + publish)' : `exit ${code}`, {
+  const label = job.job_type === 'fortlev_scrape' ? 'Captura Fortlev' : 'Captura SOOLLAR+Fortlev';
+  await finish(ok, ok ? `${label} OK (+ publish)` : `exit ${code}`, {
     exitCode: code,
     workerId,
     tail: log.slice(-1500),

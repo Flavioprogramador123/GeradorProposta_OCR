@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { formatBRL } from '@/lib/formatBRL';
-import { tagEconomiaPix, type TabelaCartao } from '@/lib/tabelaJurosCartao';
+import {
+  buildTabelaCartao,
+  buildTabelaCartaoFromParcelaPercent,
+  calcularParcelamentoCartao,
+  tagEconomiaPix,
+  type TabelaCartao,
+} from '@/lib/tabelaJurosCartao';
 import { FormasPagamentoModal } from '@/components/FormasPagamentoModal';
 import {
   buildPerformanceMensalView,
@@ -55,7 +61,6 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   precoPixDecimal,
   pavista,
   preco12x,
-  preco18x,
   geracao,
   cobertura,
   economia,
@@ -70,6 +75,19 @@ export const SystemCard: React.FC<SystemCardProps> = ({
   jurosParcelaPercent,
 }) => {
   const [payOpen, setPayOpen] = useState(false);
+
+  const tabelaCartao = useMemo<TabelaCartao>(() => {
+    if (cartao) return cartao;
+    if (jurosParcelaPercent && Object.keys(jurosParcelaPercent).length) {
+      return buildTabelaCartaoFromParcelaPercent(jurosParcelaPercent);
+    }
+    return buildTabelaCartao();
+  }, [cartao, jurosParcelaPercent]);
+
+  const maxParcelas = tabelaCartao.maxParcelas;
+  const precoMaxParcelas = formatBRL(
+    calcularParcelamentoCartao(precoPixDecimal, maxParcelas, tabelaCartao).parcela
+  );
 
   const tagCoerente =
     pavista != null && pavista > 0 && precoPixDecimal > 0
@@ -125,9 +143,9 @@ export const SystemCard: React.FC<SystemCardProps> = ({
               {preco12x}
             </div>
             <div className="pieng-payment-option">
-              <strong>18× cartão</strong>
+              <strong>{maxParcelas}× cartão</strong>
               <br />
-              {preco18x}
+              {precoMaxParcelas}
             </div>
           </div>
 

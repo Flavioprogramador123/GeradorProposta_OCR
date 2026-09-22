@@ -392,6 +392,8 @@ interface Sistema {
   p18x_parcela: number;
   p12x_total?: number;
   p18x_total?: number;
+  p21x_parcela?: number;
+  p21x_total?: number;
   geracaoMensal: number;
   cobertura: number;
   economiaMensal: number;
@@ -968,6 +970,8 @@ export class TemplateEnginePadrao {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     const cardUnico = sistemas.length === 1;
+    // Maior parcelamento da maquininha vigente (Ton = 21×, fallback PagSeguro = 18×)
+    const maxParcelas = data?.cartao?.maxParcelas ?? data?.config?.maxParcelasCartao ?? 18;
 
     return sistemas.map((sistema, index) => {
       const paybackAtual = Number(sistema.paybackMeses) || 999;
@@ -1015,8 +1019,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p12x)}
                 </div>
                 <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  ${formatBRL(sistema.p18x_parcela)}
+                  <strong>${maxParcelas}× cartão</strong><br>
+                  ${formatBRL(maxParcelas >= 21 && sistema.p21x_parcela ? sistema.p21x_parcela : sistema.p18x_parcela)}
                 </div>
               </div>
 
@@ -1035,6 +1039,8 @@ export class TemplateEnginePadrao {
     // Encontrar o sistema com melhor payback (menor valor em meses)
     const melhorPayback = Math.min(...sistemas.map(s => Number(s.paybackMeses) || 999));
     const cardUnico = sistemas.length === 1;
+    // Maior parcelamento da maquininha vigente (Ton = 21×, fallback PagSeguro = 18×)
+    const maxParcelas = data?.cartao?.maxParcelas ?? data?.config?.maxParcelasCartao ?? 18;
 
     return sistemas.map((sistema, index) => {
       const paybackAtual = Number(sistema.paybackMeses) || 999;
@@ -1084,8 +1090,8 @@ export class TemplateEnginePadrao {
                   ${formatBRL(sistema.p12x)}
                 </div>
                 <div class="payment-option">
-                  <strong>18× cartão</strong><br>
-                  ${formatBRL(sistema.p18x_parcela)}
+                  <strong>${maxParcelas}× cartão</strong><br>
+                  ${formatBRL(maxParcelas >= 21 && sistema.p21x_parcela ? sistema.p21x_parcela : sistema.p18x_parcela)}
                 </div>
               </div>
 

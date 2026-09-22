@@ -572,6 +572,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           priscado: sistema.priscado,
           p12x: sistema.p12x,
           p18x_parcela: sistema.p18x_parcela,
+          p21x_parcela: sistema.p21x_parcela,
+          p21x_total: sistema.p21x_total,
 
           // Formatados para Next.js
           precoRiscado: formatBRL(sistema.priscado),
