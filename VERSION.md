@@ -1,12 +1,37 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.22** (16/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.23** (22/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.22** - 16/09/2026 ✅ **ATUAL**
+### **v2.4.23** - 22/09/2026 ✅ **ATUAL**
+**💳 Maquininha Ton até 21× (fallback PagSeguro 18×) + robustez do scraping Fortlev/SOOLLAR:**
+- ✅ Modal "Outras formas de pagamento" e o card resumido (fora do modal) agora
+  mostram o parcelamento real da maquininha vigente — 21× quando a Ton está
+  configurada, 18× no fallback PagSeguro (antes o card ficava travado em 18×
+  mesmo com a Ton ativa)
+- ✅ `/admin/configuracoes` → aba Comercial: seletor de faixa de faturamento
+  Ton (Até R$20 mil / R$20-40 mil / R$40-80 mil / Acima de R$80 mil) e prazo
+  de recebimento
+- ✅ `next.config.js`: fallback de `fs`/`path` no bundle do client (evita
+  quebra de build causada pelo módulo server-only da maquininha)
+- ✅ Fortlev: login/catálogo caem para `domcontentloaded` quando
+  `networkidle` não estabiliza (mesmo padrão do scraper SOOLLAR) — reduz
+  timeouts na captura diária agendada (seg-sex, SOOLLAR + Fortlev juntos)
+- ✅ Scripts de debug/exploração do portal Fortlev organizados em
+  `scripts/obsoletos/` (fora do git)
+- ✅ Docs: `REGISTRO_MAQUININHA_TON.md`, `FORTLEV_SCRAPING.md` (captura
+  diária) e `V3_JOBS_POSTGRES.md` (IP Tailscale atualizado)
+
+**📦:** `SystemCard.tsx`, `FormasPagamentoModal.tsx`, `tabelaJurosCartao.ts`,
+`templateEngine.ts`, `templateEngineVariants.ts`, `next.config.js`,
+`src/lib/maquininha/`, `src/lib/fortlev/scraper.ts`, `gerar-proposta.ts`
+
+---
+
+### **v2.4.22** - 16/09/2026
 **☀️ Fortlev no kit automático — R$/Wp, desconto e frete embutido:**
 - ✅ Ranking Fortlev por **R$/Wp** (micro 6 MPPT preferido vs 2 MPPT)
 - ✅ Config **`descontoFortlevCustoPct`** (padrão 11%) no kit Fortlev antes da pdespesa
