@@ -419,6 +419,14 @@ export default function AdminIndex() {
                     ✨ Ver Exemplo
                   </a>
                 </Link>
+                <Link href="/admin/simulador" legacyBehavior>
+                  <a
+                    className="admin-btn-ghost text-xl"
+                    title="Simulador de pagamento (cartão)"
+                  >
+                    🧮
+                  </a>
+                </Link>
                 <Link href="/admin/configuracoes" legacyBehavior>
                   <a className="admin-btn-ghost text-xl" title="Configurações do Sistema">
                     ⚙️
