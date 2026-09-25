@@ -1,12 +1,26 @@
 # 📌 PIENG PROPOSTAS - CONTROLE DE VERSÃO
 
-## 🎯 **VERSÃO ATUAL: v2.4.23** (22/09/2026)
+## 🎯 **VERSÃO ATUAL: v2.4.24** (25/09/2026)
 
 ---
 
 ## 📋 **HISTÓRICO DE VERSÕES**
 
-### **v2.4.23** - 22/09/2026 ✅ **ATUAL**
+### **v2.4.24** - 25/09/2026 ✅ **ATUAL**
+**📄 Card "Documentos Equatorial" no `/admin` (pieng-doc — produto separado):**
+- ✅ Novo card laranja no `/admin` abrindo o **pieng-doc** (documentos Equatorial / PRODIST 3)
+- ✅ `src/lib/piengDoc.ts` — `getPiengDocUrl()`, mesmo padrão do `tetoSolBridge.ts`
+- ✅ URL configurável por `NEXT_PUBLIC_PIENG_DOC_URL`; default `http://127.0.0.1:5180`
+- ✅ Porta dedicada **5180** no pieng-doc — o Teto Sol (PlanoSol) usa 5173
+- ℹ️ O pieng-doc é **local** (Flask + Vite + ODA File Converter): gera Procuração,
+  Memorial Descritivo, NT.00020-05 e planta CAD. Não é hospedado no Vercel — o card
+  apenas abre a URL do app que roda no PC.
+
+**📦:** `src/pages/admin/index.tsx`, `src/lib/piengDoc.ts`, `.env.example`, `package.json`
+
+---
+
+### **v2.4.23** - 22/09/2026
 **💳 Maquininha Ton até 21× (fallback PagSeguro 18×) + robustez do scraping Fortlev/SOOLLAR:**
 - ✅ Modal "Outras formas de pagamento" e o card resumido (fora do modal) agora
   mostram o parcelamento real da maquininha vigente — 21× quando a Ton está

@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import InstallPWA from '@/components/InstallPWA';
 import { getTetoSolUrl } from '@/lib/tetoSolBridge';
+import { getPiengDocUrl } from '@/lib/piengDoc';
 
 interface ClienteInfo {
   nome: string;
@@ -405,7 +406,7 @@ export default function AdminIndex() {
                     🏢 Área Administrativa
                   </h1>
                   <span className="px-2 py-1 text-xs font-mono rounded border border-[var(--admin-border)] bg-[var(--admin-surface-muted)] text-[var(--admin-primary)]">
-                    v2.4.23
+                    v2.4.24
                   </span>
                 </div>
                 <p className="admin-subtitle">
@@ -489,7 +490,7 @@ export default function AdminIndex() {
             <div className="space-y-6 mb-8">
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Propostas e orçamentos</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   <Link href="/gerador-rapido" legacyBehavior>
                     <a className="block p-5 bg-gradient-to-br from-blue-700 to-blue-900 text-white rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02] text-center border border-blue-500/30">
                       <div className="text-2xl mb-2">📝</div>
@@ -528,6 +529,17 @@ export default function AdminIndex() {
                     <div className="text-2xl mb-2">🏠</div>
                     <h3 className="font-semibold mb-0.5">Teto Sol</h3>
                     <p className="text-sm opacity-90">Projeção no telhado · app separado</p>
+                  </a>
+                  <a
+                    href={getPiengDocUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-5 bg-gradient-to-br from-orange-600 to-orange-900 text-white rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02] text-center border border-orange-400/30"
+                    title="Documentos Equatorial (PRODIST 3) — Procuração, Memorial Descritivo, NT.00020-05 e planta CAD. Roda no seu PC."
+                  >
+                    <div className="text-2xl mb-2">📄</div>
+                    <h3 className="font-semibold mb-0.5">Documentos Equatorial</h3>
+                    <p className="text-sm opacity-90">Procuração · Memorial · NT.00020 · CAD</p>
                   </a>
                 </div>
               </section>
