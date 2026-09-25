@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { formatBRL } from '@/lib/formatBRL';
+import { AnaliseFinanceiraInterna } from '@/components/AnaliseFinanceiraInterna';
 import {
   PARCELAS_REFERENCIA_AVISTA,
   buildTabelaCartao,
@@ -475,6 +476,19 @@ export default function SimuladorPage() {
                 </>
               )}
             </div>
+
+            {/* 🔒 Análise econômico-financeira interna (só analista) */}
+            {tabela && (
+              <AnaliseFinanceiraInterna
+                valor={valor}
+                entrada={entrada}
+                financiado={financiado}
+                parcelasSelecionadas={parcelas}
+                tabela={tabela}
+                faixa={estado?.faixa}
+                prazo={estado?.prazo}
+              />
+            )}
 
             <p className="text-xs text-[var(--admin-text-muted)] mt-6 text-center">
               Ferramenta interna. As condições refletem a tabela da maquininha vigente nas{' '}
