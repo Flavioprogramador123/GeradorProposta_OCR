@@ -3,9 +3,30 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { supabase } from '@/lib/supabase';
 import { loadSistemaConfigFlat } from '@/lib/sistemaConfig';
+import { CONFIG_PADRAO } from '@/utils/configuracoes';
 
 const CONFIG_FILE_PATH = path.join(process.cwd(), 'src/data/sistema/configuracoes.json');
 const SERVERLESS_FILE_PATH = path.join('/tmp', 'configuracoes.json');
+
+/**
+ * Chaves da maquininha que precisam existir no banco mesmo quando a base só tem
+ * as configs antigas (ex.: `taxaCartaoMensal`). Sem isso, o GET em produção não
+ * devolve `adquirente`/`prazoRecebimento` e o sistema não sabe qual tabela usar.
+ */
+const CAMPOS_MAQUININHA_PADRAO: Record<string, unknown> = {
+  adquirente: CONFIG_PADRAO.adquirente,
+  prazoRecebimento: CONFIG_PADRAO.prazoRecebimento,
+  faixaFaturamento: CONFIG_PADRAO.faixaFaturamento,
+  taxaMensalPagSeguro: CONFIG_PADRAO.taxaMensalPagSeguro,
+};
+
+function comDefaultsMaquininha(config: Record<string, any>): Record<string, any> {
+  const out = { ...config };
+  for (const [chave, valor] of Object.entries(CAMPOS_MAQUININHA_PADRAO)) {
+    if (out[chave] == null || out[chave] === '') out[chave] = valor;
+  }
+  return out;
+}
 
 async function saveConfigToFile(config: Record<string, any>) {
   const targetPath = process.env.VERCEL || process.env.NETLIFY ? SERVERLESS_FILE_PATH : CONFIG_FILE_PATH;
@@ -59,7 +80,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     try {
       const config = await loadSistemaConfigFlat();
-      return res.status(200).json(config);
+      const comDefaults = comDefaultsMaquininha(config);
+      // Resolve a tabela da Ton no servidor (o browser não tem filesystem).
+      // Se o arquivo não existir, segue sem `tonTotais` → fallback PagSeguro.
+      try {
+        const { resolverTonTotaisServer } = await import('@/lib/maquininha/tonTotaisServer');
+        const totais = await resolverTonTotaisServer(
+          String(comDefaults.prazoRecebimento ?? 'umDiaUtil'),
+          Number(comDefaults.faixaFaturamento ?? 0)
+        );
+        if (totais) comDefaults.tonTotais = totais;
+      } catch {
+        // sem tontaxa.json — o admin usa fallback PagSeguro
+      }
+      return res.status(200).json(comDefaults);
     } catch (error) {
       console.error('Erro ao carregar configuração:', error);
       return res.status(500).json({ message: 'Erro ao carregar configuração' });
@@ -79,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { sistema_config: _legado, ...configLimpo } = config as Record<string, unknown>;
 
       const configWithMetadata = {
-        ...configLimpo,
+        ...comDefaultsMaquininha(configLimpo),
         metadata: {
           lastUpdate: new Date().toISOString(),
           version: (config as { metadata?: { version?: string } })?.metadata?.version || '2.0',

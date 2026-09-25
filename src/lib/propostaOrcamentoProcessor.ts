@@ -7,7 +7,22 @@ import {
   calcularPerformanceCompleta,
   getBonusMicroAtivo,
 } from '@/lib/calcularPerformance';
-import { calcularPrecosDePix, tagEconomiaPix } from '@/lib/tabelaJurosCartao';
+import {
+  buildTabelaCartao,
+  buildTabelaCartaoFromParcelaPercent,
+  calcularPrecosDePixComTabela,
+  tagEconomiaPix,
+  type TabelaCartao,
+} from '@/lib/tabelaJurosCartao';
+import {
+  FAIXA_TON_PADRAO,
+  PRAZO_RECEBIMENTO_PADRAO,
+  type LinhasTon,
+} from '@/lib/maquininha/tonTabela';
+import {
+  ADQUIRENTE_PADRAO,
+  TAXA_MENSAL_PAGSEGURO_PADRAO,
+} from '@/lib/maquininha/taxaAdapter';
 import { formatBRL } from '@/lib/formatBRL';
 
 export interface PropostaConfigInput {
@@ -26,6 +41,14 @@ export interface PropostaConfigInput {
   taxaCartaoMensal?: number;
   bonusMicroPercent?: number;
   metodo?: 'fixo' | 'variavel' | string;
+  // Maquininha (tabela Ton + fallback PagSeguro)
+  adquirente?: string;
+  prazoRecebimento?: string;
+  faixaFaturamento?: number;
+  taxaMensalPagSeguro?: number;
+  tonTotais?: LinhasTon | null;
+  /** Juros % total por parcela já resolvido (vem da proposta salva) */
+  jurosParcelaPercent?: LinhasTon | null;
 }
 
 export interface OrcamentoInput {
@@ -50,6 +73,8 @@ export interface OrcamentoInput {
   p12x_total?: number;
   p18x_parcela?: number;
   p18x_total?: number;
+  p21x_parcela?: number;
+  p21x_total?: number;
   potTotal?: number;
   geracaoMensal?: number;
   cobertura?: number;
@@ -78,6 +103,8 @@ export interface SistemaProcessado {
   p12x_total: number;
   p18x_parcela: number;
   p18x_total: number;
+  p21x_parcela: number;
+  p21x_total: number;
   geracaoMensal: number;
   cobertura: number;
   economiaMensal: number;
@@ -114,6 +141,10 @@ const CONFIG_PADRAO = {
   fator18x: 0.83,
   taxaCartaoMensal: 1.51,
   bonusMicroPercent: 5,
+  adquirente: ADQUIRENTE_PADRAO,
+  prazoRecebimento: PRAZO_RECEBIMENTO_PADRAO as string,
+  faixaFaturamento: FAIXA_TON_PADRAO,
+  taxaMensalPagSeguro: TAXA_MENSAL_PAGSEGURO_PADRAO,
 };
 
 export function normalizeDescontoPix(raw: unknown, fallback = 0.1): number {
@@ -180,12 +211,46 @@ export function normalizePropostaConfig(config: PropostaConfigInput = {}) {
     taxaCartaoMensal: config.taxaCartaoMensal ?? CONFIG_PADRAO.taxaCartaoMensal,
     bonusMicroPercent: config.bonusMicroPercent ?? CONFIG_PADRAO.bonusMicroPercent,
     metodo: config.metodo,
+    // Maquininha
+    adquirente: config.adquirente ?? CONFIG_PADRAO.adquirente,
+    prazoRecebimento: config.prazoRecebimento ?? CONFIG_PADRAO.prazoRecebimento,
+    faixaFaturamento: config.faixaFaturamento ?? CONFIG_PADRAO.faixaFaturamento,
+    taxaMensalPagSeguro: config.taxaMensalPagSeguro ?? CONFIG_PADRAO.taxaMensalPagSeguro,
+    tonTotais: config.tonTotais ?? null,
+    jurosParcelaPercent: config.jurosParcelaPercent ?? null,
   };
 }
 
-/** PIX = base; à vista = total 12× cartão; 12×/18× pela taxa mensal configurada. */
+/**
+ * Tabela de cartão da proposta.
+ * Prioridade: juros por parcela já salvos na proposta → tabela da Ton → PagSeguro.
+ */
+export function tabelaCartaoProposta(
+  config: ReturnType<typeof normalizePropostaConfig>
+): TabelaCartao {
+  if (config.jurosParcelaPercent && Object.keys(config.jurosParcelaPercent).length) {
+    return buildTabelaCartaoFromParcelaPercent(
+      config.jurosParcelaPercent,
+      config.taxaCartaoMensal
+    );
+  }
+  return buildTabelaCartao({
+    adquirente: config.adquirente,
+    prazoRecebimento: config.prazoRecebimento,
+    faixaFaturamento: config.faixaFaturamento,
+    tonTotais: config.tonTotais as LinhasTon | null,
+    taxaMensalPagSeguro: config.taxaMensalPagSeguro,
+    taxaMensalFallback: config.taxaCartaoMensal,
+  });
+}
+
+/** PIX = base; à vista = total 12× cartão; 12×/18×/21× pela tabela da maquininha. */
 export function calcularPrecosProposta(totalFinal: number, config: ReturnType<typeof normalizePropostaConfig>) {
-  return calcularPrecosDePix(totalFinal, config.fatorParcelado, config.taxaCartaoMensal);
+  return calcularPrecosDePixComTabela(
+    totalFinal,
+    tabelaCartaoProposta(config),
+    config.fatorParcelado
+  );
 }
 
 export function calcularPdespesaProposta(pcusto: number, config: ReturnType<typeof normalizePropostaConfig>) {
@@ -252,6 +317,8 @@ export function processarOrcamentosParaSistemas(
         p12x_total: orc.p12x_total ?? precos.p12x_total,
         p18x_parcela: orc.p18x_parcela ?? precos.p18x_parcela,
         p18x_total: orc.p18x_total ?? precos.p18x_total,
+        p21x_parcela: orc.p21x_parcela ?? precos.p21x_parcela,
+        p21x_total: orc.p21x_total ?? precos.p21x_total,
         geracaoMensal: orc.geracaoMensal,
         cobertura:
           orc.cobertura !== undefined
@@ -298,24 +365,28 @@ export function processarOrcamentosParaSistemas(
       tipo_instalacao: orc.tipo_instalacao || 'Telhado Fibrocimento',
       ...precos,
       ...performance,
+      isRecommended: false,
     };
   });
 
-  if (sistemas.length > 0) {
+  const sistemasCompletos: SistemaProcessado[] = (sistemas as SistemaProcessado[]).map((s, idx) => ({
+    ...s,
+    isRecommended: false,
+  }));
+
+  if (sistemasCompletos.length > 0) {
     let melhorIdx = 0;
-    let melhorPayback = sistemas[0].paybackMeses;
-    sistemas.forEach((s, idx) => {
+    let melhorPayback = sistemasCompletos[0].paybackMeses;
+    sistemasCompletos.forEach((s, idx) => {
       if (s.paybackMeses < melhorPayback && s.paybackMeses > 0 && s.paybackMeses !== Infinity) {
         melhorPayback = s.paybackMeses;
         melhorIdx = idx;
       }
     });
-    sistemas.forEach((s, idx) => {
-      s.isRecommended = idx === melhorIdx;
-    });
+    sistemasCompletos[melhorIdx].isRecommended = true;
   }
 
-  return sistemas;
+  return sistemasCompletos;
 }
 
 /** Monta PropostaData no formato esperado pelo templateEngine (Gerador Rápido) */
@@ -355,6 +426,8 @@ export function buildPropostaTemplateData(
     p12x_total: sistema.p12x_total,
     p18x_parcela: sistema.p18x_parcela,
     p18x_total: sistema.p18x_total,
+    p21x_parcela: sistema.p21x_parcela,
+    p21x_total: sistema.p21x_total,
     precoRiscado: formatBRL(sistema.priscado),
     precoAtual: formatBRL(sistema.pavista),
     tagDesconto: tagEconomiaPix(sistema.ppix, sistema.pavista),
@@ -422,5 +495,17 @@ export function buildPropostaTemplateData(
       'Oferta especial por tempo limitado! Orçamento válido por 2 dias ou até acabar o estoque.',
     dataGeracao: dataAtual,
     dataValidade: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+    // Tabela de cartão vigente — usada no modal "Outras formas de pagamento"
+    cartao: (() => {
+      const tabela = tabelaCartaoProposta(config);
+      return {
+        adquirente: config.adquirente,
+        prazoRecebimento: config.prazoRecebimento,
+        faixaFaturamento: config.faixaFaturamento,
+        jurosParcelaPercent: tabela.jurosParcelaPercent,
+        maxParcelas: tabela.maxParcelas,
+        taxaCartaoMensal: tabela.taxaMensal12x,
+      };
+    })(),
   };
 }

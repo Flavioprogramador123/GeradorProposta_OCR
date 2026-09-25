@@ -1,33 +1,57 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { formatBRL } from '@/lib/formatBRL';
 import {
-  PARCELAS_CARTAO_EXIBIDAS,
   PARCELAS_REFERENCIA_AVISTA,
+  buildTabelaCartao,
   calcularParcelamentoCartao,
-  listarParcelasCartao,
+  condicoesCartao,
+  opcoesSeletorCartao,
+  parcelasDisponiveis,
+  type TabelaCartao,
 } from '@/lib/tabelaJurosCartao';
 
 interface FormasPagamentoModalProps {
   open: boolean;
   pix: number;
   onClose: () => void;
-  /** Taxa mensal maquininha (% a.m.), padrão 1,51 */
-  taxaCartaoMensal?: number;
+  /**
+   * Tabela da maquininha vigente (Ton/PagSeguro).
+   * Sem ela, cai no fallback calibrado.
+   */
+  tabela?: TabelaCartao;
+  /** Juros % por parcela (alternativa a `tabela`) */
+  jurosParcelaPercent?: Record<number, number> | null;
 }
 
 export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
   open,
   pix,
   onClose,
-  taxaCartaoMensal,
+  tabela,
+  jurosParcelaPercent,
 }) => {
   const [entrada, setEntrada] = useState(0);
   const [parcelas, setParcelas] = useState(PARCELAS_REFERENCIA_AVISTA);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
+
+  const tabelaCartao = useMemo<TabelaCartao>(() => {
+    if (tabela) return tabela;
+    if (jurosParcelaPercent && Object.keys(jurosParcelaPercent).length) {
+      return buildTabelaCartao({ tonTotais: jurosParcelaPercent });
+    }
+    return buildTabelaCartao();
+  }, [tabela, jurosParcelaPercent]);
+
+  const opcoes = useMemo(
+    () => (mostrarTodas ? parcelasDisponiveis(tabelaCartao) : opcoesSeletorCartao(tabelaCartao)),
+    [tabelaCartao, mostrarTodas]
+  );
 
   useEffect(() => {
     if (!open) return;
     setEntrada(0);
     setParcelas(PARCELAS_REFERENCIA_AVISTA);
+    setMostrarTodas(false);
   }, [open, pix]);
 
   useEffect(() => {
@@ -46,15 +70,22 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
   const selecionado = useMemo(
     () =>
       financiado > 0
-        ? calcularParcelamentoCartao(financiado, parcelas, taxaCartaoMensal)
+        ? calcularParcelamentoCartao(financiado, parcelas, tabelaCartao)
         : null,
-    [financiado, parcelas, taxaCartaoMensal]
+    [financiado, parcelas, tabelaCartao]
   );
 
-  const tabela = useMemo(
-    () => (financiado > 0 ? listarParcelasCartao(financiado, taxaCartaoMensal) : []),
-    [financiado, taxaCartaoMensal]
+  const linhasTabela = useMemo(
+    () => (financiado > 0 ? condicoesCartao(financiado, tabelaCartao) : []),
+    [financiado, tabelaCartao]
   );
+
+  const tabelaVisivel = useMemo(() => {
+    if (!linhasTabela.length) return [];
+    if (mostrarTodas) return linhasTabela;
+    const destaques = new Set(opcoesSeletorCartao(tabelaCartao));
+    return linhasTabela.filter((row) => destaques.has(row.parcelas));
+  }, [linhasTabela, mostrarTodas, tabelaCartao]);
 
   if (!open) return null;
 
@@ -123,7 +154,7 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
               className="border border-slate-300 rounded-lg px-3 py-2.5 text-base"
               onChange={(e) => setParcelas(Number(e.target.value) || PARCELAS_REFERENCIA_AVISTA)}
             >
-              {PARCELAS_CARTAO_EXIBIDAS.map((n) => (
+              {opcoes.map((n) => (
                 <option key={n} value={n}>
                   {n}×
                 </option>
@@ -152,7 +183,7 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
             )}
           </div>
 
-          {tabela.length > 0 && (
+          {tabelaVisivel.length > 0 && (
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
@@ -161,7 +192,7 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {tabela.map((row) => (
+                {tabelaVisivel.map((row) => (
                   <tr
                     key={row.parcelas}
                     className={row.parcelas === parcelas ? 'bg-emerald-50' : undefined}
@@ -178,10 +209,19 @@ export const FormasPagamentoModal: React.FC<FormasPagamentoModalProps> = ({
             </table>
           )}
 
-          <p className="text-xs text-slate-500 mt-2">
-            PIX é a condição à vista mais vantajosa. Cartão em{' '}
-            {PARCELAS_CARTAO_EXIBIDAS.map((n) => `${n}×`).join(', ')}.
-          </p>
+          <div className="flex items-center justify-between gap-3 mt-2">
+            <p className="text-xs text-slate-500 m-0">
+              PIX é a condição à vista mais vantajosa. Cartão em até{' '}
+              {tabelaCartao.maxParcelas}×.
+            </p>
+            <button
+              type="button"
+              className="text-xs text-teal-700 underline shrink-0"
+              onClick={() => setMostrarTodas((v) => !v)}
+            >
+              {mostrarTodas ? 'Ver principais' : `Ver todas (${tabelaCartao.maxParcelas})`}
+            </button>
+          </div>
         </div>
       </div>
     </div>

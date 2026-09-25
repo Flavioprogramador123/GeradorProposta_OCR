@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -9,7 +9,11 @@ import {
   calcularPerformanceCompleta,
 } from '@/lib/calcularPerformance';
 import { buildPropostaPdfUrl } from '@/lib/propostaPdf';
-import { calcularPrecosDePix } from '@/lib/tabelaJurosCartao';
+import {
+  buildTabelaCartao,
+  calcularPrecosDePix,
+  calcularPrecosDePixComTabela,
+} from '@/lib/tabelaJurosCartao';
 import {
   applyConfigRapidaToGerador,
   pickDefinedConfigRapida,
@@ -868,13 +872,26 @@ export default function GeradorRapido() {
     }
   }, [router.isReady, router.query.cliente, router.query.modo, router.query.voltar, configRapidaReady]);
 
-  // PIX = base; à vista = total 12× cartão; parcelas pela taxa mensal configurada
+  // PIX = base; à vista = total 12× cartão; parcelas pela tabela da maquininha vigente
+  const taxaCartaoInput = useMemo(
+    () => ({
+      adquirente: configSistema?.adquirente ?? null,
+      tonTotais: configSistema?.tonTotais ?? null,
+      prazoRecebimento: configSistema?.prazoRecebimento ?? null,
+      faixaFaturamento: configSistema?.faixaFaturamento ?? null,
+      taxaMensalPagSeguro: configSistema?.taxaMensalPagSeguro ?? null,
+      taxaMensalFallback: configSistema?.taxaCartaoMensal ?? null,
+    }),
+    [configSistema]
+  );
+
   const calcularPrecos = (totalFinalTabela: number) => {
     const markup = configSistema?.fatorParcelado || config.fatorParcelado || 1.20;
-    const taxa =
-      Number(configSistema?.taxaCartaoMensal ?? (config as { taxaCartaoMensal?: number }).taxaCartaoMensal ?? 1.51) ||
-      1.51;
-    return calcularPrecosDePix(totalFinalTabela, markup, taxa);
+    return calcularPrecosDePixComTabela(
+      totalFinalTabela,
+      buildTabelaCartao(taxaCartaoInput),
+      markup
+    );
   };
 
   // Função para calcular performance
